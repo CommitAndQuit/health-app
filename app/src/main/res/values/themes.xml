@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme -->
+    <style name="Theme.BioTrace" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Primary colors -->
+        <item name="android:colorPrimary">@color/primary</item>
+        <item name="android:colorPrimaryDark">@color/primary_dark</item>
+        <item name="android:colorAccent">@color/tertiary</item>
+        
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/background</item>
+        <item name="android:windowBackground">@color/background</item>
+        
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        
+        <!-- Navigation bar -->
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        
+        <!-- Ripple effect -->
+        <item name="android:colorControlHighlight">@color/primary_light</item>
+        
+        <!-- Text colors -->
+        <item name="android:textColorPrimary">@color/on_background</item>
+        <item name="android:textColorSecondary">@color/on_surface_variant</item>
+    </style>
+
+    <!-- Dark theme -->
+    <style name="Theme.BioTrace.Dark" parent="android:Theme.Material.NoActionBar">
+        <!-- Primary colors -->
+        <item name="android:colorPrimary">@color/primary_light</item>
+        <item name="android:colorPrimaryDark">@color/primary_dark</item>
+        <item name="android:colorAccent">@color/tertiary_light</item>
+        
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/background_dark</item>
+        <item name="android:windowBackground">@color/background_dark</item>
+        
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/background_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+        
+        <!-- Navigation bar -->
+        <item name="android:navigationBarColor">@color/background_dark</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        
+        <!-- Ripple effect -->
+        <item name="android:colorControlHighlight">@color/tertiary</item>
+        
+        <!-- Text colors -->
+        <item name="android:textColorPrimary">@color/on_background_dark</item>
+        <item name="android:textColorSecondary">@color/on_surface_variant_dark</item>
+    </style>
+</resources>

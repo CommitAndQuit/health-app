@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Color scheme follows Material 3 guidelines -->
+    
+    <!-- Primary colors - Health/Wellness themed (Teal/Cyan) -->
+    <color name="primary">#006B5A</color>
+    <color name="primary_dark">#004D40</color>
+    <color name="primary_light">#4DB6AC</color>
+    <color name="primary_variant">#004D40</color>
+    
+    <!-- Secondary colors -->
+    <color name="secondary">#00897B</color>
+    <color name="secondary_dark">#005B4F</color>
+    <color name="secondary_light">#4DB6AC</color>
+    <color name="secondary_variant">#005B4F</color>
+    
+    <!-- Tertiary colors (Accent) -->
+    <color name="tertiary">#26A69A</color>
+    <color name="tertiary_dark">#00796B</color>
+    <color name="tertiary_light">#80CBC4</color>
+    
+    <!-- Background colors -->
+    <color name="background">#FAFDFB</color>
+    <color name="background_dark">#121212</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_dark">#1E1E1E</color>
+    <color name="surface_variant">#E0F2F1</color>
+    <color name="surface_variant_dark">#1E3A35</color>
+    
+    <!-- Text colors -->
+    <color name="on_primary">#FFFFFF</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="on_tertiary">#FFFFFF</color>
+    <color name="on_background">#1C1B1F</color>
+    <color name="on_background_dark">#E6E1E5</color>
+    <color name="on_surface">#1C1B1F</color>
+    <color name="on_surface_dark">#E6E1E5</color>
+    <color name="on_surface_variant">#49454F</color>
+    <color name="on_surface_variant_dark">#CAC4D0</color>
+    
+    <!-- Status colors -->
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FF9800</color>
+    <color name="error">#B3261E</color>
+    <color name="error_dark">#F2B8B5</color>
+    <color name="info">#2196F3</color>
+    
+    <!-- Metric colors -->
+    <color name="metric_heart_rate">#E53935</color>
+    <color name="metric_hrv">#7E57C2</color>
+    <color name="metric_steps">#43A047</color>
+    <color name="metric_sleep">#5C6BC0</color>
+    <color name="metric_calories">#FF7043</color>
+    <color name="metric_spo2">#29B6F6</color>
+    
+    <!-- Chart colors -->
+    <color name="chart_line_primary">#006B5A</color>
+    <color name="chart_line_secondary">#26A69A</color>
+    <color name="chart_grid">#E0E0E0</color>
+    <color name="chart_grid_dark">#424242</color>
+    <color name="chart_background">#FFFFFF</color>
+    <color name="chart_background_dark">#1E1E1E</color>
+    
+    <!-- Sleep stages -->
+    <color name="sleep_deep">#1A237E</color>
+    <color name="sleep_light">#3F51B5</color>
+    <color name="sleep_rem">#7986CB</color>
+    <color name="sleep_awake">#FF5252</color>
+    
+    <!-- Outline -->
+    <color name="outline">#79747E</color>
+    <color name="outline_dark">#938F99</color>
+    <color name="outline_variant">#CAC4D0</color>
+    <color name="outline_variant_dark">#49454F</color>
+    
+    <!-- Other -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+    <color name="scrim">#52000000</color>
+</resources>

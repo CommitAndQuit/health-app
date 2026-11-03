@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "io.biotrace.app-debug-71:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "io.biotrace.app-main-73:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "io.biotrace.app-debug-71:/xml_data_extraction_rules.xml.flat",
+        "source": "io.biotrace.app-main-73:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "io.biotrace.app-debug-71:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "io.biotrace.app-main-73:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "io.biotrace.app-debug-71:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "io.biotrace.app-main-73:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    }
+]
