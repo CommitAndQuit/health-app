@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.biotrace.app.ui.labs.LabsViewModelTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-03T09:51:34" hostname="bhaskar-ZenBook-UX462DA" time="0.021">
+  <properties/>
+  <testcase name="loadBiomarkers populates biomarkers and detects anomalies" classname="io.biotrace.app.ui.labs.LabsViewModelTest" time="0.01"/>
+  <testcase name="addManualBiomarker inserts into dao with calculated flag" classname="io.biotrace.app.ui.labs.LabsViewModelTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

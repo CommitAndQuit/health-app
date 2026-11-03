@@ -54,6 +54,16 @@ class VitalsRepositoryImpl @Inject constructor(
         return vitalsDao.getLatestRecordFlow(metricType).map { it?.toDomain() }
     }
 
+    override suspend fun getRecentRecords(metricType: String, limit: Int): List<VitalPoint> {
+        return vitalsDao.getRecentRecords(metricType, limit).map { it.toDomain() }
+    }
+
+    override fun getRecentRecordsFlow(metricType: String, limit: Int): Flow<List<VitalPoint>> {
+        return vitalsDao.getRecentRecordsFlow(metricType, limit).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     override suspend fun syncFromHealthConnect(days: Long): SyncResult {
         return syncService.syncAll(days)
     }

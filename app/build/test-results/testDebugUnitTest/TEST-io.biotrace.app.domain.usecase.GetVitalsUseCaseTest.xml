@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.biotrace.app.domain.usecase.GetVitalsUseCaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-03T08:33:57" hostname="bhaskar-ZenBook-UX462DA" time="0.008">
+<testsuite name="io.biotrace.app.domain.usecase.GetVitalsUseCaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-03T09:51:34" hostname="bhaskar-ZenBook-UX462DA" time="0.005">
   <properties/>
-  <testcase name="testGetVitalsFlow" classname="io.biotrace.app.domain.usecase.GetVitalsUseCaseTest" time="0.006"/>
-  <testcase name="testGetLatest" classname="io.biotrace.app.domain.usecase.GetVitalsUseCaseTest" time="0.002"/>
+  <testcase name="testGetVitalsFlow" classname="io.biotrace.app.domain.usecase.GetVitalsUseCaseTest" time="0.004"/>
+  <testcase name="testGetLatest" classname="io.biotrace.app.domain.usecase.GetVitalsUseCaseTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -211,7 +211,9 @@ fun HealthConnectPermissionScreen(
                             "Daily Steps & Cadence" to "android.permission.health.READ_STEPS",
                             "Sleep Architecture (Deep, REM, Light)" to "android.permission.health.READ_SLEEP",
                             "Active Calories Burned" to "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
-                            "Blood Oxygen Saturation (SpO2)" to "android.permission.health.READ_OXYGEN_SATURATION"
+                            "Blood Oxygen Saturation (SpO2)" to "android.permission.health.READ_OXYGEN_SATURATION",
+                            "Body Weight & Composition" to "android.permission.health.READ_WEIGHT",
+                            "Body Fat Percentage" to "android.permission.health.READ_BODY_FAT"
                         )
 
                         items(permissionsList) { (title, permKey) ->

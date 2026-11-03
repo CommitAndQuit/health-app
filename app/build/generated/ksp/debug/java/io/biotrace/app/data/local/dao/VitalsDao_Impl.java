@@ -599,6 +599,167 @@ public final class VitalsDao_Impl implements VitalsDao {
     }, $completion);
   }
 
+  @Override
+  public Object getRecentRecords(final String metricType, final int limit,
+      final Continuation<? super List<VitalsRecordEntity>> $completion) {
+    final String _sql = "\n"
+            + "        SELECT * FROM vitals_records \n"
+            + "        WHERE metric_type = ? \n"
+            + "        ORDER BY timestamp DESC \n"
+            + "        LIMIT ?\n"
+            + "        ";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 2);
+    int _argIndex = 1;
+    _statement.bindString(_argIndex, metricType);
+    _argIndex = 2;
+    _statement.bindLong(_argIndex, limit);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<List<VitalsRecordEntity>>() {
+      @Override
+      @NonNull
+      public List<VitalsRecordEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfMetricType = CursorUtil.getColumnIndexOrThrow(_cursor, "metric_type");
+          final int _cursorIndexOfValue = CursorUtil.getColumnIndexOrThrow(_cursor, "value");
+          final int _cursorIndexOfUnit = CursorUtil.getColumnIndexOrThrow(_cursor, "unit");
+          final int _cursorIndexOfTimestamp = CursorUtil.getColumnIndexOrThrow(_cursor, "timestamp");
+          final int _cursorIndexOfSource = CursorUtil.getColumnIndexOrThrow(_cursor, "source");
+          final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "created_at");
+          final List<VitalsRecordEntity> _result = new ArrayList<VitalsRecordEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final VitalsRecordEntity _item;
+            final String _tmpId;
+            _tmpId = _cursor.getString(_cursorIndexOfId);
+            final String _tmpMetricType;
+            _tmpMetricType = _cursor.getString(_cursorIndexOfMetricType);
+            final double _tmpValue;
+            _tmpValue = _cursor.getDouble(_cursorIndexOfValue);
+            final String _tmpUnit;
+            _tmpUnit = _cursor.getString(_cursorIndexOfUnit);
+            final Instant _tmpTimestamp;
+            final Long _tmp;
+            if (_cursor.isNull(_cursorIndexOfTimestamp)) {
+              _tmp = null;
+            } else {
+              _tmp = _cursor.getLong(_cursorIndexOfTimestamp);
+            }
+            final Instant _tmp_1 = __converters.toInstant(_tmp);
+            if (_tmp_1 == null) {
+              throw new IllegalStateException("Expected NON-NULL 'java.time.Instant', but it was NULL.");
+            } else {
+              _tmpTimestamp = _tmp_1;
+            }
+            final String _tmpSource;
+            _tmpSource = _cursor.getString(_cursorIndexOfSource);
+            final Instant _tmpCreatedAt;
+            final Long _tmp_2;
+            if (_cursor.isNull(_cursorIndexOfCreatedAt)) {
+              _tmp_2 = null;
+            } else {
+              _tmp_2 = _cursor.getLong(_cursorIndexOfCreatedAt);
+            }
+            final Instant _tmp_3 = __converters.toInstant(_tmp_2);
+            if (_tmp_3 == null) {
+              throw new IllegalStateException("Expected NON-NULL 'java.time.Instant', but it was NULL.");
+            } else {
+              _tmpCreatedAt = _tmp_3;
+            }
+            _item = new VitalsRecordEntity(_tmpId,_tmpMetricType,_tmpValue,_tmpUnit,_tmpTimestamp,_tmpSource,_tmpCreatedAt);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Flow<List<VitalsRecordEntity>> getRecentRecordsFlow(final String metricType,
+      final int limit) {
+    final String _sql = "\n"
+            + "        SELECT * FROM vitals_records \n"
+            + "        WHERE metric_type = ? \n"
+            + "        ORDER BY timestamp DESC \n"
+            + "        LIMIT ?\n"
+            + "        ";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 2);
+    int _argIndex = 1;
+    _statement.bindString(_argIndex, metricType);
+    _argIndex = 2;
+    _statement.bindLong(_argIndex, limit);
+    return CoroutinesRoom.createFlow(__db, false, new String[] {"vitals_records"}, new Callable<List<VitalsRecordEntity>>() {
+      @Override
+      @NonNull
+      public List<VitalsRecordEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfMetricType = CursorUtil.getColumnIndexOrThrow(_cursor, "metric_type");
+          final int _cursorIndexOfValue = CursorUtil.getColumnIndexOrThrow(_cursor, "value");
+          final int _cursorIndexOfUnit = CursorUtil.getColumnIndexOrThrow(_cursor, "unit");
+          final int _cursorIndexOfTimestamp = CursorUtil.getColumnIndexOrThrow(_cursor, "timestamp");
+          final int _cursorIndexOfSource = CursorUtil.getColumnIndexOrThrow(_cursor, "source");
+          final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "created_at");
+          final List<VitalsRecordEntity> _result = new ArrayList<VitalsRecordEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final VitalsRecordEntity _item;
+            final String _tmpId;
+            _tmpId = _cursor.getString(_cursorIndexOfId);
+            final String _tmpMetricType;
+            _tmpMetricType = _cursor.getString(_cursorIndexOfMetricType);
+            final double _tmpValue;
+            _tmpValue = _cursor.getDouble(_cursorIndexOfValue);
+            final String _tmpUnit;
+            _tmpUnit = _cursor.getString(_cursorIndexOfUnit);
+            final Instant _tmpTimestamp;
+            final Long _tmp;
+            if (_cursor.isNull(_cursorIndexOfTimestamp)) {
+              _tmp = null;
+            } else {
+              _tmp = _cursor.getLong(_cursorIndexOfTimestamp);
+            }
+            final Instant _tmp_1 = __converters.toInstant(_tmp);
+            if (_tmp_1 == null) {
+              throw new IllegalStateException("Expected NON-NULL 'java.time.Instant', but it was NULL.");
+            } else {
+              _tmpTimestamp = _tmp_1;
+            }
+            final String _tmpSource;
+            _tmpSource = _cursor.getString(_cursorIndexOfSource);
+            final Instant _tmpCreatedAt;
+            final Long _tmp_2;
+            if (_cursor.isNull(_cursorIndexOfCreatedAt)) {
+              _tmp_2 = null;
+            } else {
+              _tmp_2 = _cursor.getLong(_cursorIndexOfCreatedAt);
+            }
+            final Instant _tmp_3 = __converters.toInstant(_tmp_2);
+            if (_tmp_3 == null) {
+              throw new IllegalStateException("Expected NON-NULL 'java.time.Instant', but it was NULL.");
+            } else {
+              _tmpCreatedAt = _tmp_3;
+            }
+            _item = new VitalsRecordEntity(_tmpId,_tmpMetricType,_tmpValue,_tmpUnit,_tmpTimestamp,_tmpSource,_tmpCreatedAt);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+        }
+      }
+
+      @Override
+      protected void finalize() {
+        _statement.release();
+      }
+    });
+  }
+
   @NonNull
   public static List<Class<?>> getRequiredConverters() {
     return Collections.emptyList();

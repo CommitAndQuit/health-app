@@ -70,6 +70,26 @@ interface VitalsDao {
     @Query("SELECT * FROM vitals_records ORDER BY timestamp DESC")
     suspend fun getAllRecords(): List<VitalsRecordEntity>
 
+    @Query(
+        """
+        SELECT * FROM vitals_records 
+        WHERE metric_type = :metricType 
+        ORDER BY timestamp DESC 
+        LIMIT :limit
+        """
+    )
+    suspend fun getRecentRecords(metricType: String, limit: Int = 20): List<VitalsRecordEntity>
+
+    @Query(
+        """
+        SELECT * FROM vitals_records 
+        WHERE metric_type = :metricType 
+        ORDER BY timestamp DESC 
+        LIMIT :limit
+        """
+    )
+    fun getRecentRecordsFlow(metricType: String, limit: Int = 20): Flow<List<VitalsRecordEntity>>
+
     @Query("DELETE FROM vitals_records WHERE timestamp < :cutoff")
     suspend fun deleteOlderThan(cutoff: Instant): Int
 

@@ -56,6 +56,10 @@ import io.biotrace.app.ui.chat.ChatViewModel;
 import io.biotrace.app.ui.chat.ChatViewModel_HiltModules;
 import io.biotrace.app.ui.dashboard.DashboardViewModel;
 import io.biotrace.app.ui.dashboard.DashboardViewModel_HiltModules;
+import io.biotrace.app.ui.labs.LabsViewModel;
+import io.biotrace.app.ui.labs.LabsViewModel_HiltModules;
+import io.biotrace.app.ui.nutrition.FoodScanViewModel;
+import io.biotrace.app.ui.nutrition.FoodScanViewModel_HiltModules;
 import io.biotrace.app.ui.permissions.PermissionsViewModel;
 import io.biotrace.app.ui.permissions.PermissionsViewModel_HiltModules;
 import io.biotrace.app.ui.settings.SettingsViewModel;
@@ -393,7 +397,7 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
 
     @Override
     public Map<Class<?>, Boolean> getViewModelKeys() {
-      return LazyClassKeyMap.<Boolean>of(ImmutableMap.<String, Boolean>of(LazyClassKeyProvider.io_biotrace_app_ui_chat_ChatViewModel, ChatViewModel_HiltModules.KeyModule.provide(), LazyClassKeyProvider.io_biotrace_app_ui_dashboard_DashboardViewModel, DashboardViewModel_HiltModules.KeyModule.provide(), LazyClassKeyProvider.io_biotrace_app_ui_permissions_PermissionsViewModel, PermissionsViewModel_HiltModules.KeyModule.provide(), LazyClassKeyProvider.io_biotrace_app_ui_settings_SettingsViewModel, SettingsViewModel_HiltModules.KeyModule.provide()));
+      return LazyClassKeyMap.<Boolean>of(ImmutableMap.<String, Boolean>builderWithExpectedSize(6).put(LazyClassKeyProvider.io_biotrace_app_ui_chat_ChatViewModel, ChatViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.io_biotrace_app_ui_dashboard_DashboardViewModel, DashboardViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.io_biotrace_app_ui_nutrition_FoodScanViewModel, FoodScanViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.io_biotrace_app_ui_labs_LabsViewModel, LabsViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.io_biotrace_app_ui_permissions_PermissionsViewModel, PermissionsViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.io_biotrace_app_ui_settings_SettingsViewModel, SettingsViewModel_HiltModules.KeyModule.provide()).build());
     }
 
     @Override
@@ -417,25 +421,35 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String io_biotrace_app_ui_permissions_PermissionsViewModel = "io.biotrace.app.ui.permissions.PermissionsViewModel";
-
-      static String io_biotrace_app_ui_dashboard_DashboardViewModel = "io.biotrace.app.ui.dashboard.DashboardViewModel";
+      static String io_biotrace_app_ui_labs_LabsViewModel = "io.biotrace.app.ui.labs.LabsViewModel";
 
       static String io_biotrace_app_ui_settings_SettingsViewModel = "io.biotrace.app.ui.settings.SettingsViewModel";
 
       static String io_biotrace_app_ui_chat_ChatViewModel = "io.biotrace.app.ui.chat.ChatViewModel";
 
-      @KeepFieldType
-      PermissionsViewModel io_biotrace_app_ui_permissions_PermissionsViewModel2;
+      static String io_biotrace_app_ui_nutrition_FoodScanViewModel = "io.biotrace.app.ui.nutrition.FoodScanViewModel";
+
+      static String io_biotrace_app_ui_permissions_PermissionsViewModel = "io.biotrace.app.ui.permissions.PermissionsViewModel";
+
+      static String io_biotrace_app_ui_dashboard_DashboardViewModel = "io.biotrace.app.ui.dashboard.DashboardViewModel";
 
       @KeepFieldType
-      DashboardViewModel io_biotrace_app_ui_dashboard_DashboardViewModel2;
+      LabsViewModel io_biotrace_app_ui_labs_LabsViewModel2;
 
       @KeepFieldType
       SettingsViewModel io_biotrace_app_ui_settings_SettingsViewModel2;
 
       @KeepFieldType
       ChatViewModel io_biotrace_app_ui_chat_ChatViewModel2;
+
+      @KeepFieldType
+      FoodScanViewModel io_biotrace_app_ui_nutrition_FoodScanViewModel2;
+
+      @KeepFieldType
+      PermissionsViewModel io_biotrace_app_ui_permissions_PermissionsViewModel2;
+
+      @KeepFieldType
+      DashboardViewModel io_biotrace_app_ui_dashboard_DashboardViewModel2;
     }
   }
 
@@ -449,6 +463,10 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
     private Provider<ChatViewModel> chatViewModelProvider;
 
     private Provider<DashboardViewModel> dashboardViewModelProvider;
+
+    private Provider<FoodScanViewModel> foodScanViewModelProvider;
+
+    private Provider<LabsViewModel> labsViewModelProvider;
 
     private Provider<PermissionsViewModel> permissionsViewModelProvider;
 
@@ -469,13 +487,15 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
         final ViewModelLifecycle viewModelLifecycleParam) {
       this.chatViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 0);
       this.dashboardViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 1);
-      this.permissionsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 2);
-      this.settingsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 3);
+      this.foodScanViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 2);
+      this.labsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 3);
+      this.permissionsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 4);
+      this.settingsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 5);
     }
 
     @Override
     public Map<Class<?>, javax.inject.Provider<ViewModel>> getHiltViewModelMap() {
-      return LazyClassKeyMap.<javax.inject.Provider<ViewModel>>of(ImmutableMap.<String, javax.inject.Provider<ViewModel>>of(LazyClassKeyProvider.io_biotrace_app_ui_chat_ChatViewModel, ((Provider) chatViewModelProvider), LazyClassKeyProvider.io_biotrace_app_ui_dashboard_DashboardViewModel, ((Provider) dashboardViewModelProvider), LazyClassKeyProvider.io_biotrace_app_ui_permissions_PermissionsViewModel, ((Provider) permissionsViewModelProvider), LazyClassKeyProvider.io_biotrace_app_ui_settings_SettingsViewModel, ((Provider) settingsViewModelProvider)));
+      return LazyClassKeyMap.<javax.inject.Provider<ViewModel>>of(ImmutableMap.<String, javax.inject.Provider<ViewModel>>builderWithExpectedSize(6).put(LazyClassKeyProvider.io_biotrace_app_ui_chat_ChatViewModel, ((Provider) chatViewModelProvider)).put(LazyClassKeyProvider.io_biotrace_app_ui_dashboard_DashboardViewModel, ((Provider) dashboardViewModelProvider)).put(LazyClassKeyProvider.io_biotrace_app_ui_nutrition_FoodScanViewModel, ((Provider) foodScanViewModelProvider)).put(LazyClassKeyProvider.io_biotrace_app_ui_labs_LabsViewModel, ((Provider) labsViewModelProvider)).put(LazyClassKeyProvider.io_biotrace_app_ui_permissions_PermissionsViewModel, ((Provider) permissionsViewModelProvider)).put(LazyClassKeyProvider.io_biotrace_app_ui_settings_SettingsViewModel, ((Provider) settingsViewModelProvider)).build());
     }
 
     @Override
@@ -485,25 +505,35 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String io_biotrace_app_ui_dashboard_DashboardViewModel = "io.biotrace.app.ui.dashboard.DashboardViewModel";
-
-      static String io_biotrace_app_ui_chat_ChatViewModel = "io.biotrace.app.ui.chat.ChatViewModel";
+      static String io_biotrace_app_ui_labs_LabsViewModel = "io.biotrace.app.ui.labs.LabsViewModel";
 
       static String io_biotrace_app_ui_permissions_PermissionsViewModel = "io.biotrace.app.ui.permissions.PermissionsViewModel";
 
+      static String io_biotrace_app_ui_nutrition_FoodScanViewModel = "io.biotrace.app.ui.nutrition.FoodScanViewModel";
+
+      static String io_biotrace_app_ui_dashboard_DashboardViewModel = "io.biotrace.app.ui.dashboard.DashboardViewModel";
+
       static String io_biotrace_app_ui_settings_SettingsViewModel = "io.biotrace.app.ui.settings.SettingsViewModel";
 
-      @KeepFieldType
-      DashboardViewModel io_biotrace_app_ui_dashboard_DashboardViewModel2;
+      static String io_biotrace_app_ui_chat_ChatViewModel = "io.biotrace.app.ui.chat.ChatViewModel";
 
       @KeepFieldType
-      ChatViewModel io_biotrace_app_ui_chat_ChatViewModel2;
+      LabsViewModel io_biotrace_app_ui_labs_LabsViewModel2;
 
       @KeepFieldType
       PermissionsViewModel io_biotrace_app_ui_permissions_PermissionsViewModel2;
 
       @KeepFieldType
+      FoodScanViewModel io_biotrace_app_ui_nutrition_FoodScanViewModel2;
+
+      @KeepFieldType
+      DashboardViewModel io_biotrace_app_ui_dashboard_DashboardViewModel2;
+
+      @KeepFieldType
       SettingsViewModel io_biotrace_app_ui_settings_SettingsViewModel2;
+
+      @KeepFieldType
+      ChatViewModel io_biotrace_app_ui_chat_ChatViewModel2;
     }
 
     private static final class SwitchingProvider<T> implements Provider<T> {
@@ -531,12 +561,18 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
           return (T) new ChatViewModel(singletonCImpl.healthAgentProvider.get(), singletonCImpl.chatRepositoryImplProvider.get(), singletonCImpl.geminiClientProvider.get());
 
           case 1: // io.biotrace.app.ui.dashboard.DashboardViewModel 
-          return (T) new DashboardViewModel(singletonCImpl.vitalsRepositoryImplProvider.get(), singletonCImpl.healthConnectManagerProvider.get());
+          return (T) new DashboardViewModel(singletonCImpl.vitalsRepositoryImplProvider.get(), singletonCImpl.vitalsDao(), singletonCImpl.healthConnectManagerProvider.get());
 
-          case 2: // io.biotrace.app.ui.permissions.PermissionsViewModel 
+          case 2: // io.biotrace.app.ui.nutrition.FoodScanViewModel 
+          return (T) new FoodScanViewModel(singletonCImpl.mealDao(), singletonCImpl.geminiClientProvider.get());
+
+          case 3: // io.biotrace.app.ui.labs.LabsViewModel 
+          return (T) new LabsViewModel(singletonCImpl.labBiomarkerDao(), singletonCImpl.geminiClientProvider.get());
+
+          case 4: // io.biotrace.app.ui.permissions.PermissionsViewModel 
           return (T) new PermissionsViewModel(singletonCImpl.healthConnectManagerProvider.get());
 
-          case 3: // io.biotrace.app.ui.settings.SettingsViewModel 
+          case 5: // io.biotrace.app.ui.settings.SettingsViewModel 
           return (T) new SettingsViewModel(singletonCImpl.settingsRepositoryImplProvider.get());
 
           default: throw new AssertionError(id);

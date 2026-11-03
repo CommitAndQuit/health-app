@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.biotrace.app.ui.nutrition.FoodScanViewModelTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-03T09:51:31" hostname="bhaskar-ZenBook-UX462DA" time="2.078">
+  <properties/>
+  <testcase name="scanFoodPhoto calls LLM with multimodal image and parses response" classname="io.biotrace.app.ui.nutrition.FoodScanViewModelTest" time="2.063"/>
+  <testcase name="loadTodayMeals accumulates calories and macronutrients accurately" classname="io.biotrace.app.ui.nutrition.FoodScanViewModelTest" time="0.006"/>
+  <testcase name="addManualMeal saves entity into mealDao" classname="io.biotrace.app.ui.nutrition.FoodScanViewModelTest" time="0.008"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

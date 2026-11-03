@@ -395,6 +395,9 @@ string nav_chat
 string nav_copilot
 string nav_dashboard
 string nav_ecg_stream
+string nav_food
+string nav_labs
+string nav_nutrition
 string nav_settings
 string nav_vitals
 string navigation_menu

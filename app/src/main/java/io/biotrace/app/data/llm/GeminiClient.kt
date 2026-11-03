@@ -77,10 +77,71 @@ class GeminiClient @Inject constructor(
         return root.toString()
     }
 
+    private fun buildRequestBodyWithImage(prompt: String, base64Image: String, mimeType: String): String {
+        val systemInstructionObj = JSONObject().apply {
+            put("parts", JSONArray().put(JSONObject().put("text", SYSTEM_INSTRUCTION)))
+        }
+
+        val partsArray = JSONArray().apply {
+            put(JSONObject().put("text", prompt))
+            put(JSONObject().apply {
+                put("inline_data", JSONObject().apply {
+                    put("mime_type", mimeType)
+                    put("data", base64Image)
+                })
+            })
+        }
+
+        val userContentObj = JSONObject().apply {
+            put("role", "user")
+            put("parts", partsArray)
+        }
+
+        val root = JSONObject().apply {
+            put("system_instruction", systemInstructionObj)
+            put("contents", JSONArray().put(userContentObj))
+            put("generationConfig", JSONObject().apply {
+                put("temperature", 0.1)
+            })
+        }
+
+        return root.toString()
+    }
+
     override suspend fun generateContent(prompt: String): String = withContext(Dispatchers.IO) {
         val apiKey = getValidApiKey()
         val url = "$BASE_URL/$MODEL_NAME:generateContent?key=$apiKey"
         val jsonBody = buildRequestBody(prompt)
+
+        val request = Request.Builder()
+            .url(url)
+            .post(jsonBody.toRequestBody("application/json".toMediaType()))
+            .build()
+
+        okHttpClient.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+
+            if (!response.isSuccessful) {
+                when (response.code) {
+                    400 -> throw LlmApiException("Invalid request format: $responseBody")
+                    401, 403 -> throw LlmApiException("Invalid Gemini API key: $responseBody")
+                    429 -> throw LlmApiException("Rate limit exceeded. Please wait a moment.")
+                    else -> throw LlmApiException("Gemini API error (${response.code}): $responseBody")
+                }
+            }
+
+            extractTextFromResponse(responseBody)
+        }
+    }
+
+    override suspend fun generateContentWithImage(
+        prompt: String,
+        base64Image: String,
+        mimeType: String
+    ): String = withContext(Dispatchers.IO) {
+        val apiKey = getValidApiKey()
+        val url = "$BASE_URL/$MODEL_NAME:generateContent?key=$apiKey"
+        val jsonBody = buildRequestBodyWithImage(prompt, base64Image, mimeType)
 
         val request = Request.Builder()
             .url(url)

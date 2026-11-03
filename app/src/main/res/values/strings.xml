@@ -6,6 +6,9 @@
     <!-- Navigation -->
     <string name="nav_dashboard">Vitals</string>
     <string name="nav_vitals">Vitals</string>
+    <string name="nav_labs">Lab Scan</string>
+    <string name="nav_food">Food Scan</string>
+    <string name="nav_nutrition">Food Scan</string>
     <string name="nav_cardiac_3d">Cardiac 3D</string>
     <string name="nav_ecg_stream">ECG Stream</string>
     <string name="nav_copilot">Copilot</string>

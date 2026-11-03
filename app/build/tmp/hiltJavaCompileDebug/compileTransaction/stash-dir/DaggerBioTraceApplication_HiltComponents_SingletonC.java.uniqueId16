@@ -421,9 +421,9 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
 
       static String io_biotrace_app_ui_settings_SettingsViewModel = "io.biotrace.app.ui.settings.SettingsViewModel";
 
-      static String io_biotrace_app_ui_dashboard_DashboardViewModel = "io.biotrace.app.ui.dashboard.DashboardViewModel";
-
       static String io_biotrace_app_ui_permissions_PermissionsViewModel = "io.biotrace.app.ui.permissions.PermissionsViewModel";
+
+      static String io_biotrace_app_ui_dashboard_DashboardViewModel = "io.biotrace.app.ui.dashboard.DashboardViewModel";
 
       @KeepFieldType
       ChatViewModel io_biotrace_app_ui_chat_ChatViewModel2;
@@ -432,10 +432,10 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
       SettingsViewModel io_biotrace_app_ui_settings_SettingsViewModel2;
 
       @KeepFieldType
-      DashboardViewModel io_biotrace_app_ui_dashboard_DashboardViewModel2;
+      PermissionsViewModel io_biotrace_app_ui_permissions_PermissionsViewModel2;
 
       @KeepFieldType
-      PermissionsViewModel io_biotrace_app_ui_permissions_PermissionsViewModel2;
+      DashboardViewModel io_biotrace_app_ui_dashboard_DashboardViewModel2;
     }
   }
 
@@ -485,13 +485,16 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
+      static String io_biotrace_app_ui_chat_ChatViewModel = "io.biotrace.app.ui.chat.ChatViewModel";
+
       static String io_biotrace_app_ui_dashboard_DashboardViewModel = "io.biotrace.app.ui.dashboard.DashboardViewModel";
 
       static String io_biotrace_app_ui_settings_SettingsViewModel = "io.biotrace.app.ui.settings.SettingsViewModel";
 
       static String io_biotrace_app_ui_permissions_PermissionsViewModel = "io.biotrace.app.ui.permissions.PermissionsViewModel";
 
-      static String io_biotrace_app_ui_chat_ChatViewModel = "io.biotrace.app.ui.chat.ChatViewModel";
+      @KeepFieldType
+      ChatViewModel io_biotrace_app_ui_chat_ChatViewModel2;
 
       @KeepFieldType
       DashboardViewModel io_biotrace_app_ui_dashboard_DashboardViewModel2;
@@ -501,9 +504,6 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
 
       @KeepFieldType
       PermissionsViewModel io_biotrace_app_ui_permissions_PermissionsViewModel2;
-
-      @KeepFieldType
-      ChatViewModel io_biotrace_app_ui_chat_ChatViewModel2;
     }
 
     private static final class SwitchingProvider<T> implements Provider<T> {
@@ -531,7 +531,7 @@ public final class DaggerBioTraceApplication_HiltComponents_SingletonC {
           return (T) new ChatViewModel(singletonCImpl.healthAgentProvider.get(), singletonCImpl.chatRepositoryImplProvider.get(), singletonCImpl.geminiClientProvider.get());
 
           case 1: // io.biotrace.app.ui.dashboard.DashboardViewModel 
-          return (T) new DashboardViewModel(singletonCImpl.vitalsRepositoryImplProvider.get(), singletonCImpl.healthConnectManagerProvider.get());
+          return (T) new DashboardViewModel(singletonCImpl.vitalsRepositoryImplProvider.get(), singletonCImpl.vitalsDao(), singletonCImpl.healthConnectManagerProvider.get());
 
           case 2: // io.biotrace.app.ui.permissions.PermissionsViewModel 
           return (T) new PermissionsViewModel(singletonCImpl.healthConnectManagerProvider.get());

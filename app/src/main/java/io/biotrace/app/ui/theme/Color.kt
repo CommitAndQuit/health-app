@@ -24,8 +24,8 @@ val HeroCardButtonSecondary = Color(0xFFE2E5EB)
 
 // Status / Indicator Colors
 val StatusGreen = Color(0xFF00E676)
-val StatusOptimalBadge = Color(0xFF222631)
-val StatusOptimalText = Color(0xFFD1D6E2)
+val StatusOptimalBadge = Color(0xFF2E1C22)
+val StatusOptimalText = Color(0xFFFF8A80)
 
 // Text Colors
 val TextWhite = Color(0xFFFFFFFF)

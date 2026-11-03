@@ -31,32 +31,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.biotrace.app.ui.theme.BioRed
-import io.biotrace.app.ui.theme.HeroCardBg
 import io.biotrace.app.ui.theme.HeroCardTextPrimary
 import io.biotrace.app.ui.theme.HeroCardTextSecondary
 import io.biotrace.app.ui.theme.HeroCardTrack
+import io.biotrace.app.ui.theme.TextMuted
 import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
 fun EkgArcGauge(
-    currentBpm: Int,
-    rhythmStatus: String,
+    currentBpm: Int?,
+    rhythmStatus: String?,
     modifier: Modifier = Modifier,
     minBpm: Int = 50,
     maxBpm: Int = 110
 ) {
-    // Normal range fraction: 70 BPM on [50, 110] is (70 - 50)/(110 - 50) = 20/60 = 0.333
-    val targetFraction = ((currentBpm - minBpm).toFloat() / (maxBpm - minBpm).toFloat())
-        .coerceIn(0.05f, 0.95f)
+    val targetFraction = if (currentBpm != null) {
+        ((currentBpm - minBpm).toFloat() / (maxBpm - minBpm).toFloat())
+            .coerceIn(0.05f, 0.95f)
+    } else {
+        0f
+    }
 
     val animatedFraction = remember { Animatable(0f) }
 
     LaunchedEffect(currentBpm) {
-        animatedFraction.animateTo(
-            targetValue = targetFraction,
-            animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing)
-        )
+        if (currentBpm != null) {
+            animatedFraction.animateTo(
+                targetValue = targetFraction,
+                animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing)
+            )
+        } else {
+            animatedFraction.snapTo(0f)
+        }
     }
 
     Column(
@@ -94,8 +101,7 @@ fun EkgArcGauge(
             contentAlignment = Alignment.Center
         ) {
             Canvas(
-                modifier = Modifier
-                    .size(240.dp, 150.dp)
+                modifier = Modifier.size(240.dp, 150.dp)
             ) {
                 val strokeWidth = 12.dp.toPx()
                 val padding = strokeWidth / 2f + 4.dp.toPx()
@@ -120,18 +126,18 @@ fun EkgArcGauge(
                     style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                 )
 
-                // Active progress gradient arc
-                val activeSweep = totalSweep * animatedFraction.value
-                val gradient = Brush.sweepGradient(
-                    colors = listOf(
-                        Color(0xFFFF8577),
-                        Color(0xFFFF5252),
-                        Color(0xFFFF3B30)
-                    ),
-                    center = Offset(size.width / 2f, topLeft.y + arcSize.height / 2f)
-                )
+                // Active progress gradient arc (only if real data present)
+                if (currentBpm != null && animatedFraction.value > 0.01f) {
+                    val activeSweep = totalSweep * animatedFraction.value
+                    val gradient = Brush.sweepGradient(
+                        colors = listOf(
+                            Color(0xFFFF8577),
+                            Color(0xFFFF5252),
+                            Color(0xFFFF3B30)
+                        ),
+                        center = Offset(size.width / 2f, topLeft.y + arcSize.height / 2f)
+                    )
 
-                if (activeSweep > 1f) {
                     drawArc(
                         brush = gradient,
                         startAngle = startAngle,
@@ -173,7 +179,7 @@ fun EkgArcGauge(
                 modifier = Modifier.padding(top = 28.dp)
             ) {
                 Text(
-                    text = "$currentBpm",
+                    text = currentBpm?.toString() ?: "--",
                     fontSize = 46.sp,
                     fontWeight = FontWeight.Bold,
                     color = HeroCardTextPrimary,
@@ -195,16 +201,16 @@ fun EkgArcGauge(
             modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
         ) {
             Surface(
-                color = BioRed,
+                color = if (currentBpm != null) BioRed else HeroCardTrack,
                 shape = CircleShape,
                 modifier = Modifier.size(7.dp)
             ) {}
             Text(
-                text = " $rhythmStatus",
+                text = " ${rhythmStatus ?: "NO RECENT READING"}",
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.8.sp,
-                color = HeroCardTextPrimary
+                color = if (currentBpm != null) HeroCardTextPrimary else TextMuted
             )
         }
     }

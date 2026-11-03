@@ -2,11 +2,13 @@ package io.biotrace.app.data.healthconnect
 
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import io.biotrace.app.data.local.dao.VitalsDao
@@ -35,8 +37,10 @@ class HealthConnectSyncService @Inject constructor(
         val sleepResult = syncSleep(startTime, endTime)
         val caloriesResult = syncCalories(startTime, endTime)
         val oxygenResult = syncOxygen(startTime, endTime)
+        val weightResult = syncWeight(startTime, endTime)
+        val bodyFatResult = syncBodyFat(startTime, endTime)
 
-        hrResult + hrvResult + stepsResult + sleepResult + caloriesResult + oxygenResult
+        hrResult + hrvResult + stepsResult + sleepResult + caloriesResult + oxygenResult + weightResult + bodyFatResult
     }
 
     suspend fun syncHeartRate(startTime: Instant, endTime: Instant): SyncResult = withContext(Dispatchers.IO) {
@@ -247,6 +251,76 @@ class HealthConnectSyncService @Inject constructor(
             SyncResult(entities.size)
         } catch (e: Exception) {
             SyncResult(0, listOf("SpO2 sync error: ${e.message}"))
+        }
+    }
+
+    suspend fun syncWeight(startTime: Instant, endTime: Instant): SyncResult = withContext(Dispatchers.IO) {
+        val client = healthConnectManager.healthConnectClient
+            ?: return@withContext SyncResult(0, listOf("Health Connect client unavailable"))
+
+        try {
+            val response = client.readRecords(
+                ReadRecordsRequest(
+                    recordType = WeightRecord::class,
+                    timeRangeFilter = TimeRangeFilter.between(startTime, endTime)
+                )
+            )
+
+            val now = Instant.now()
+            val entities = response.records.map { record ->
+                VitalsRecordEntity(
+                    id = "weight_${record.metadata.id}",
+                    metricType = "WEIGHT",
+                    value = record.weight.inKilograms,
+                    unit = "kg",
+                    timestamp = record.time,
+                    source = "HEALTH_CONNECT",
+                    createdAt = now
+                )
+            }
+
+            if (entities.isNotEmpty()) {
+                vitalsDao.insertAll(entities)
+            }
+            SyncResult(entities.size)
+        } catch (e: Exception) {
+            // Optional telemetry error shouldn't fail the whole sync
+            SyncResult(0, listOf("Weight sync: ${e.message}"))
+        }
+    }
+
+    suspend fun syncBodyFat(startTime: Instant, endTime: Instant): SyncResult = withContext(Dispatchers.IO) {
+        val client = healthConnectManager.healthConnectClient
+            ?: return@withContext SyncResult(0, listOf("Health Connect client unavailable"))
+
+        try {
+            val response = client.readRecords(
+                ReadRecordsRequest(
+                    recordType = BodyFatRecord::class,
+                    timeRangeFilter = TimeRangeFilter.between(startTime, endTime)
+                )
+            )
+
+            val now = Instant.now()
+            val entities = response.records.map { record ->
+                VitalsRecordEntity(
+                    id = "bodyfat_${record.metadata.id}",
+                    metricType = "BODY_FAT",
+                    value = record.percentage.value,
+                    unit = "%",
+                    timestamp = record.time,
+                    source = "HEALTH_CONNECT",
+                    createdAt = now
+                )
+            }
+
+            if (entities.isNotEmpty()) {
+                vitalsDao.insertAll(entities)
+            }
+            SyncResult(entities.size)
+        } catch (e: Exception) {
+            // Optional telemetry error shouldn't fail the whole sync
+            SyncResult(0, listOf("Body fat sync: ${e.message}"))
         }
     }
 }

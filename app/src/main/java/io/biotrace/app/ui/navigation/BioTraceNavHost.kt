@@ -14,11 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Biotech
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Timeline
-import androidx.compose.material3.Divider
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -28,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,10 +38,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.biotrace.app.R
-import io.biotrace.app.ui.cardiac3d.Cardiac3DScreen
 import io.biotrace.app.ui.chat.ChatScreen
 import io.biotrace.app.ui.dashboard.DashboardScreen
-import io.biotrace.app.ui.ecgstream.EcgStreamScreen
+import io.biotrace.app.ui.labs.LabsScreen
+import io.biotrace.app.ui.nutrition.FoodScanScreen
 import io.biotrace.app.ui.onboarding.OnboardingScreen
 import io.biotrace.app.ui.permissions.HealthConnectPermissionScreen
 import io.biotrace.app.ui.settings.SettingsScreen
@@ -60,8 +58,8 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(R.string.nav_vitals, Icons.Default.MonitorHeart, Screen.Vitals.route),
-    BottomNavItem(R.string.nav_cardiac_3d, Icons.Default.Shield, Screen.Cardiac3D.route),
-    BottomNavItem(R.string.nav_ecg_stream, Icons.Default.Timeline, Screen.EcgStream.route),
+    BottomNavItem(R.string.nav_labs, Icons.Default.Biotech, Screen.Labs.route),
+    BottomNavItem(R.string.nav_food, Icons.Default.Restaurant, Screen.Nutrition.route),
     BottomNavItem(R.string.nav_copilot, Icons.Default.Psychology, Screen.Copilot.route)
 )
 
@@ -192,11 +190,11 @@ fun BioTraceNavHost() {
                     }
                 )
             }
-            composable(Screen.Cardiac3D.route) {
-                Cardiac3DScreen()
+            composable(Screen.Labs.route) {
+                LabsScreen()
             }
-            composable(Screen.EcgStream.route) {
-                EcgStreamScreen()
+            composable(Screen.Nutrition.route) {
+                FoodScanScreen()
             }
             composable(Screen.Copilot.route) {
                 ChatScreen(

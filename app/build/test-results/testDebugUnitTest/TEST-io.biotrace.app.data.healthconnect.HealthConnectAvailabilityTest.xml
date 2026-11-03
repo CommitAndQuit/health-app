@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.biotrace.app.data.healthconnect.HealthConnectAvailabilityTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-03T08:33:54" hostname="bhaskar-ZenBook-UX462DA" time="0.026">
+<testsuite name="io.biotrace.app.data.healthconnect.HealthConnectAvailabilityTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-03T09:51:33" hostname="bhaskar-ZenBook-UX462DA" time="0.003">
   <properties/>
-  <testcase name="testSyncResultAddition" classname="io.biotrace.app.data.healthconnect.HealthConnectAvailabilityTest" time="0.018"/>
-  <testcase name="testAvailabilityEnumValues" classname="io.biotrace.app.data.healthconnect.HealthConnectAvailabilityTest" time="0.007"/>
+  <testcase name="testSyncResultAddition" classname="io.biotrace.app.data.healthconnect.HealthConnectAvailabilityTest" time="0.001"/>
+  <testcase name="testAvailabilityEnumValues" classname="io.biotrace.app.data.healthconnect.HealthConnectAvailabilityTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

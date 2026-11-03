@@ -10,6 +10,8 @@ interface VitalsRepository {
     suspend fun getVitalsBetween(metricType: String, startTime: Instant, endTime: Instant): List<VitalPoint>
     suspend fun getLatestValue(metricType: String): VitalPoint?
     fun getLatestValueFlow(metricType: String): Flow<VitalPoint?>
+    suspend fun getRecentRecords(metricType: String, limit: Int = 20): List<VitalPoint>
+    fun getRecentRecordsFlow(metricType: String, limit: Int = 20): Flow<List<VitalPoint>>
     suspend fun syncFromHealthConnect(days: Long = 7): SyncResult
     suspend fun clearAll()
 }

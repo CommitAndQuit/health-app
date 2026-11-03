@@ -14,5 +14,6 @@ class LlmApiException(
 interface LlmClient {
     fun generateContentStream(prompt: String): Flow<String>
     suspend fun generateContent(prompt: String): String
+    suspend fun generateContentWithImage(prompt: String, base64Image: String, mimeType: String = "image/jpeg"): String
     suspend fun isConfigured(): Boolean
 }

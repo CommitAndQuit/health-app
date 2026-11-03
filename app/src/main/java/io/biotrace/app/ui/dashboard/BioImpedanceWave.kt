@@ -13,9 +13,11 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import io.biotrace.app.ui.theme.BioRed
+import io.biotrace.app.ui.theme.DarkSurfaceBorder
 
 @Composable
 fun BioImpedanceWave(
+    hasData: Boolean,
     modifier: Modifier = Modifier,
     color: Color = BioRed
 ) {
@@ -28,9 +30,25 @@ fun BioImpedanceWave(
         val h = size.height
         val midY = h / 2f
 
+        if (!hasData) {
+            // Flat baseline indicating no telemetry received
+            drawLine(
+                color = DarkSurfaceBorder,
+                start = Offset(0f, midY),
+                end = Offset(w, midY),
+                strokeWidth = 2.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+            drawCircle(
+                color = DarkSurfaceBorder,
+                radius = 3.dp.toPx(),
+                center = Offset(w, midY)
+            )
+            return@Canvas
+        }
+
         val path = Path().apply {
             moveTo(0f, midY)
-            // S-curve matching the reference image: dip down, rise up to crest, gentle curve down
             cubicTo(
                 w * 0.25f, midY + 12.dp.toPx(),
                 w * 0.45f, midY - 14.dp.toPx(),

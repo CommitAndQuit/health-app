@@ -79,7 +79,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -90,7 +89,6 @@ import io.biotrace.app.R
 import io.biotrace.app.domain.model.MetricOverview
 import io.biotrace.app.domain.model.TimeRangeSelection
 import io.biotrace.app.ui.theme.BioRed
-import io.biotrace.app.ui.theme.BioRedBright
 import io.biotrace.app.ui.theme.DarkBackground
 import io.biotrace.app.ui.theme.DarkInputBg
 import io.biotrace.app.ui.theme.DarkSurface
@@ -129,7 +127,7 @@ fun DashboardScreen(
     if (uiState.isRecordingEkg) {
         EkgRecordDialog(
             progress = uiState.recordingProgress,
-            bpm = uiState.recordingBpm,
+            bpm = uiState.recordingBpm ?: 70,
             onCancel = { viewModel.cancelEkgRecording() }
         )
     }
@@ -184,13 +182,13 @@ fun DashboardScreen(
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Surface(
-                                    color = StatusGreen,
+                                    color = if (uiState.hasPermissions) StatusGreen else BioRed,
                                     shape = CircleShape,
                                     modifier = Modifier.size(6.dp)
                                 ) {}
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text(
-                                    text = "ON-DEVICE • AES-256",
+                                    text = if (uiState.hasPermissions) "ON-DEVICE • AES-256" else "PERMISSIONS REQUIRED",
                                     fontSize = 9.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     letterSpacing = 0.8.sp,
@@ -229,14 +227,15 @@ fun DashboardScreen(
                                 tint = TextGray,
                                 modifier = Modifier.size(22.dp)
                             )
-                            // Red unread badge dot
-                            Surface(
-                                color = BioRed,
-                                shape = CircleShape,
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .align(Alignment.TopEnd)
-                            ) {}
+                            if (uiState.lastSyncMessage != null) {
+                                Surface(
+                                    color = BioRed,
+                                    shape = CircleShape,
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .align(Alignment.TopEnd)
+                                ) {}
+                            }
                         }
                     }
 
@@ -282,7 +281,7 @@ fun DashboardScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Hello, ${uiState.userName}!",
+                            text = if (uiState.userName != null) "Hello, ${uiState.userName}!" else "Welcome to BioTrace",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
                             color = TextGray
@@ -304,7 +303,6 @@ fun DashboardScreen(
                             .clip(CircleShape)
                             .clickable { onNavigateToCopilot() }
                     ) {
-                        // Background gradient simulating professional clinician/copilot photo
                         Box(
                             modifier = Modifier
                                 .matchParentSize()
@@ -326,7 +324,6 @@ fun DashboardScreen(
                             )
                         }
 
-                        // Live red pulsing indicator badge on bottom right
                         Surface(
                             color = BioRed,
                             shape = CircleShape,
@@ -405,6 +402,17 @@ fun DashboardScreen(
                 }
             }
 
+            // Sync message if present
+            if (uiState.lastSyncMessage != null) {
+                item {
+                    Text(
+                        text = uiState.lastSyncMessage!!,
+                        fontSize = 12.sp,
+                        color = StatusGreen
+                    )
+                }
+            }
+
             // Permission banner (if permissions not granted)
             if (!uiState.hasPermissions) {
                 item {
@@ -432,7 +440,7 @@ fun DashboardScreen(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Health Connect sync is not active",
+                                text = "Grant Health Connect to import vitals",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextWhite,
                                 modifier = Modifier.weight(1f)
@@ -489,7 +497,7 @@ fun DashboardScreen(
 
                             // Timestamp
                             Text(
-                                text = uiState.ekgTimestamp.replace(" ", "\n"),
+                                text = uiState.ekgTimestamp?.replace(" ", "\n") ?: "--\n--",
                                 fontSize = 11.5.sp,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Medium,
@@ -616,7 +624,7 @@ fun DashboardScreen(
                             }
 
                             Text(
-                                text = uiState.bioImpedanceTimestamp,
+                                text = uiState.bioImpedanceTimestamp ?: "--",
                                 fontSize = 12.sp,
                                 color = TextGray
                             )
@@ -634,7 +642,7 @@ fun DashboardScreen(
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text(
-                                    text = "${uiState.bmi.toInt()}",
+                                    text = uiState.bmi?.let { "%.1f".format(it) } ?: "--",
                                     fontSize = 32.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextWhite,
@@ -656,7 +664,7 @@ fun DashboardScreen(
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Text(
-                                        text = uiState.bmiStatus,
+                                        text = uiState.bmiStatus ?: "No Data",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = StatusOptimalText
@@ -664,9 +672,9 @@ fun DashboardScreen(
                                 }
                             }
 
-                            // Sine Waveform
+                            // Sine Waveform (flat if no data)
                             Box(modifier = Modifier.weight(1f)) {
-                                BioImpedanceWave()
+                                BioImpedanceWave(hasData = uiState.bmi != null || uiState.bodyFatPercentage != null)
                             }
                         }
 
@@ -696,7 +704,7 @@ fun DashboardScreen(
                             }
 
                             Text(
-                                text = "Body Fat: ${uiState.bodyFatPercentage}%",
+                                text = if (uiState.bodyFatPercentage != null) "Body Fat: ${uiState.bodyFatPercentage}%" else "Body Fat: --",
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = Color(0xFFC0C7D5)
@@ -750,7 +758,7 @@ fun DashboardScreen(
 
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
-                                    text = "${uiState.rrIntervalMs}",
+                                    text = uiState.rrIntervalMs?.toString() ?: "--",
                                     fontSize = 28.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextWhite,
@@ -805,7 +813,7 @@ fun DashboardScreen(
 
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
-                                    text = "${uiState.signalQuality}",
+                                    text = uiState.signalQuality?.toString() ?: "--",
                                     fontSize = 28.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextWhite,
@@ -813,7 +821,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "/100",
+                                    text = if (uiState.signalQuality != null) "/100" else "UNPAIRED",
                                     fontSize = 13.sp,
                                     color = TextGray,
                                     modifier = Modifier.padding(bottom = 3.dp)
@@ -907,7 +915,7 @@ fun DashboardScreen(
 
 @Composable
 fun MoodSelectorRow(
-    selectedMood: MoodType,
+    selectedMood: MoodType?,
     onMoodSelected: (MoodType) -> Unit,
     modifier: Modifier = Modifier
 ) {

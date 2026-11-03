@@ -1,6 +1,8 @@
 package io.biotrace.app.ui.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -24,8 +27,11 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,13 +56,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.biotrace.app.R
 import io.biotrace.app.data.local.entity.ChatMessageEntity
 import io.biotrace.app.domain.agent.Citation
+import io.biotrace.app.ui.theme.BioRed
+import io.biotrace.app.ui.theme.DarkBackground
+import io.biotrace.app.ui.theme.DarkInputBg
+import io.biotrace.app.ui.theme.DarkSurface
+import io.biotrace.app.ui.theme.DarkSurfaceBorder
+import io.biotrace.app.ui.theme.DarkSurfaceElevated
+import io.biotrace.app.ui.theme.StatusGreen
+import io.biotrace.app.ui.theme.TextGray
+import io.biotrace.app.ui.theme.TextMuted
+import io.biotrace.app.ui.theme.TextWhite
 import org.json.JSONArray
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -81,21 +101,50 @@ fun ChatScreen(
     }
 
     Scaffold(
+        containerColor = DarkBackground,
         topBar = {
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            stringResource(R.string.chat_title),
-                            fontWeight = FontWeight.Bold
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(DarkSurfaceElevated)
+                                .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Psychology,
+                                contentDescription = null,
+                                tint = BioRed,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "BioTrace AI Copilot",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextWhite
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    color = if (uiState.isConfigured) StatusGreen else BioRed,
+                                    shape = CircleShape,
+                                    modifier = Modifier.size(6.dp)
+                                ) {}
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = if (uiState.isConfigured) "ALL DATA CONNECTED • AES-256" else "API KEY REQUIRED",
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.8.sp,
+                                    color = TextGray
+                                )
+                            }
+                        }
                     }
                 },
                 actions = {
@@ -103,14 +152,13 @@ fun ChatScreen(
                         IconButton(onClick = { viewModel.clearHistory() }) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = stringResource(R.string.clear)
+                                contentDescription = stringResource(R.string.clear),
+                                tint = TextGray
                             )
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
             )
         }
     ) { paddingValues ->
@@ -122,9 +170,11 @@ fun ChatScreen(
             // Unconfigured API Key Banner
             if (!uiState.isConfigured) {
                 Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF2C1618)),
+                    border = CardDefaults.outlinedCardBorder().copy(
+                        brush = androidx.compose.ui.graphics.SolidColor(Color(0xFF5A2024))
                     ),
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -132,24 +182,31 @@ fun ChatScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Default.Key,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer
+                            tint = BioRed
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = stringResource(R.string.chat_no_api_key),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                                text = "Gemini API key is required to query your vitals, lab reports, and meals.",
+                                fontSize = 12.sp,
+                                color = TextWhite
                             )
                         }
-                        Button(onClick = onNavigateToSettings) {
-                            Text(stringResource(R.string.chat_go_to_settings))
+                        Button(
+                            onClick = onNavigateToSettings,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BioRed,
+                                contentColor = TextWhite
+                            ),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Settings", fontSize = 12.sp)
                         }
                     }
                 }
@@ -169,40 +226,64 @@ fun ChatScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 32.dp),
+                                .padding(vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text = "Grounded AI Health Intelligence",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = BioRed,
+                                modifier = Modifier.size(36.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                text = "Ask questions about your heart rate, sleep, steps, and lab tests.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = "Cross-Telemetry Health Intelligence",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextWhite
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Your AI assistant synthesizes Health Connect vitals, scanned blood reports, and food calories into actionable plans and insights.",
+                                fontSize = 12.5.sp,
+                                color = TextGray,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                lineHeight = 17.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
 
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(20.dp))
 
                             FlowRow(
                                 horizontalArrangement = Arrangement.Center,
                                 maxItemsInEachRow = 2
                             ) {
                                 AssistChip(
-                                    onClick = { viewModel.sendMessage("How has my sleep and resting heart rate been this week?") },
-                                    label = { Text(stringResource(R.string.chat_quick_action_sleep)) },
+                                    onClick = { viewModel.sendMessage("Create a comprehensive 7-day health, sleep, and nutrition plan based on my wearable vitals, lab reports, and meal logs.") },
+                                    label = { Text("📋 Create 7-Day Plan", fontSize = 11.5.sp) },
+                                    colors = AssistChipDefaults.assistChipColors(containerColor = DarkSurfaceElevated, labelColor = TextWhite),
+                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = DarkSurfaceBorder),
                                     modifier = Modifier.padding(4.dp)
                                 )
                                 AssistChip(
-                                    onClick = { viewModel.sendMessage("Analyze my heart rate trends and HRV over the last 7 days.") },
-                                    label = { Text(stringResource(R.string.chat_quick_action_heart)) },
+                                    onClick = { viewModel.sendMessage("Analyze my resting heart rate and HRV against my latest lab test biomarkers to find any correlations.") },
+                                    label = { Text("🔬 Correlate Vitals with Labs", fontSize = 11.5.sp) },
+                                    colors = AssistChipDefaults.assistChipColors(containerColor = DarkSurfaceElevated, labelColor = TextWhite),
+                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = DarkSurfaceBorder),
                                     modifier = Modifier.padding(4.dp)
                                 )
                                 AssistChip(
-                                    onClick = { viewModel.sendMessage("Provide a comprehensive health summary based on my recorded data.") },
-                                    label = { Text(stringResource(R.string.chat_quick_action_summary)) },
+                                    onClick = { viewModel.sendMessage("Evaluate my calorie and macronutrient intake against my daily activity, sleep, and vitals.") },
+                                    label = { Text("🥗 Meal & Calorie Analysis", fontSize = 11.5.sp) },
+                                    colors = AssistChipDefaults.assistChipColors(containerColor = DarkSurfaceElevated, labelColor = TextWhite),
+                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = DarkSurfaceBorder),
+                                    modifier = Modifier.padding(4.dp)
+                                )
+                                AssistChip(
+                                    onClick = { viewModel.sendMessage("Check for any active anomalies across my vitals, lab biomarkers, and meals, and recommend next steps.") },
+                                    label = { Text("⚡ Full Health Anomaly Scan", fontSize = 11.5.sp) },
+                                    colors = AssistChipDefaults.assistChipColors(containerColor = DarkSurfaceElevated, labelColor = TextWhite),
+                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = DarkSurfaceBorder),
                                     modifier = Modifier.padding(4.dp)
                                 )
                             }
@@ -211,125 +292,167 @@ fun ChatScreen(
                 }
 
                 items(uiState.messages, key = { it.id }) { message ->
-                    MessageBubble(message = message)
+                    ChatMessageBubble(message = message)
                 }
 
                 if (uiState.isLoading) {
                     item {
-                        AssistantStreamingBubble(
-                            text = uiState.currentStreamingResponse,
-                            citations = uiState.currentCitations
-                        )
-                    }
-                }
-
-                if (uiState.error != null) {
-                    item {
-                        Text(
-                            text = uiState.error!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(8.dp)
-                        )
-                    }
-                }
-            }
-
-            // Input Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    placeholder = { Text(stringResource(R.string.chat_input_hint)) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(24.dp),
-                    maxLines = 4
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = {
-                        val prompt = inputText.trim()
-                        if (prompt.isNotEmpty()) {
-                            inputText = ""
-                            viewModel.sendMessage(prompt)
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = DarkSurfaceElevated),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = BioRed
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Synthesizing vitals, blood markers, and meals...",
+                                        fontSize = 12.sp,
+                                        color = TextGray
+                                    )
+                                }
+                                if (uiState.currentStreamingResponse.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Text(
+                                        text = uiState.currentStreamingResponse,
+                                        color = TextWhite,
+                                        fontSize = 13.5.sp
+                                    )
+                                }
+                            }
                         }
-                    },
-                    enabled = inputText.isNotBlank() && !uiState.isLoading
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = stringResource(R.string.chat_send),
-                        tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    )
+                    }
                 }
             }
-        }
-    }
-}
 
-@Composable
-fun MessageBubble(
-    message: ChatMessageEntity,
-    modifier: Modifier = Modifier
-) {
-    val isUser = message.role == "USER"
-    val alignment = if (isUser) Alignment.End else Alignment.Start
-    val bg = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-    val textColor = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+            // Input Bar
+            Surface(
+                color = DarkBackground,
+                tonalElevation = 4.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        placeholder = { Text("Ask about plans, vitals, labs, or food...", fontSize = 13.sp, color = TextGray) },
+                        modifier = Modifier.weight(1f),
+                        maxLines = 4,
+                        shape = RoundedCornerShape(22.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = DarkInputBg,
+                            unfocusedContainerColor = DarkInputBg,
+                            focusedBorderColor = BioRed,
+                            unfocusedBorderColor = DarkSurfaceBorder,
+                            focusedTextColor = TextWhite,
+                            unfocusedTextColor = TextWhite
+                        )
+                    )
 
-    val shape = if (isUser) {
-        RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-    } else {
-        RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-    }
+                    Spacer(modifier = Modifier.width(8.dp))
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = alignment
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(shape)
-                .background(bg)
-                .padding(12.dp)
-        ) {
-            Text(
-                text = message.content,
-                color = textColor,
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
-
-        // Render Citations if any
-        if (!message.citations.isNullOrBlank()) {
-            val citations = remember(message.citations) {
-                try {
-                    val arr = JSONArray(message.citations)
-                    (0 until arr.length()).map { i ->
-                        val obj = arr.getJSONObject(i)
-                        Citation(
-                            id = obj.getString("id"),
-                            timestamp = java.time.Instant.parse(obj.getString("timestamp")),
-                            value = obj.getDouble("value"),
-                            metric = if (obj.has("metric")) obj.getString("metric") else null,
-                            baseline = if (obj.has("baseline")) obj.getString("baseline") else null
+                    IconButton(
+                        onClick = {
+                            val msg = inputText.trim()
+                            if (msg.isNotEmpty()) {
+                                viewModel.sendMessage(msg)
+                                inputText = ""
+                            }
+                        },
+                        enabled = inputText.isNotBlank() && !uiState.isLoading,
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(if (inputText.isNotBlank() && !uiState.isLoading) BioRed else DarkSurfaceBorder)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = stringResource(R.string.chat_send),
+                            tint = TextWhite,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                } catch (e: Exception) {
-                    emptyList<Citation>()
                 }
             }
+        }
+    }
+}
 
-            if (citations.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+@Composable
+fun ChatMessageBubble(message: ChatMessageEntity) {
+    val isUser = message.role.equals("user", ignoreCase = true)
+
+    val citations = remember(message.citations) {
+        parseCitations(message.citations)
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = if (isUser) BioRed else DarkSurface
+            ),
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (isUser) 16.dp else 4.dp,
+                bottomEnd = if (isUser) 4.dp else 16.dp
+            ),
+            border = if (!isUser) {
+                CardDefaults.outlinedCardBorder().copy(
+                    brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+                )
+            } else null,
+            modifier = Modifier.fillMaxWidth(if (isUser) 0.82f else 0.95f)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = message.content,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = TextWhite
+                )
+
+                if (citations.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "DATA EVIDENCE CITATIONS:",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        color = if (isUser) Color.White.copy(alpha = 0.8f) else BioRed
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
                     citations.forEach { citation ->
-                        CitationBadge(citation = citation)
+                        Row(
+                            modifier = Modifier.padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = null,
+                                tint = TextGray,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${citation.metric ?: "Record"}: ${citation.value} (#${citation.id})",
+                                fontSize = 11.sp,
+                                color = TextGray
+                            )
+                        }
                     }
                 }
             }
@@ -337,79 +460,25 @@ fun MessageBubble(
     }
 }
 
-@Composable
-fun AssistantStreamingBubble(
-    text: String,
-    citations: List<Citation>,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.Start
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(12.dp)
-        ) {
-            if (text.isBlank()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        stringResource(R.string.chat_typing),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+private fun parseCitations(citationsJson: String?): List<Citation> {
+    if (citationsJson.isNullOrBlank()) return emptyList()
+    return try {
+        val array = JSONArray(citationsJson)
+        val list = mutableListOf<Citation>()
+        for (i in 0 until array.length()) {
+            val obj = array.getJSONObject(i)
+            list.add(
+                Citation(
+                    id = obj.optString("id", obj.optString("recordId", "")),
+                    timestamp = java.time.Instant.parse(obj.optString("timestamp", java.time.Instant.now().toString())),
+                    value = obj.optDouble("value", 0.0),
+                    metric = obj.optString("metric", obj.optString("metricType", "Vitals")),
+                    baseline = if (obj.has("baseline")) obj.optString("baseline") else null
                 )
-            }
-        }
-
-        if (citations.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                citations.forEach { citation ->
-                    CitationBadge(citation = citation)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CitationBadge(
-    citation: Citation,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
-        modifier = modifier
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Description,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = citation.format(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        list
+    } catch (e: Exception) {
+        emptyList()
     }
 }

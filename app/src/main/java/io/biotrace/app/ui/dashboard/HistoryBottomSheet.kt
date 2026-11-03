@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.biotrace.app.ui.theme.BioRed
@@ -70,7 +71,7 @@ fun HistoryBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "ECG History & Strips",
+                    text = "ECG & Heart Rate History",
                     color = TextWhite,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
@@ -90,10 +91,25 @@ fun HistoryBottomSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(140.dp),
+                        .padding(vertical = 36.dp, horizontal = 20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No past ECG records available", color = TextGray)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "No Heart Rate History",
+                            color = TextWhite,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "No wearable or ECG records have been imported yet. Grant Health Connect permissions and tap 'Sync Now' on the dashboard, or tap 'Record EKG' to start a measurement.",
+                            color = TextGray,
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp
+                        )
+                    }
                 }
             } else {
                 LazyColumn(

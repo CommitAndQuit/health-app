@@ -4,11 +4,13 @@ import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.WeightRecord
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,7 +34,9 @@ class HealthConnectManager @Inject constructor(
         HealthPermission.getReadPermission(StepsRecord::class),
         HealthPermission.getReadPermission(SleepSessionRecord::class),
         HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
-        HealthPermission.getReadPermission(OxygenSaturationRecord::class)
+        HealthPermission.getReadPermission(OxygenSaturationRecord::class),
+        HealthPermission.getReadPermission(WeightRecord::class),
+        HealthPermission.getReadPermission(BodyFatRecord::class)
     )
 
     fun checkAvailability(): HealthConnectAvailability {
@@ -46,7 +50,16 @@ class HealthConnectManager @Inject constructor(
     suspend fun hasAllPermissions(): Boolean {
         val client = healthConnectClient ?: return false
         val granted = client.permissionController.getGrantedPermissions()
-        return granted.containsAll(requiredPermissions)
+        // Core 6 permissions are essential, weight & body fat are optional
+        val corePermissions = setOf(
+            HealthPermission.getReadPermission(HeartRateRecord::class),
+            HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class),
+            HealthPermission.getReadPermission(StepsRecord::class),
+            HealthPermission.getReadPermission(SleepSessionRecord::class),
+            HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
+            HealthPermission.getReadPermission(OxygenSaturationRecord::class)
+        )
+        return granted.containsAll(corePermissions)
     }
 
     suspend fun getGrantedPermissions(): Set<String> {

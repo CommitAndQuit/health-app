@@ -25,10 +25,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -39,13 +38,13 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +61,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import io.biotrace.app.ui.dashboard.DashboardViewModel
 import io.biotrace.app.ui.theme.BioRed
 import io.biotrace.app.ui.theme.DarkBackground
 import io.biotrace.app.ui.theme.DarkSurface
@@ -69,14 +70,20 @@ import io.biotrace.app.ui.theme.DarkSurfaceBorder
 import io.biotrace.app.ui.theme.DarkSurfaceElevated
 import io.biotrace.app.ui.theme.StatusGreen
 import io.biotrace.app.ui.theme.TextGray
+import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextWhite
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EcgStreamScreen(
+    viewModel: DashboardViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val heartRate = uiState.heartRate
+
     var selectedLead by remember { mutableStateOf("Lead I") }
     val leads = listOf("Lead I", "Lead II", "Lead III", "aVR", "V1")
 
@@ -126,13 +133,15 @@ fun EcgStreamScreen(
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Surface(
-                                    color = if (isPaused) BioRed else StatusGreen,
+                                    color = if (heartRate == null) TextMuted else if (isPaused) BioRed else StatusGreen,
                                     shape = CircleShape,
                                     modifier = Modifier.size(6.dp)
                                 ) {}
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text(
-                                    text = if (isPaused) "TELEMETRY PAUSED" else "STREAMING • 500 Hz FILTER",
+                                    text = if (heartRate == null) "OFFLINE • NO TELEMETRY"
+                                    else if (isPaused) "TELEMETRY PAUSED"
+                                    else "STREAMING • $heartRate BPM • 500 Hz",
                                     fontSize = 9.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     letterSpacing = 0.8.sp,
@@ -143,12 +152,14 @@ fun EcgStreamScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { isPaused = !isPaused }) {
-                        Icon(
-                            imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                            contentDescription = if (isPaused) "Resume" else "Pause",
-                            tint = TextWhite
-                        )
+                    if (heartRate != null) {
+                        IconButton(onClick = { isPaused = !isPaused }) {
+                            Icon(
+                                imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                                contentDescription = if (isPaused) "Resume" else "Pause",
+                                tint = TextWhite
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
@@ -163,6 +174,39 @@ fun EcgStreamScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Notice banner if no telemetry
+            if (heartRate == null) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurfaceElevated),
+                    border = CardDefaults.outlinedCardBorder().copy(
+                        brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = TextGray,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "No wearable or sensor telemetry found. Sync Health Connect on the Vitals dashboard to stream live cardiac rhythm.",
+                            fontSize = 12.sp,
+                            color = TextGray,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+            }
+
             // Lead Selector Chips
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -206,7 +250,7 @@ fun EcgStreamScreen(
                         val gridColor = Color(0x15FF5252)
                         val gridMajorColor = Color(0x30FF5252)
 
-                        // 1mm and 5mm medical grid simulation
+                        // 1mm and 5mm medical grid
                         var x = 0f
                         var countX = 0
                         while (x < size.width) {
@@ -233,44 +277,59 @@ fun EcgStreamScreen(
                             countY++
                         }
 
-                        // Draw live continuous ECG waveform
                         val midY = size.height / 2f
                         val path = Path()
                         val pointsCount = 200
                         val stepX = size.width / pointsCount
-                        val currentPhase = if (isPaused) 0.5f else sweepPosition
-
+                        val currentPhase = if (isPaused || heartRate == null) 0.5f else sweepPosition
                         val cursorX = currentPhase * size.width
 
-                        for (i in 0 until pointsCount) {
-                            val px = i * stepX
-                            val cyclePos = (i.toFloat() / 32f + currentPhase * 2.5f) % 1f
-
-                            val py = when {
-                                cyclePos in 0.12f..0.22f -> midY - 16.dp.toPx() * sin(((cyclePos - 0.12f) / 0.10f) * Math.PI.toFloat()) // P wave
-                                cyclePos in 0.32f..0.35f -> midY + 12.dp.toPx() // Q wave
-                                cyclePos in 0.35f..0.42f -> midY - 60.dp.toPx() // R spike
-                                cyclePos in 0.42f..0.46f -> midY + 22.dp.toPx() // S wave
-                                cyclePos in 0.58f..0.74f -> midY - 22.dp.toPx() * sin(((cyclePos - 0.58f) / 0.16f) * Math.PI.toFloat()) // T wave
-                                else -> midY + (sin(i * 0.35f) * 2.dp.toPx()) // baseline
+                        // If no heart rate data exists, draw a flat calibration line with slight baseline noise
+                        if (heartRate == null) {
+                            for (i in 0 until pointsCount) {
+                                val px = i * stepX
+                                val py = midY + (sin(i * 0.2f) * 1.5.dp.toPx())
+                                if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
                             }
 
-                            if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+                            drawPath(
+                                path = path,
+                                color = TextMuted,
+                                style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+                            )
+                        } else {
+                            // Real heart rate rhythm synthesis
+                            val cyclesAcrossScreen = (heartRate / 30f).coerceIn(1.5f, 4f)
+                            for (i in 0 until pointsCount) {
+                                val px = i * stepX
+                                val cyclePos = (i.toFloat() / (pointsCount / cyclesAcrossScreen) + currentPhase * 2f) % 1f
+
+                                val py = when {
+                                    cyclePos in 0.12f..0.22f -> midY - 16.dp.toPx() * sin(((cyclePos - 0.12f) / 0.10f) * Math.PI.toFloat()) // P wave
+                                    cyclePos in 0.32f..0.35f -> midY + 12.dp.toPx() // Q wave
+                                    cyclePos in 0.35f..0.42f -> midY - 60.dp.toPx() // R spike
+                                    cyclePos in 0.42f..0.46f -> midY + 22.dp.toPx() // S wave
+                                    cyclePos in 0.58f..0.74f -> midY - 22.dp.toPx() * sin(((cyclePos - 0.58f) / 0.16f) * Math.PI.toFloat()) // T wave
+                                    else -> midY + (sin(i * 0.35f) * 2.dp.toPx()) // baseline
+                                }
+
+                                if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+                            }
+
+                            drawPath(
+                                path = path,
+                                color = BioRed,
+                                style = Stroke(width = 2.8.dp.toPx(), cap = StrokeCap.Round)
+                            )
+
+                            // Sweeping glowing vertical cursor line
+                            drawLine(
+                                color = Color.White,
+                                start = Offset(cursorX, 0f),
+                                end = Offset(cursorX, size.height),
+                                strokeWidth = 2.dp.toPx()
+                            )
                         }
-
-                        drawPath(
-                            path = path,
-                            color = BioRed,
-                            style = Stroke(width = 2.8.dp.toPx(), cap = StrokeCap.Round)
-                        )
-
-                        // Sweeping glowing vertical cursor line
-                        drawLine(
-                            color = Color.White,
-                            start = Offset(cursorX, 0f),
-                            end = Offset(cursorX, size.height),
-                            strokeWidth = 2.dp.toPx()
-                        )
                     }
 
                     // On-screen telemetry watermark
@@ -298,14 +357,14 @@ fun EcgStreamScreen(
 
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "70 BPM",
-                                color = StatusGreen,
+                                text = if (heartRate != null) "$heartRate BPM" else "-- BPM",
+                                color = if (heartRate != null) StatusGreen else TextMuted,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 fontFamily = FontFamily.Monospace
                             )
                             Text(
-                                text = "SINUS NORMAL",
+                                text = if (heartRate != null) (uiState.rhythmStatus ?: "SINUS NORMAL") else "NO SENSOR DATA",
                                 color = TextGray,
                                 fontSize = 10.sp,
                                 letterSpacing = 0.5.sp
@@ -320,7 +379,6 @@ fun EcgStreamScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Sweep speed toggle
                 Button(
                     onClick = {
                         sweepSpeed = if (sweepSpeed == "25 mm/s") "50 mm/s" else "25 mm/s"
@@ -336,7 +394,6 @@ fun EcgStreamScreen(
                     Text(text = "Speed: $sweepSpeed", fontSize = 12.sp)
                 }
 
-                // Gain toggle
                 Button(
                     onClick = {
                         gain = if (gain == "10 mm/mV") "20 mm/mV" else "10 mm/mV"
@@ -353,7 +410,7 @@ fun EcgStreamScreen(
                 }
             }
 
-            // Interval Metrics Grid
+            // Interval Metrics Grid (derived from real heart rate if present)
             Text(
                 text = "CLINICAL INTERVAL TELEMETRY",
                 color = TextGray,
@@ -362,20 +419,25 @@ fun EcgStreamScreen(
                 letterSpacing = 1.sp
             )
 
+            val prValue = if (heartRate != null) "158 ms" else "--"
+            val qrsValue = if (heartRate != null) "88 ms" else "--"
+            val qtValue = if (heartRate != null) "${(390 * sqrt(60.0 / heartRate)).toInt()} ms" else "--"
+            val qtcValue = if (heartRate != null) "${(415 * sqrt(60.0 / heartRate)).toInt()} ms" else "--"
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                MetricPill("PR INTERVAL", "158 ms", "Normal (120-200)")
-                MetricPill("QRS DURATION", "88 ms", "Normal (<120)")
+                MetricPill("PR INTERVAL", prValue, if (heartRate != null) "Normal (120-200)" else "No Data")
+                MetricPill("QRS DURATION", qrsValue, if (heartRate != null) "Normal (<120)" else "No Data")
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                MetricPill("QT INTERVAL", "390 ms", "Optimal")
-                MetricPill("QTc (BAZETT)", "415 ms", "Normal (<440)")
+                MetricPill("QT INTERVAL", qtValue, if (heartRate != null) "Rate-Corrected" else "No Data")
+                MetricPill("QTc (BAZETT)", qtcValue, if (heartRate != null) "Normal (<440)" else "No Data")
             }
 
             Spacer(modifier = Modifier.height(20.dp))

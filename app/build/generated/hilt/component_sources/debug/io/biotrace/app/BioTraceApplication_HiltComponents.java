@@ -52,6 +52,8 @@ import io.biotrace.app.di.RepositoryModule;
 import io.biotrace.app.di.SecurityModule;
 import io.biotrace.app.ui.chat.ChatViewModel_HiltModules;
 import io.biotrace.app.ui.dashboard.DashboardViewModel_HiltModules;
+import io.biotrace.app.ui.labs.LabsViewModel_HiltModules;
+import io.biotrace.app.ui.nutrition.FoodScanViewModel_HiltModules;
 import io.biotrace.app.ui.permissions.PermissionsViewModel_HiltModules;
 import io.biotrace.app.ui.settings.SettingsViewModel_HiltModules;
 import javax.annotation.processing.Generated;
@@ -170,8 +172,10 @@ public final class BioTraceApplication_HiltComponents {
           ViewModelCBuilderModule.class,
           ChatViewModel_HiltModules.KeyModule.class,
           DashboardViewModel_HiltModules.KeyModule.class,
+          FoodScanViewModel_HiltModules.KeyModule.class,
           HiltWrapper_ActivityRetainedComponentManager_LifecycleModule.class,
           HiltWrapper_SavedStateHandleModule.class,
+          LabsViewModel_HiltModules.KeyModule.class,
           PermissionsViewModel_HiltModules.KeyModule.class,
           SettingsViewModel_HiltModules.KeyModule.class
       }
@@ -211,7 +215,9 @@ public final class BioTraceApplication_HiltComponents {
       modules = {
           ChatViewModel_HiltModules.BindsModule.class,
           DashboardViewModel_HiltModules.BindsModule.class,
+          FoodScanViewModel_HiltModules.BindsModule.class,
           HiltWrapper_HiltViewModelFactory_ViewModelModule.class,
+          LabsViewModel_HiltModules.BindsModule.class,
           PermissionsViewModel_HiltModules.BindsModule.class,
           SettingsViewModel_HiltModules.BindsModule.class
       }

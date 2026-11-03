@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.biotrace.app.data.local.converter.ConvertersTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-03T08:33:55" hostname="bhaskar-ZenBook-UX462DA" time="0.009">
+<testsuite name="io.biotrace.app.data.local.converter.ConvertersTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-03T09:51:33" hostname="bhaskar-ZenBook-UX462DA" time="0.008">
   <properties/>
   <testcase name="testNullInstant" classname="io.biotrace.app.data.local.converter.ConvertersTest" time="0.0"/>
-  <testcase name="testInstantConverter" classname="io.biotrace.app.data.local.converter.ConvertersTest" time="0.008"/>
+  <testcase name="testInstantConverter" classname="io.biotrace.app.data.local.converter.ConvertersTest" time="0.007"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
