@@ -2,93 +2,97 @@ package io.biotrace.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// BioTrace Cyber-Clinical Dark Palette (as per reference design)
-val DarkBackground = Color(0xFF0C0D11)
-val DarkSurface = Color(0xFF14161D)
-val DarkSurfaceElevated = Color(0xFF1B1D25)
-val DarkSurfaceBorder = Color(0xFF262934)
-val DarkInputBg = Color(0xFF181A22)
+// BioTrace Luminous Clinical Palette (Modeled after reference UI)
+val LightBackground = Color(0xFFF6F8FA)
+val PureWhite = Color(0xFFFFFFFF)
+val CardBorder = Color(0xFFEEF2F6)
+val SoftInputBg = Color(0xFFF1F5F9)
 
-// Coral / Red Accents from reference
-val BioRed = Color(0xFFFF5252)
-val BioRedBright = Color(0xFFFF645A)
-val BioRedDark = Color(0xFFD32F2F)
-val BioRedGlow = Color(0x33FF5252)
+// Hero Vibrant Orange (Macro Cam, Caloric Ring, Action Buttons)
+val BioOrange = Color(0xFFFF5722)
+val BioOrangeBright = Color(0xFFFF6D00)
+val BioOrangeLight = Color(0xFFFFF3EB)
+val BioOrangeDark = Color(0xFFE64A19)
 
-// Light Hero Card Palette (Electrocardiogram Card)
-val HeroCardBg = Color(0xFFF2F4F8)
-val HeroCardTextPrimary = Color(0xFF111317)
-val HeroCardTextSecondary = Color(0xFF565A68)
-val HeroCardTrack = Color(0xFFDEE3EC)
-val HeroCardButtonSecondary = Color(0xFFE2E5EB)
+// Clinical Mint / Emerald (Restorative HRV, Protein Goals, Verified Badges)
+val ClinicalEmerald = Color(0xFF10B981)
+val ClinicalEmeraldDark = Color(0xFF059669)
+val MintBadgeBg = Color(0xFFE6F9F0)
+val MintBadgeText = Color(0xFF059669)
 
-// Status / Indicator Colors
-val StatusGreen = Color(0xFF00E676)
-val StatusOptimalBadge = Color(0xFF2E1C22)
-val StatusOptimalText = Color(0xFFFF8A80)
+// Macro Distribution Colors
+val MacroProteinColor = Color(0xFF10B981)
+val MacroCarbsColor = Color(0xFFFF9800)
+val MacroFatsColor = Color(0xFF475569)
 
-// Text Colors
+// Pillar 5 Wearable Correlation Card
+val CorrelationPeachBg = Color(0xFFFFF8F5)
+val CorrelationPeachBorder = Color(0xFFFFE8DC)
+
+// Text Colors (High contrast, clean typography)
+val TextDark = Color(0xFF0F172A)
+val TextSecondary = Color(0xFF64748B)
+val TextMuted = Color(0xFF94A3B8)
 val TextWhite = Color(0xFFFFFFFF)
-val TextGray = Color(0xFF8E95A5)
-val TextMuted = Color(0xFF636A7B)
+
+// Alerts & Out of Range
+val AlertRed = Color(0xFFEF4444)
+val AlertRedLight = Color(0xFFFEE2E2)
+val AlertRedText = Color(0xFFDC2626)
+
+// Compatibility aliases for existing dark/cyber components
+val DarkBackground = LightBackground
+val DarkSurface = PureWhite
+val DarkSurfaceElevated = PureWhite
+val DarkSurfaceBorder = CardBorder
+val DarkInputBg = SoftInputBg
+val BioRed = BioOrange
+val BioRedBright = BioOrangeBright
+val BioRedDark = BioOrangeDark
+val BioRedGlow = Color(0x33FF5722)
+val StatusGreen = ClinicalEmerald
+val StatusOptimalBadge = MintBadgeBg
+val StatusOptimalText = MintBadgeText
+val TextGray = TextSecondary
+val HeroCardBg = PureWhite
+val HeroCardTextPrimary = TextDark
+val HeroCardTextSecondary = TextSecondary
+val HeroCardTrack = Color(0xFFE2E8F0)
+val HeroCardButtonSecondary = SoftInputBg
 
 // Core Material theme mappings
-val Primary = BioRed
-val OnPrimary = Color(0xFFFFFFFF)
-val PrimaryContainer = Color(0xFF3B181A)
-val OnPrimaryContainer = Color(0xFFFFDAD6)
+val Primary = BioOrange
+val OnPrimary = PureWhite
+val PrimaryContainer = BioOrangeLight
+val OnPrimaryContainer = BioOrangeDark
 
-val Secondary = Color(0xFF8E95A5)
-val OnSecondary = Color(0xFF14161D)
-val SecondaryContainer = Color(0xFF1C1E26)
-val OnSecondaryContainer = Color(0xFFDCE2F0)
+val Secondary = TextSecondary
+val OnSecondary = PureWhite
+val SecondaryContainer = Color(0xFFF1F5F9)
+val OnSecondaryContainer = TextDark
 
-val Tertiary = StatusGreen
-val OnTertiary = Color(0xFF00391A)
-val TertiaryContainer = Color(0xFF005328)
-val OnTertiaryContainer = Color(0xFF74FEA6)
+val Tertiary = ClinicalEmerald
+val OnTertiary = PureWhite
+val TertiaryContainer = MintBadgeBg
+val OnTertiaryContainer = MintBadgeText
 
-val Error = Color(0xFFFF5449)
-val OnError = Color(0xFF690005)
-val ErrorContainer = Color(0xFF93000A)
-val OnErrorContainer = Color(0xFFFFDAD6)
+val Error = AlertRed
+val OnError = PureWhite
+val ErrorContainer = AlertRedLight
+val OnErrorContainer = AlertRedText
 
-val Background = DarkBackground
-val OnBackground = TextWhite
-val Surface = DarkSurface
-val OnSurface = TextWhite
-val SurfaceVariant = DarkSurfaceElevated
-val OnSurfaceVariant = TextGray
-val Outline = DarkSurfaceBorder
-
-// Dark theme colors
-val PrimaryDark = BioRed
-val OnPrimaryDark = Color(0xFFFFFFFF)
-val PrimaryContainerDark = Color(0xFF3B181A)
-val OnPrimaryContainerDark = Color(0xFFFFDAD6)
-
-val SecondaryDark = Color(0xFF8E95A5)
-val OnSecondaryDark = Color(0xFF14161D)
-val SecondaryContainerDark = Color(0xFF1B1D25)
-val OnSecondaryContainerDark = Color(0xFFDCE2F0)
-
-val TertiaryDark = StatusGreen
-val OnTertiaryDark = Color(0xFF00391A)
-val TertiaryContainerDark = Color(0xFF005328)
-val OnTertiaryContainerDark = Color(0xFF74FEA6)
-
-val BackgroundDark = DarkBackground
-val OnBackgroundDark = TextWhite
-val SurfaceDark = DarkSurface
-val OnSurfaceDark = TextWhite
-val SurfaceVariantDark = DarkSurfaceElevated
-val OnSurfaceVariantDark = TextGray
-val OutlineDark = DarkSurfaceBorder
+val Background = LightBackground
+val OnBackground = TextDark
+val Surface = PureWhite
+val OnSurface = TextDark
+val SurfaceVariant = PureWhite
+val OnSurfaceVariant = TextSecondary
+val Outline = CardBorder
 
 // Metric indicators
-val MetricHeartRate = Color(0xFFFF5252)
-val MetricHrv = Color(0xFF818CF8)
-val MetricSteps = Color(0xFF34D399)
-val MetricSleep = Color(0xFFA78BFA)
-val MetricCalories = Color(0xFFFB923C)
-val MetricOxygen = Color(0xFF38BDF8)
+val MetricHeartRate = BioOrange
+val MetricHrv = Color(0xFF6366F1)
+val MetricSteps = ClinicalEmerald
+val MetricSleep = Color(0xFF8B5CF6)
+val MetricCalories = BioOrange
+val MetricOxygen = Color(0xFF0EA5E9)

@@ -38,6 +38,14 @@ class GetVitalsUseCaseTest {
             return flowOf(samplePoint)
         }
 
+        override suspend fun getRecentRecords(metricType: String, limit: Int): List<VitalPoint> {
+            return listOf(samplePoint)
+        }
+
+        override fun getRecentRecordsFlow(metricType: String, limit: Int): Flow<List<VitalPoint>> {
+            return flowOf(listOf(samplePoint))
+        }
+
         override suspend fun syncFromHealthConnect(days: Long): SyncResult {
             return SyncResult(recordsSynced = 1)
         }

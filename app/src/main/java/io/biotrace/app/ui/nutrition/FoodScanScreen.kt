@@ -8,11 +8,14 @@ import android.provider.MediaStore
 import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,27 +30,31 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.SwapCalls
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -57,33 +64,48 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.biotrace.app.data.local.entity.MealEntity
-import io.biotrace.app.ui.theme.BioRed
-import io.biotrace.app.ui.theme.DarkBackground
-import io.biotrace.app.ui.theme.DarkSurface
-import io.biotrace.app.ui.theme.DarkSurfaceBorder
-import io.biotrace.app.ui.theme.DarkSurfaceElevated
-import io.biotrace.app.ui.theme.MetricCalories
-import io.biotrace.app.ui.theme.StatusGreen
-import io.biotrace.app.ui.theme.TextGray
+import io.biotrace.app.ui.common.BioTraceTopBar
+import io.biotrace.app.ui.theme.BioOrange
+import io.biotrace.app.ui.theme.CardBorder
+import io.biotrace.app.ui.theme.ClinicalEmerald
+import io.biotrace.app.ui.theme.ClinicalEmeraldDark
+import io.biotrace.app.ui.theme.CorrelationPeachBg
+import io.biotrace.app.ui.theme.CorrelationPeachBorder
+import io.biotrace.app.ui.theme.LightBackground
+import io.biotrace.app.ui.theme.MacroCarbsColor
+import io.biotrace.app.ui.theme.MacroFatsColor
+import io.biotrace.app.ui.theme.MacroProteinColor
+import io.biotrace.app.ui.theme.MintBadgeBg
+import io.biotrace.app.ui.theme.MintBadgeText
+import io.biotrace.app.ui.theme.PureWhite
+import io.biotrace.app.ui.theme.SoftInputBg
+import io.biotrace.app.ui.theme.TextDark
 import io.biotrace.app.ui.theme.TextMuted
-import io.biotrace.app.ui.theme.TextWhite
+import io.biotrace.app.ui.theme.TextSecondary
 import java.io.ByteArrayOutputStream
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FoodScanScreen(
+    onNavigateToSettings: () -> Unit = {},
     viewModel: FoodScanViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -110,7 +132,7 @@ fun FoodScanScreen(
     }
 
     if (uiState.isManualEntryOpen) {
-        ManualMealDialog(
+        ManualMealEntryDialog(
             onDismiss = { viewModel.openManualEntry(false) },
             onSave = { name, cals, p, c, f, fiber ->
                 viewModel.addManualMeal(name, cals, p, c, f, fiber)
@@ -119,53 +141,12 @@ fun FoodScanScreen(
     }
 
     Scaffold(
-        containerColor = DarkBackground,
+        containerColor = LightBackground,
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(DarkSurfaceElevated)
-                                .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(10.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Restaurant,
-                                contentDescription = null,
-                                tint = MetricCalories,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "Food Scan & Nutrition",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextWhite
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    color = StatusGreen,
-                                    shape = CircleShape,
-                                    modifier = Modifier.size(6.dp)
-                                ) {}
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text(
-                                    text = "CALORIE ESTIMATION • AES-256",
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.8.sp,
-                                    color = TextGray
-                                )
-                            }
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
+            BioTraceTopBar(
+                subtitle = "Nutrition",
+                onAvatarClick = onNavigateToSettings,
+                onSettingsClick = onNavigateToSettings
             )
         }
     ) { paddingValues ->
@@ -174,76 +155,16 @@ fun FoodScanScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 80.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Action Buttons: Scan Meal Photo & Manual Log
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = { launcher.launch("image/*") },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MetricCalories,
-                            contentColor = TextWhite
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier
-                            .weight(1.3f)
-                            .height(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Scan Meal Photo",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.5.sp
-                        )
-                    }
-
-                    OutlinedButton(
-                        onClick = { viewModel.openManualEntry(true) },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = TextWhite
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceBorder),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            tint = TextWhite,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Log Meal",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-
             // Scanning progress indicator
             if (uiState.isScanning) {
                 item {
                     Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                        border = CardDefaults.outlinedCardBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(MetricCalories)
-                        ),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = PureWhite),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BioOrange),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -253,36 +174,34 @@ fun FoodScanScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = MetricCalories,
-                                strokeWidth = 2.5.dp
+                                color = BioOrange,
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(14.dp))
                             Text(
-                                text = uiState.scanMessage ?: "Analyzing meal contents...",
-                                color = TextWhite,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
+                                text = uiState.scanMessage ?: "Analyzing meal photo with Vision AI...",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextDark
                             )
                         }
                     }
                 }
             }
 
-            // Error Message
+            // Error banner if any
             if (uiState.error != null) {
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF2C1618)),
-                        border = CardDefaults.outlinedCardBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(Color(0xFF5A2024))
-                        ),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEE2E2)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCA5A5)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = uiState.error!!,
-                            color = BioRed,
+                            text = uiState.error ?: "",
+                            color = Color(0xFFB91C1C),
                             fontSize = 12.5.sp,
                             modifier = Modifier.padding(14.dp)
                         )
@@ -290,17 +209,456 @@ fun FoodScanScreen(
                 }
             }
 
-            // Daily Nutrition Summary Card
+            // CARD 1: METABOLIC TELEMETRY - "Today's Nutrition"
             item {
                 Card(
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
-                    ),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = PureWhite),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        // Card Header & Date Badge
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "METABOLIC TELEMETRY",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp,
+                                    color = TextMuted
+                                )
+                                Text(
+                                    text = "Today's Nutrition",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextDark
+                                )
+                            }
+
+                            // Date Badge
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFFFFF1ED),
+                                modifier = Modifier.height(30.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarToday,
+                                        contentDescription = null,
+                                        tint = BioOrange,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Today, Oct 24",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextDark
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        // Ring Gauge & Calorie Target Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Circular Burnt Progress Ring
+                            Box(
+                                modifier = Modifier.size(105.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val percentage = uiState.burntPercentage
+                                Canvas(modifier = Modifier.size(95.dp)) {
+                                    // Background track
+                                    drawArc(
+                                        color = Color(0xFFF1F5F9),
+                                        startAngle = -90f,
+                                        sweepAngle = 360f,
+                                        useCenter = false,
+                                        style = Stroke(width = 11.dp.toPx(), cap = StrokeCap.Round)
+                                    )
+                                    // Active burnt arc
+                                    drawArc(
+                                        color = BioOrange,
+                                        startAngle = -90f,
+                                        sweepAngle = (percentage / 100f) * 360f,
+                                        useCenter = false,
+                                        style = Stroke(width = 11.dp.toPx(), cap = StrokeCap.Round)
+                                    )
+                                }
+
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "BURNT",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.5.sp,
+                                        color = TextMuted
+                                    )
+                                    Text(
+                                        text = "$percentage%",
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = TextDark
+                                    )
+                                    Text(
+                                        text = "ON TRACK",
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = BioOrange
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(20.dp))
+
+                            // Energy Target Readout
+                            Column {
+                                Text(
+                                    text = "Daily Energy Target",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextSecondary
+                                )
+
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Row(
+                                    verticalAlignment = Alignment.Bottom
+                                ) {
+                                    Text(
+                                        text = "%,d".format(Locale.US, uiState.totalCalories),
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = TextDark
+                                    )
+                                    Text(
+                                        text = " / %,d".format(Locale.US, uiState.dailyTargetCalories),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextMuted,
+                                        modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
+                                    )
+                                    Text(
+                                        text = " kcal",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = BioOrange,
+                                        modifier = Modifier.padding(bottom = 5.dp, start = 2.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                val remaining = (uiState.dailyTargetCalories - uiState.totalCalories).coerceAtLeast(0)
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MintBadgeBg
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(MintBadgeText)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "$remaining KCAL REMAINING",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MintBadgeText,
+                                            letterSpacing = 0.4.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // 3 Macro Progress Cards (Protein, Carbs, Fats)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            MacroStatCard(
+                                title = "PROTEIN",
+                                icon = Icons.Default.SwapCalls,
+                                amountGrams = uiState.totalProtein.toInt(),
+                                goalGrams = uiState.proteinGoal.toInt(),
+                                barColor = MacroProteinColor,
+                                modifier = Modifier.weight(1f)
+                            )
+                            MacroStatCard(
+                                title = "CARBS",
+                                icon = Icons.Default.Widgets,
+                                amountGrams = uiState.totalCarbs.toInt(),
+                                goalGrams = uiState.carbsGoal.toInt(),
+                                barColor = MacroCarbsColor,
+                                modifier = Modifier.weight(1f)
+                            )
+                            MacroStatCard(
+                                title = "FATS",
+                                icon = Icons.Default.WaterDrop,
+                                amountGrams = uiState.totalFats.toInt(),
+                                goalGrams = uiState.fatsGoal.toInt(),
+                                barColor = MacroFatsColor,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // CARD 2: "Smart Macro Scan" (Vision LLM & Meal Capture)
+            item {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = PureWhite),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        // Section Header
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFFFFF1ED)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = null,
+                                        tint = BioOrange,
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "Smart Macro Scan",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDark
+                                    )
+                                    Text(
+                                        text = "ON-DEVICE VISION LLM v2.4",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.5.sp,
+                                        color = ClinicalEmeraldDark
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MintBadgeBg
+                            ) {
+                                Text(
+                                    text = "CONFIDENCE ${uiState.scanConfidence}%",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MintBadgeText,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Viewfinder Food Image Preview Card
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(210.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color(0xFF2C2F36),
+                                            Color(0xFF1E2128)
+                                        )
+                                    )
+                                )
+                        ) {
+                            // Artistic meal plate representation background
+                            PlateGraphicBackground()
+
+                            // Orange Viewfinder Corner Crop Marks
+                            CornerBracketMarks(
+                                color = BioOrange,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(14.dp)
+                            )
+
+                            // Floating Semantic Tags directly overlaid on plate
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = PureWhite
+                                    ) {
+                                        Text(
+                                            text = "Est: 640 kcal",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextDark,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = PureWhite
+                                    ) {
+                                        Text(
+                                            text = "Protein: 42g",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextDark,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = PureWhite
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(5.dp)
+                                                    .clip(CircleShape)
+                                                    .background(ClinicalEmerald)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "GLYCEMIC: LOW",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = ClinicalEmeraldDark
+                                            )
+                                        }
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = PureWhite
+                                    ) {
+                                        Text(
+                                            text = "PLATE SEGMENTED",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextSecondary,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Full-width Orange Action Button
+                        Button(
+                            onClick = { launcher.launch("image/*") },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BioOrange,
+                                contentColor = PureWhite
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Log Another Meal (Snap Photo)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.5.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            // CARD 3: "Wearable Correlation Insight" (BIO-CORRELATION PILLAR 5)
+            item {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = CorrelationPeachBg),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CorrelationPeachBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            text = "BIO-CORRELATION PILLAR 5",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BioOrange,
+                            letterSpacing = 0.8.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -309,229 +667,498 @@ fun FoodScanScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MetricCalories.copy(alpha = 0.2f)),
+                                        .size(34.dp)
+                                        .clip(CircleShape)
+                                        .background(BioOrange),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.LocalFireDepartment,
+                                        imageVector = Icons.Default.SwapHoriz,
                                         contentDescription = null,
-                                        tint = MetricCalories,
-                                        modifier = Modifier.size(18.dp)
+                                        tint = PureWhite,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
-                                    text = "Today's Intake",
-                                    fontSize = 16.sp,
+                                    text = "Wearable Correlation\nInsight",
+                                    fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextWhite
+                                    color = TextDark,
+                                    lineHeight = 21.sp
                                 )
                             }
 
-                            Text(
-                                text = "${uiState.todayMeals.size} meals logged",
-                                fontSize = 12.sp,
-                                color = TextGray
+                            Icon(
+                                imageVector = Icons.Default.ShowChart,
+                                contentDescription = null,
+                                tint = BioOrange,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = "${uiState.totalCalories}",
-                                fontSize = 34.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextWhite,
-                                fontFamily = FontFamily.Monospace,
-                                lineHeight = 36.sp
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "kcal",
-                                fontSize = 14.sp,
-                                color = TextGray,
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
+                        // Narrative Text with bold highlighting
+                        val annotatedText = buildAnnotatedString {
+                            append("Dinner logged ")
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = BioOrange)) {
+                                append("before 7:30 PM")
+                            }
+                            append(" correlates with ")
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = ClinicalEmeraldDark)) {
+                                append("+14% higher")
+                            }
+                            append(" overnight HRV (")
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append("76 ms")
+                            }
+                            append(" vs 62 ms avg) and ")
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = TextDark)) {
+                                append("28 min additional Deep Sleep")
+                            }
+                            append(".")
                         }
+
+                        Text(
+                            text = annotatedText,
+                            fontSize = 13.5.sp,
+                            lineHeight = 20.sp,
+                            color = TextDark
+                        )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Macro breakdown cards
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        // Inner Comparison Card
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = PureWhite),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9)),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            MacroPill("Protein", "${uiState.totalProtein}g", Color(0xFF818CF8))
-                            MacroPill("Carbs", "${uiState.totalCarbs}g", Color(0xFF34D399))
-                            MacroPill("Fats", "${uiState.totalFats}g", Color(0xFFFBBF24))
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Overnight HRV Recovery by Meal Timing",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextDark
+                                    )
+
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MintBadgeBg
+                                    ) {
+                                        Text(
+                                            text = "+14 ms Delta",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MintBadgeText,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Row 1: Before 7:30 PM
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Nightlight,
+                                        contentDescription = null,
+                                        tint = ClinicalEmerald,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Before 7:30 PM",
+                                        fontSize = 11.sp,
+                                        color = TextDark,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Text(
+                                        text = "76 ms (Restorative)",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ClinicalEmeraldDark
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                LinearProgressIndicator(
+                                    progress = { 0.76f },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = ClinicalEmerald,
+                                    trackColor = Color(0xFFF1F5F9),
+                                )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Row 2: After 8:30 PM
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Nightlight,
+                                        contentDescription = null,
+                                        tint = TextMuted,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "After 8:30 PM",
+                                        fontSize = 11.sp,
+                                        color = TextSecondary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Text(
+                                        text = "62 ms (Sub-baseline)",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextSecondary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                LinearProgressIndicator(
+                                    progress = { 0.62f },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = Color(0xFFCBD5E1),
+                                    trackColor = Color(0xFFF1F5F9),
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // Meals List Section
-            if (uiState.todayMeals.isEmpty()) {
-                item {
-                    Box(
+            // CARD 4: "Logged Intake"
+            item {
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = PureWhite),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 30.dp, horizontal = 20.dp),
-                        contentAlignment = Alignment.Center
+                            .padding(20.dp)
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.Restaurant,
-                                contentDescription = null,
-                                tint = TextMuted,
-                                modifier = Modifier.size(44.dp)
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(
-                                text = "No Meals Logged Today",
-                                color = TextWhite,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Snap a photo of your meal to estimate calories, macros, and glycemic impact via Vision AI.",
-                                color = TextGray,
-                                fontSize = 12.5.sp,
-                                textAlign = TextAlign.Center,
-                                lineHeight = 17.sp
-                            )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Logged Intake",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextDark
+                                )
+                                Text(
+                                    text = "${uiState.todayMeals.size} meals calculated today",
+                                    fontSize = 12.sp,
+                                    color = TextSecondary
+                                )
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable { viewModel.openManualEntry(true) }
+                            ) {
+                                Text(
+                                    text = "Add Manual +",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BioOrange
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Meal Items List
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            uiState.todayMeals.forEach { meal ->
+                                MealIntakeRowItem(meal = meal)
+                            }
                         }
                     }
                 }
-            } else {
-                item {
-                    Text(
-                        text = "TODAY'S MEALS",
-                        color = TextGray,
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                }
-
-                items(uiState.todayMeals, key = { it.id }) { meal ->
-                    MealCard(meal = meal)
-                }
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
 }
 
 @Composable
-private fun androidx.compose.foundation.layout.RowScope.MacroPill(
-    label: String,
-    value: String,
-    color: Color
+fun MacroStatCard(
+    title: String,
+    icon: ImageVector,
+    amountGrams: Int,
+    goalGrams: Int,
+    barColor: Color,
+    modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = Modifier.weight(1f),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurfaceElevated)
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFFF8FAFC),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9)),
+        modifier = modifier
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            Text(text = label, fontSize = 10.5.sp, color = TextGray)
-            Spacer(modifier = Modifier.height(3.dp))
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                    color = TextSecondary
+                )
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = barColor,
+                    modifier = Modifier.size(13.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
             Text(
-                text = value,
-                fontSize = 15.sp,
+                text = "${amountGrams}g",
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = color,
-                fontFamily = FontFamily.Monospace
+                color = TextDark
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            val progress = (amountGrams.toFloat() / goalGrams.toFloat()).coerceIn(0f, 1f)
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = barColor,
+                trackColor = Color(0xFFE2E8F0),
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Goal ${goalGrams}g",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextMuted
             )
         }
     }
 }
 
 @Composable
-fun MealCard(meal: MealEntity, modifier: Modifier = Modifier) {
-    val formatter = remember {
-        DateTimeFormatter.ofPattern("hh:mm a").withZone(ZoneId.systemDefault())
+fun MealIntakeRowItem(meal: MealEntity) {
+    val formatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.US).withZone(ZoneId.systemDefault())
+    val timeFormatted = formatter.format(meal.consumedAt)
+
+    val category = when {
+        meal.name.contains("Oatmeal", ignoreCase = true) || meal.name.contains("Breakfast", ignoreCase = true) -> "BREAKFAST"
+        meal.name.contains("Bowl", ignoreCase = true) || meal.name.contains("Salmon", ignoreCase = true) || meal.name.contains("Lunch", ignoreCase = true) -> "LUNCH"
+        meal.name.contains("Yogurt", ignoreCase = true) || meal.name.contains("Snack", ignoreCase = true) -> "SNACK"
+        else -> "MEAL"
     }
 
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = CardDefaults.outlinedCardBorder().copy(
-            brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
-        ),
-        modifier = modifier.fillMaxWidth()
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = PureWhite,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9)),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = meal.name,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextWhite
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${formatter.format(meal.consumedAt)} • P: ${meal.proteinGrams}g | C: ${meal.carbsGrams}g | F: ${meal.fatsGrams}g",
-                    fontSize = 11.5.sp,
-                    color = TextGray
+            // Food Thumbnail Box
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFFFF1ED)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Restaurant,
+                    contentDescription = null,
+                    tint = BioOrange,
+                    modifier = Modifier.size(22.dp)
                 )
             }
 
-            Column(horizontalAlignment = Alignment.End) {
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${meal.calories}",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MetricCalories,
-                    fontFamily = FontFamily.Monospace
-                )
-                Text(
-                    text = "kcal",
+                    text = "$timeFormatted • $category",
                     fontSize = 10.5.sp,
-                    color = TextGray
+                    fontWeight = FontWeight.Bold,
+                    color = ClinicalEmeraldDark,
+                    letterSpacing = 0.4.sp
+                )
+
+                Text(
+                    text = meal.name,
+                    fontSize = 14.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
+                )
+
+                Text(
+                    text = "${meal.calories} kcal • ${meal.proteinGrams.toInt()}g Protein",
+                    fontSize = 12.sp,
+                    color = TextSecondary
                 )
             }
+
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = "Verified",
+                tint = ClinicalEmerald,
+                modifier = Modifier.size(18.dp)
+            )
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Options",
+                tint = TextMuted,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
 
 @Composable
-fun ManualMealDialog(
+fun PlateGraphicBackground() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val centerX = size.width * 0.5f
+        val centerY = size.height * 0.48f
+        val radius = size.height * 0.42f
+
+        // Outer plate rim
+        drawCircle(
+            color = Color(0xFF3B4048),
+            radius = radius,
+            center = androidx.compose.ui.geometry.Offset(centerX, centerY)
+        )
+        // Inner plate dish
+        drawCircle(
+            color = Color(0xFFE2D9CC),
+            radius = radius * 0.88f,
+            center = androidx.compose.ui.geometry.Offset(centerX, centerY)
+        )
+        // Salmon fillet shape
+        drawRoundRect(
+            color = Color(0xFFE76F51),
+            topLeft = androidx.compose.ui.geometry.Offset(centerX - radius * 0.55f, centerY - radius * 0.2f),
+            size = androidx.compose.ui.geometry.Size(radius * 0.55f, radius * 0.45f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(14f, 14f)
+        )
+        // Asparagus & Veggies green tint
+        drawCircle(
+            color = Color(0xFF2A9D8F),
+            radius = radius * 0.35f,
+            center = androidx.compose.ui.geometry.Offset(centerX + radius * 0.25f, centerY - radius * 0.1f)
+        )
+        // Quinoa / Grains warm base
+        drawCircle(
+            color = Color(0xFFE9C46A),
+            radius = radius * 0.3f,
+            center = androidx.compose.ui.geometry.Offset(centerX, centerY + radius * 0.35f)
+        )
+    }
+}
+
+@Composable
+fun CornerBracketMarks(
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val stroke = 3.dp.toPx()
+        val len = 20.dp.toPx()
+
+        // Top-left corner
+        drawLine(color, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(len, 0f), strokeWidth = stroke)
+        drawLine(color, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(0f, len), strokeWidth = stroke)
+
+        // Top-right corner
+        drawLine(color, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(size.width - len, 0f), strokeWidth = stroke)
+        drawLine(color, androidx.compose.ui.geometry.Offset(size.width, 0f), androidx.compose.ui.geometry.Offset(size.width, len), strokeWidth = stroke)
+
+        // Bottom-left corner
+        drawLine(color, androidx.compose.ui.geometry.Offset(0f, size.height), androidx.compose.ui.geometry.Offset(len, size.height), strokeWidth = stroke)
+        drawLine(color, androidx.compose.ui.geometry.Offset(0f, size.height), androidx.compose.ui.geometry.Offset(0f, size.height - len), strokeWidth = stroke)
+
+        // Bottom-right corner
+        drawLine(color, androidx.compose.ui.geometry.Offset(size.width, size.height), androidx.compose.ui.geometry.Offset(size.width - len, size.height), strokeWidth = stroke)
+        drawLine(color, androidx.compose.ui.geometry.Offset(size.width, size.height), androidx.compose.ui.geometry.Offset(size.width, size.height - len), strokeWidth = stroke)
+    }
+}
+
+@Composable
+fun ManualMealEntryDialog(
     onDismiss: () -> Unit,
-    onSave: (name: String, calories: Int, p: Double, c: Double, f: Double, fiber: Double?) -> Unit
+    onSave: (name: String, calories: Int, protein: Double, carbs: Double, fats: Double, fiber: Double?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
-    var caloriesStr by remember { mutableStateOf("") }
-    var proteinStr by remember { mutableStateOf("") }
-    var carbsStr by remember { mutableStateOf("") }
-    var fatsStr by remember { mutableStateOf("") }
+    var calories by remember { mutableStateOf("") }
+    var protein by remember { mutableStateOf("") }
+    var carbs by remember { mutableStateOf("") }
+    var fats by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = CardDefaults.outlinedCardBorder().copy(
-                brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
-            ),
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = PureWhite,
+            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -539,115 +1166,93 @@ fun ManualMealDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Log Meal",
-                        color = TextWhite,
+                        text = "Log Meal Manually",
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
                     )
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextGray)
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
 
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Meal Description (e.g. Avocado Toast)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Meal Name") },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite,
-                        focusedBorderColor = MetricCalories,
-                        unfocusedBorderColor = DarkSurfaceBorder
-                    )
+                        focusedBorderColor = BioOrange,
+                        unfocusedBorderColor = CardBorder
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 )
-
-                Spacer(modifier = Modifier.height(10.dp))
 
                 OutlinedTextField(
-                    value = caloriesStr,
-                    onValueChange = { caloriesStr = it },
+                    value = calories,
+                    onValueChange = { calories = it },
                     label = { Text("Calories (kcal)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite,
-                        focusedBorderColor = MetricCalories,
-                        unfocusedBorderColor = DarkSurfaceBorder
-                    )
+                        focusedBorderColor = BioOrange,
+                        unfocusedBorderColor = CardBorder
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedTextField(
-                        value = proteinStr,
-                        onValueChange = { proteinStr = it },
+                        value = protein,
+                        onValueChange = { protein = it },
                         label = { Text("Protein (g)") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite,
-                            focusedBorderColor = MetricCalories,
-                            unfocusedBorderColor = DarkSurfaceBorder
-                        )
+                            focusedBorderColor = MacroProteinColor,
+                            unfocusedBorderColor = CardBorder
+                        ),
+                        modifier = Modifier.weight(1f)
                     )
-
                     OutlinedTextField(
-                        value = carbsStr,
-                        onValueChange = { carbsStr = it },
+                        value = carbs,
+                        onValueChange = { carbs = it },
                         label = { Text("Carbs (g)") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite,
-                            focusedBorderColor = MetricCalories,
-                            unfocusedBorderColor = DarkSurfaceBorder
-                        )
+                            focusedBorderColor = MacroCarbsColor,
+                            unfocusedBorderColor = CardBorder
+                        ),
+                        modifier = Modifier.weight(1f)
                     )
-
                     OutlinedTextField(
-                        value = fatsStr,
-                        onValueChange = { fatsStr = it },
+                        value = fats,
+                        onValueChange = { fats = it },
                         label = { Text("Fats (g)") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite,
-                            focusedBorderColor = MetricCalories,
-                            unfocusedBorderColor = DarkSurfaceBorder
-                        )
+                            focusedBorderColor = MacroFatsColor,
+                            unfocusedBorderColor = CardBorder
+                        ),
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Button(
                     onClick = {
-                        val cals = caloriesStr.toIntOrNull()
-                        if (name.isNotBlank() && cals != null) {
-                            onSave(
-                                name,
-                                cals,
-                                proteinStr.toDoubleOrNull() ?: 0.0,
-                                carbsStr.toDoubleOrNull() ?: 0.0,
-                                fatsStr.toDoubleOrNull() ?: 0.0,
-                                null
-                            )
+                        val cals = calories.toIntOrNull() ?: 0
+                        val p = protein.toDoubleOrNull() ?: 0.0
+                        val c = carbs.toDoubleOrNull() ?: 0.0
+                        val f = fats.toDoubleOrNull() ?: 0.0
+                        if (name.isNotBlank() && cals > 0) {
+                            onSave(name, cals, p, c, f, null)
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MetricCalories, contentColor = TextWhite),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    colors = ButtonDefaults.buttonColors(containerColor = BioOrange),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
                 ) {
-                    Text("Save Meal", fontWeight = FontWeight.Bold)
+                    Text("Save Meal", fontWeight = FontWeight.Bold, color = PureWhite)
                 }
             }
         }

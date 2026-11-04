@@ -6,6 +6,7 @@ import io.biotrace.app.domain.agent.tools.GetActiveAnomaliesTool
 import io.biotrace.app.domain.agent.tools.GetNutritionIntakeTool
 import io.biotrace.app.domain.agent.tools.QueryLabBiomarkersTool
 import io.biotrace.app.domain.agent.tools.QueryVitalsTool
+import io.biotrace.app.domain.anomaly.AnomalyDetectionEngine
 import io.biotrace.app.domain.llm.LlmClient
 import io.biotrace.app.domain.model.VitalPoint
 import io.biotrace.app.domain.repository.VitalsRepository
@@ -27,6 +28,7 @@ class HealthAgentTest {
     private val labBiomarkerDao: LabBiomarkerDao = mock()
     private val mealDao: MealDao = mock()
     private val llmClient: LlmClient = mock()
+    private val anomalyDetectionEngine = AnomalyDetectionEngine()
 
     private lateinit var agent: HealthAgent
 
@@ -34,7 +36,7 @@ class HealthAgentTest {
     fun setup() {
         val vitalsTool = QueryVitalsTool(vitalsRepository)
         val labTool = QueryLabBiomarkersTool(labBiomarkerDao)
-        val anomaliesTool = GetActiveAnomaliesTool(labBiomarkerDao)
+        val anomaliesTool = GetActiveAnomaliesTool(labBiomarkerDao, anomalyDetectionEngine)
         val nutritionTool = GetNutritionIntakeTool(mealDao)
 
         agent = HealthAgent(

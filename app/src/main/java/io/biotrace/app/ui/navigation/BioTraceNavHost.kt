@@ -1,6 +1,7 @@
 package io.biotrace.app.ui.navigation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,14 +11,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Biotech
-import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -26,7 +29,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,109 +50,147 @@ import io.biotrace.app.ui.nutrition.FoodScanScreen
 import io.biotrace.app.ui.onboarding.OnboardingScreen
 import io.biotrace.app.ui.permissions.HealthConnectPermissionScreen
 import io.biotrace.app.ui.settings.SettingsScreen
-import io.biotrace.app.ui.theme.BioRed
-import io.biotrace.app.ui.theme.DarkBackground
-import io.biotrace.app.ui.theme.DarkSurfaceBorder
-import io.biotrace.app.ui.theme.TextGray
+import io.biotrace.app.ui.theme.BioOrange
+import io.biotrace.app.ui.theme.CardBorder
+import io.biotrace.app.ui.theme.LightBackground
+import io.biotrace.app.ui.theme.PureWhite
+import io.biotrace.app.ui.theme.TextDark
+import io.biotrace.app.ui.theme.TextMuted
+import io.biotrace.app.ui.theme.TextSecondary
 
-data class BottomNavItem(
-    val titleResId: Int,
+data class NavTabItem(
+    val title: String,
     val icon: ImageVector,
-    val route: String
+    val route: String,
+    val isHero: Boolean = false
 )
 
-val bottomNavItems = listOf(
-    BottomNavItem(R.string.nav_vitals, Icons.Default.MonitorHeart, Screen.Vitals.route),
-    BottomNavItem(R.string.nav_labs, Icons.Default.Biotech, Screen.Labs.route),
-    BottomNavItem(R.string.nav_food, Icons.Default.Restaurant, Screen.Nutrition.route),
-    BottomNavItem(R.string.nav_copilot, Icons.Default.Psychology, Screen.Copilot.route)
+val bottomNavTabs = listOf(
+    NavTabItem("Vitals", Icons.Default.FavoriteBorder, Screen.Vitals.route),
+    NavTabItem("Lab Hub", Icons.Default.Science, Screen.Labs.route),
+    NavTabItem("Macro Cam", Icons.Default.CameraAlt, Screen.Nutrition.route, isHero = true),
+    NavTabItem("AI Copilot", Icons.Default.Psychology, Screen.Copilot.route)
 )
 
 @Composable
 fun BioTraceNavHost() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Nutrition.route
 
-    val isTopLevelRoute = bottomNavItems.any { it.route == currentRoute }
+    val isTopLevelRoute = bottomNavTabs.any { it.route == currentRoute }
 
     Scaffold(
-        containerColor = DarkBackground,
+        containerColor = LightBackground,
         bottomBar = {
             if (isTopLevelRoute) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(DarkBackground)
                         .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Subtle top border divider
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(DarkSurfaceBorder)
-                    )
-
-                    Row(
+                    Surface(
+                        color = PureWhite,
+                        shape = RoundedCornerShape(32.dp),
+                        shadowElevation = 8.dp,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(68.dp)
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceAround,
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        bottomNavItems.forEach { item ->
-                            val isSelected = currentRoute == item.route
-                            val label = stringResource(item.titleResId)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            bottomNavTabs.forEach { tab ->
+                                val isSelected = currentRoute == tab.route
 
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable {
-                                        if (!isSelected) {
-                                            navController.navigate(item.route) {
-                                                popUpTo(navController.graph.findStartDestination().id) {
-                                                    saveState = true
-                                                }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
-                                        }
-                                    }
-                                    .padding(vertical = 4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = label,
-                                    tint = if (isSelected) BioRed else TextGray,
-                                    modifier = Modifier.size(24.dp)
-                                )
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Text(
-                                    text = label,
-                                    fontSize = 11.5.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) BioRed else TextGray
-                                )
-
-                                Spacer(modifier = Modifier.height(3.dp))
-
-                                // Active glowing red dot indicator beneath the label
-                                if (isSelected) {
-                                    Surface(
-                                        color = BioRed,
-                                        shape = CircleShape,
+                                if (tab.isHero) {
+                                    // Hero Center Button (Macro Cam)
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
                                         modifier = Modifier
-                                            .size(4.5.dp)
-                                            .shadow(elevation = 4.dp, shape = CircleShape, ambientColor = BioRed, spotColor = BioRed)
-                                    ) {}
+                                            .weight(1.2f)
+                                            .clickable {
+                                                if (!isSelected) {
+                                                    navController.navigate(tab.route) {
+                                                        popUpTo(navController.graph.findStartDestination().id) {
+                                                            saveState = true
+                                                        }
+                                                        launchSingleTop = true
+                                                        restoreState = true
+                                                    }
+                                                }
+                                            }
+                                            .padding(vertical = 4.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .clip(CircleShape)
+                                                .background(BioOrange)
+                                                .shadow(elevation = 6.dp, shape = CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = tab.icon,
+                                                contentDescription = tab.title,
+                                                tint = PureWhite,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        Text(
+                                            text = tab.title,
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = BioOrange
+                                        )
+                                    }
                                 } else {
-                                    Spacer(modifier = Modifier.size(4.5.dp))
+                                    // Regular Navigation Tab
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                if (!isSelected) {
+                                                    navController.navigate(tab.route) {
+                                                        popUpTo(navController.graph.findStartDestination().id) {
+                                                            saveState = true
+                                                        }
+                                                        launchSingleTop = true
+                                                        restoreState = true
+                                                    }
+                                                }
+                                            }
+                                            .padding(vertical = 4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = tab.icon,
+                                            contentDescription = tab.title,
+                                            tint = if (isSelected) TextDark else TextMuted,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+
+                                        Spacer(modifier = Modifier.height(3.dp))
+
+                                        Text(
+                                            text = tab.title,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) TextDark else TextSecondary
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -158,13 +201,13 @@ fun BioTraceNavHost() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Vitals.route,
+            startDestination = Screen.Nutrition.route,
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(
                     onGetStarted = {
-                        navController.navigate(Screen.Vitals.route) {
+                        navController.navigate(Screen.Nutrition.route) {
                             popUpTo(Screen.Onboarding.route) { inclusive = true }
                         }
                     }
@@ -194,7 +237,9 @@ fun BioTraceNavHost() {
                 LabsScreen()
             }
             composable(Screen.Nutrition.route) {
-                FoodScanScreen()
+                FoodScanScreen(
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                )
             }
             composable(Screen.Copilot.route) {
                 ChatScreen(

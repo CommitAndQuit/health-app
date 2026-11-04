@@ -17,6 +17,9 @@ interface LabBiomarkerDao {
     suspend fun insertAll(biomarkers: List<LabBiomarkerEntity>)
 
     @Query("SELECT * FROM lab_biomarkers ORDER BY recorded_at DESC")
+    suspend fun getAll(): List<LabBiomarkerEntity>
+
+    @Query("SELECT * FROM lab_biomarkers ORDER BY recorded_at DESC")
     fun getAllFlow(): Flow<List<LabBiomarkerEntity>>
 
     @Query("SELECT * FROM lab_biomarkers WHERE biomarker_name = :biomarkerName ORDER BY recorded_at DESC")

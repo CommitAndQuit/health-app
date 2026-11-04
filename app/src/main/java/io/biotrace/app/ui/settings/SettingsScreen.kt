@@ -39,6 +39,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import io.biotrace.app.ui.theme.LightBackground
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -71,17 +72,10 @@ fun SettingsScreen(
     var keyVisible by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = LightBackground,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.settings_title),
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+            io.biotrace.app.ui.common.BioTraceTopBar(
+                subtitle = "Settings & Vault"
             )
         }
     ) { paddingValues ->

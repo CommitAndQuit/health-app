@@ -65,6 +65,7 @@ class FoodScanViewModelTest {
             photoPath = null
         )
 
+        whenever(mealDao.getMealsBetween(any(), any())).thenReturn(listOf(meal1, meal2))
         whenever(mealDao.getMealsBetweenFlow(any(), any())).thenReturn(flowOf(listOf(meal1, meal2)))
 
         val viewModel = FoodScanViewModel(mealDao, llmClient)
@@ -80,6 +81,7 @@ class FoodScanViewModelTest {
 
     @Test
     fun `addManualMeal saves entity into mealDao`() = runTest {
+        whenever(mealDao.getMealsBetween(any(), any())).thenReturn(listOf())
         whenever(mealDao.getMealsBetweenFlow(any(), any())).thenReturn(flowOf(emptyList()))
 
         val viewModel = FoodScanViewModel(mealDao, llmClient)
@@ -101,6 +103,7 @@ class FoodScanViewModelTest {
 
     @Test
     fun `scanFoodPhoto calls LLM with multimodal image and parses response`() = runTest {
+        whenever(mealDao.getMealsBetween(any(), any())).thenReturn(listOf())
         whenever(mealDao.getMealsBetweenFlow(any(), any())).thenReturn(flowOf(emptyList()))
 
         val jsonResponse = """
@@ -110,7 +113,9 @@ class FoodScanViewModelTest {
               "protein": 45.0,
               "carbs": 50.0,
               "fats": 14.0,
-              "fiber": 4.0
+              "fiber": 4.0,
+              "glycemic": "LOW",
+              "confidence": 98
             }
         """.trimIndent()
 

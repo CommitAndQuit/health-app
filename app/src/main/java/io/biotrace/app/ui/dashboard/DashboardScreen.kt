@@ -90,6 +90,7 @@ import io.biotrace.app.domain.model.MetricOverview
 import io.biotrace.app.domain.model.TimeRangeSelection
 import io.biotrace.app.ui.theme.BioRed
 import io.biotrace.app.ui.theme.DarkBackground
+import io.biotrace.app.ui.theme.LightBackground
 import io.biotrace.app.ui.theme.DarkInputBg
 import io.biotrace.app.ui.theme.DarkSurface
 import io.biotrace.app.ui.theme.DarkSurfaceBorder
@@ -147,119 +148,12 @@ fun DashboardScreen(
     }
 
     Scaffold(
-        containerColor = DarkBackground,
+        containerColor = LightBackground,
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Shield icon squircle container
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(DarkSurfaceElevated)
-                                .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(10.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Shield,
-                                contentDescription = null,
-                                tint = TextWhite,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(10.dp))
-
-                        Column {
-                            Text(
-                                text = "BioTrace",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextWhite
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    color = if (uiState.hasPermissions) StatusGreen else BioRed,
-                                    shape = CircleShape,
-                                    modifier = Modifier.size(6.dp)
-                                ) {}
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text(
-                                    text = if (uiState.hasPermissions) "ON-DEVICE • AES-256" else "PERMISSIONS REQUIRED",
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.8.sp,
-                                    color = TextGray
-                                )
-                            }
-                        }
-                    }
-                },
-                actions = {
-                    // Sync icon / spinner
-                    if (uiState.isSyncing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = BioRed
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    } else {
-                        IconButton(onClick = { viewModel.syncNow() }) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Sync",
-                                tint = TextGray,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-
-                    // Notification bell
-                    IconButton(onClick = {}) {
-                        Box {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifications",
-                                tint = TextGray,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            if (uiState.lastSyncMessage != null) {
-                                Surface(
-                                    color = BioRed,
-                                    shape = CircleShape,
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .align(Alignment.TopEnd)
-                                ) {}
-                            }
-                        }
-                    }
-
-                    // Profile Avatar button
-                    IconButton(onClick = onNavigateToSettings) {
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFB4A2)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Profile",
-                                tint = Color(0xFF3E2723),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DarkBackground
-                )
+            io.biotrace.app.ui.common.BioTraceTopBar(
+                subtitle = "Vitals & Telemetry",
+                onAvatarClick = onNavigateToSettings,
+                onSettingsClick = onNavigateToSettings
             )
         }
     ) { paddingValues ->

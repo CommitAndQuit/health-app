@@ -2,6 +2,7 @@ package io.biotrace.app.ui.labs
 
 import io.biotrace.app.data.local.dao.LabBiomarkerDao
 import io.biotrace.app.data.local.entity.LabBiomarkerEntity
+import io.biotrace.app.domain.clinical.ClinicalSchemaNormalizer
 import io.biotrace.app.domain.llm.LlmClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +29,7 @@ class LabsViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val labBiomarkerDao: LabBiomarkerDao = mock()
     private val llmClient: LlmClient = mock()
+    private val normalizer = ClinicalSchemaNormalizer()
 
     @Before
     fun setUp() {
@@ -66,9 +68,10 @@ class LabsViewModelTest {
             source = "VISION_LLM"
         )
 
+        whenever(labBiomarkerDao.getAll()).thenReturn(listOf(normalBiomarker, highBiomarker))
         whenever(labBiomarkerDao.getAllFlow()).thenReturn(flowOf(listOf(normalBiomarker, highBiomarker)))
 
-        val viewModel = LabsViewModel(labBiomarkerDao, llmClient)
+        val viewModel = LabsViewModel(labBiomarkerDao, llmClient, normalizer)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -79,9 +82,10 @@ class LabsViewModelTest {
 
     @Test
     fun `addManualBiomarker inserts into dao with calculated flag`() = runTest {
+        whenever(labBiomarkerDao.getAll()).thenReturn(emptyList())
         whenever(labBiomarkerDao.getAllFlow()).thenReturn(flowOf(emptyList()))
 
-        val viewModel = LabsViewModel(labBiomarkerDao, llmClient)
+        val viewModel = LabsViewModel(labBiomarkerDao, llmClient, normalizer)
         advanceUntilIdle()
 
         viewModel.addManualBiomarker(
@@ -94,5 +98,48 @@ class LabsViewModelTest {
         advanceUntilIdle()
 
         verify(labBiomarkerDao).insert(any())
+    }
+
+    @Test
+    fun `scanBloodReport parses and opens human-in-the-loop review dialog`() = runTest {
+        whenever(labBiomarkerDao.getAll()).thenReturn(emptyList())
+        whenever(labBiomarkerDao.getAllFlow()).thenReturn(flowOf(emptyList()))
+
+        val jsonResponse = """
+            [
+              {
+                "rawName": "Glycated Hemoglobin HbA1c",
+                "value": "5.5",
+                "unit": "%",
+                "referenceMin": 4.0,
+                "referenceMax": 5.6
+              },
+              {
+                "rawName": "Fast Glucose",
+                "value": "5.5",
+                "unit": "mmol/L",
+                "referenceMin": 3.9,
+                "referenceMax": 5.5
+              }
+            ]
+        """.trimIndent()
+
+        whenever(llmClient.generateContentWithImage(any(), any(), any())).thenReturn(jsonResponse)
+
+        val viewModel = LabsViewModel(labBiomarkerDao, llmClient, normalizer)
+        advanceUntilIdle()
+
+        viewModel.scanBloodReport("dummy_base64")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isReviewDialogOpen)
+        assertEquals(2, state.pendingReviewBiomarkers.size)
+        // Verify canonical name mapping
+        assertEquals("HBA1C", state.pendingReviewBiomarkers[0].biomarkerName)
+        assertEquals("FASTING_GLUCOSE", state.pendingReviewBiomarkers[1].biomarkerName)
+        // Verify unit conversion from mmol/L to mg/dL (5.5 * 18.0182 ~ 99.1)
+        assertEquals("mg/dL", state.pendingReviewBiomarkers[1].unit)
+        assertTrue(state.pendingReviewBiomarkers[1].value > 90.0)
     }
 }

@@ -67,6 +67,7 @@ import io.biotrace.app.R
 import io.biotrace.app.data.local.entity.ChatMessageEntity
 import io.biotrace.app.domain.agent.Citation
 import io.biotrace.app.ui.theme.BioRed
+import io.biotrace.app.ui.theme.LightBackground
 import io.biotrace.app.ui.theme.DarkBackground
 import io.biotrace.app.ui.theme.DarkInputBg
 import io.biotrace.app.ui.theme.DarkSurface
@@ -101,64 +102,12 @@ fun ChatScreen(
     }
 
     Scaffold(
-        containerColor = DarkBackground,
+        containerColor = LightBackground,
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(DarkSurfaceElevated)
-                                .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(10.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Psychology,
-                                contentDescription = null,
-                                tint = BioRed,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "BioTrace AI Copilot",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextWhite
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    color = if (uiState.isConfigured) StatusGreen else BioRed,
-                                    shape = CircleShape,
-                                    modifier = Modifier.size(6.dp)
-                                ) {}
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text(
-                                    text = if (uiState.isConfigured) "ALL DATA CONNECTED • AES-256" else "API KEY REQUIRED",
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.8.sp,
-                                    color = TextGray
-                                )
-                            }
-                        }
-                    }
-                },
-                actions = {
-                    if (uiState.messages.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.clearHistory() }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = stringResource(R.string.clear),
-                                tint = TextGray
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
+            io.biotrace.app.ui.common.BioTraceTopBar(
+                subtitle = "AI Copilot",
+                onAvatarClick = onNavigateToSettings,
+                onSettingsClick = onNavigateToSettings
             )
         }
     ) { paddingValues ->
