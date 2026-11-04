@@ -88,13 +88,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import io.biotrace.app.R
 import io.biotrace.app.domain.model.MetricOverview
 import io.biotrace.app.domain.model.TimeRangeSelection
-import io.biotrace.app.ui.theme.BioRed
-import io.biotrace.app.ui.theme.DarkBackground
+import io.biotrace.app.ui.theme.BioOrange
+import io.biotrace.app.ui.theme.CardBorder
+import io.biotrace.app.ui.theme.ClinicalEmerald
 import io.biotrace.app.ui.theme.LightBackground
-import io.biotrace.app.ui.theme.DarkInputBg
-import io.biotrace.app.ui.theme.DarkSurface
-import io.biotrace.app.ui.theme.DarkSurfaceBorder
-import io.biotrace.app.ui.theme.DarkSurfaceElevated
+import io.biotrace.app.ui.theme.PureWhite
 import io.biotrace.app.ui.theme.HeroCardBg
 import io.biotrace.app.ui.theme.HeroCardButtonSecondary
 import io.biotrace.app.ui.theme.HeroCardTextPrimary
@@ -108,8 +106,9 @@ import io.biotrace.app.ui.theme.MetricSteps
 import io.biotrace.app.ui.theme.StatusGreen
 import io.biotrace.app.ui.theme.StatusOptimalBadge
 import io.biotrace.app.ui.theme.StatusOptimalText
-import io.biotrace.app.ui.theme.TextGray
+import io.biotrace.app.ui.theme.TextDark
 import io.biotrace.app.ui.theme.TextMuted
+import io.biotrace.app.ui.theme.TextSecondary
 import io.biotrace.app.ui.theme.TextWhite
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -178,7 +177,7 @@ fun DashboardScreen(
                             text = if (uiState.userName != null) "Hello, ${uiState.userName}!" else "Welcome to BioTrace",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = TextGray
+                            color = TextSecondary
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
@@ -186,7 +185,7 @@ fun DashboardScreen(
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             lineHeight = 32.sp,
-                            color = TextWhite
+                            color = TextDark
                         )
                     }
 
@@ -219,9 +218,9 @@ fun DashboardScreen(
                         }
 
                         Surface(
-                            color = BioRed,
+                            color = BioOrange,
                             shape = CircleShape,
-                            border = androidx.compose.foundation.BorderStroke(2.dp, DarkBackground),
+                            border = androidx.compose.foundation.BorderStroke(2.dp, PureWhite),
                             modifier = Modifier
                                 .size(14.dp)
                                 .align(Alignment.BottomEnd)
@@ -242,9 +241,9 @@ fun DashboardScreen(
             item {
                 Card(
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkInputBg),
+                    colors = CardDefaults.cardColors(containerColor = PureWhite),
                     border = CardDefaults.outlinedCardBorder().copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+                        brush = androidx.compose.ui.graphics.SolidColor(CardBorder)
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -259,7 +258,7 @@ fun DashboardScreen(
                         Icon(
                             imageVector = Icons.Default.EditCalendar,
                             contentDescription = null,
-                            tint = BioRed,
+                            tint = BioOrange,
                             modifier = Modifier.size(20.dp)
                         )
 
@@ -271,7 +270,7 @@ fun DashboardScreen(
                             } else {
                                 "Add clinical notes or symptoms..."
                             },
-                            color = if (uiState.clinicalNotes.isNotEmpty()) TextWhite else TextGray,
+                            color = if (uiState.clinicalNotes.isNotEmpty()) TextDark else TextMuted,
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Normal,
                             modifier = Modifier.weight(1f),
@@ -282,13 +281,13 @@ fun DashboardScreen(
                             modifier = Modifier
                                 .size(28.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF232733)),
+                                .background(BioOrange),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Add",
-                                tint = TextWhite,
+                                tint = PureWhite,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -312,10 +311,10 @@ fun DashboardScreen(
                 item {
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFF2C1618)
+                            containerColor = Color(0xFFFFF1ED)
                         ),
                         border = CardDefaults.outlinedCardBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(Color(0xFF5A2024))
+                            brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFFFCCBC))
                         ),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -329,21 +328,21 @@ fun DashboardScreen(
                             Icon(
                                 imageVector = Icons.Default.Warning,
                                 contentDescription = null,
-                                tint = BioRed,
+                                tint = BioOrange,
                                 modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = "Grant Health Connect to import vitals",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextWhite,
+                                color = TextDark,
                                 modifier = Modifier.weight(1f)
                             )
                             Button(
                                 onClick = onNavigateToPermissions,
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = BioRed,
-                                    contentColor = TextWhite
+                                    containerColor = BioOrange,
+                                    contentColor = PureWhite
                                 ),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                 shape = RoundedCornerShape(10.dp)
@@ -377,7 +376,7 @@ fun DashboardScreen(
                                 Icon(
                                     imageVector = Icons.Default.MonitorHeart,
                                     contentDescription = null,
-                                    tint = BioRed,
+                                    tint = BioOrange,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -419,14 +418,14 @@ fun DashboardScreen(
                             Button(
                                 onClick = { viewModel.startEkgRecording() },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = BioRed,
+                                    containerColor = BioOrange,
                                     contentColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(16.dp),
                                 modifier = Modifier
                                     .weight(1.2f)
                                     .height(48.dp)
-                                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp), ambientColor = BioRed, spotColor = BioRed)
+                                    .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp), ambientColor = BioOrange, spotColor = BioOrange)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.FiberManualRecord,
@@ -476,9 +475,9 @@ fun DashboardScreen(
             item {
                 Card(
                     shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    colors = CardDefaults.cardColors(containerColor = PureWhite),
                     border = CardDefaults.outlinedCardBorder().copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+                        brush = androidx.compose.ui.graphics.SolidColor(CardBorder)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -498,13 +497,13 @@ fun DashboardScreen(
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0x22FF5252)),
+                                        .background(Color(0xFFFFF3EB)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.AccessibilityNew,
                                         contentDescription = null,
-                                        tint = BioRed,
+                                        tint = BioOrange,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -513,14 +512,14 @@ fun DashboardScreen(
                                     text = "Bio Impedance",
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextWhite
+                                    color = TextDark
                                 )
                             }
 
                             Text(
                                 text = uiState.bioImpedanceTimestamp ?: "--",
                                 fontSize = 12.sp,
-                                color = TextGray
+                                color = TextSecondary
                             )
                         }
 
@@ -539,14 +538,14 @@ fun DashboardScreen(
                                     text = uiState.bmi?.let { "%.1f".format(it) } ?: "--",
                                     fontSize = 32.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextWhite,
+                                    color = TextDark,
                                     lineHeight = 34.sp
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "bmi",
                                     fontSize = 13.sp,
-                                    color = TextGray,
+                                    color = TextSecondary,
                                     modifier = Modifier.padding(bottom = 4.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -601,7 +600,7 @@ fun DashboardScreen(
                                 text = if (uiState.bodyFatPercentage != null) "Body Fat: ${uiState.bodyFatPercentage}%" else "Body Fat: --",
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFFC0C7D5)
+                                color = TextSecondary
                             )
                         }
                     }
@@ -617,9 +616,9 @@ fun DashboardScreen(
                     // Left: R-R INTERVAL
                     Card(
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = PureWhite),
                         border = CardDefaults.outlinedCardBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+                            brush = androidx.compose.ui.graphics.SolidColor(CardBorder)
                         ),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -638,12 +637,12 @@ fun DashboardScreen(
                                     fontSize = 10.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     letterSpacing = 0.8.sp,
-                                    color = TextGray
+                                    color = TextSecondary
                                 )
                                 Icon(
                                     imageVector = Icons.Default.Timer,
                                     contentDescription = null,
-                                    tint = BioRed,
+                                    tint = BioOrange,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -655,14 +654,14 @@ fun DashboardScreen(
                                     text = uiState.rrIntervalMs?.toString() ?: "--",
                                     fontSize = 28.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextWhite,
+                                    color = TextDark,
                                     lineHeight = 30.sp
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "ms",
                                     fontSize = 13.sp,
-                                    color = TextGray,
+                                    color = TextSecondary,
                                     modifier = Modifier.padding(bottom = 3.dp)
                                 )
                             }
@@ -672,9 +671,9 @@ fun DashboardScreen(
                     // Right: SIGNAL QUALITY
                     Card(
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = PureWhite),
                         border = CardDefaults.outlinedCardBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+                            brush = androidx.compose.ui.graphics.SolidColor(CardBorder)
                         ),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -693,12 +692,12 @@ fun DashboardScreen(
                                     fontSize = 10.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     letterSpacing = 0.8.sp,
-                                    color = TextGray
+                                    color = TextSecondary
                                 )
                                 Icon(
                                     imageVector = Icons.Default.Sensors,
                                     contentDescription = null,
-                                    tint = BioRed,
+                                    tint = BioOrange,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -710,14 +709,14 @@ fun DashboardScreen(
                                     text = uiState.signalQuality?.toString() ?: "--",
                                     fontSize = 28.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextWhite,
+                                    color = TextDark,
                                     lineHeight = 30.sp
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = if (uiState.signalQuality != null) "/100" else "UNPAIRED",
                                     fontSize = 13.sp,
-                                    color = TextGray,
+                                    color = TextSecondary,
                                     modifier = Modifier.padding(bottom = 3.dp)
                                 )
                             }
@@ -730,9 +729,9 @@ fun DashboardScreen(
             item {
                 Card(
                     shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurfaceElevated),
+                    colors = CardDefaults.cardColors(containerColor = PureWhite),
                     border = CardDefaults.outlinedCardBorder().copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+                        brush = androidx.compose.ui.graphics.SolidColor(CardBorder)
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -747,14 +746,14 @@ fun DashboardScreen(
                     ) {
                         Text(
                             text = "Connected Health Telemetry",
-                            color = TextWhite,
+                            color = TextDark,
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                         Icon(
                             imageVector = if (showOtherVitals) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = TextGray
+                            tint = TextSecondary
                         )
                     }
                 }
@@ -780,15 +779,15 @@ fun DashboardScreen(
                                 onClick = { viewModel.selectRange(range) },
                                 label = { Text(label, fontSize = 12.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = BioRed,
-                                    selectedLabelColor = TextWhite,
-                                    containerColor = DarkSurface,
-                                    labelColor = TextGray
+                                    selectedContainerColor = BioOrange,
+                                    selectedLabelColor = PureWhite,
+                                    containerColor = PureWhite,
+                                    labelColor = TextSecondary
                                 ),
                                 border = FilterChipDefaults.filterChipBorder(
                                     enabled = true,
                                     selected = isSelected,
-                                    borderColor = if (isSelected) BioRed else DarkSurfaceBorder
+                                    borderColor = if (isSelected) BioOrange else CardBorder
                                 )
                             )
                         }
@@ -842,10 +841,10 @@ fun MoodSelectorRow(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(CircleShape)
-                        .background(if (isSelected) Color.White else DarkSurface)
+                        .background(if (isSelected) BioOrange else PureWhite)
                         .border(
                             width = 1.dp,
-                            color = if (isSelected) Color.White else DarkSurfaceBorder,
+                            color = if (isSelected) BioOrange else CardBorder,
                             shape = CircleShape
                         ),
                     contentAlignment = Alignment.Center
@@ -853,7 +852,7 @@ fun MoodSelectorRow(
                     Icon(
                         imageVector = icon,
                         contentDescription = mood.label,
-                        tint = if (isSelected) Color(0xFF161820) else TextGray,
+                        tint = if (isSelected) PureWhite else TextSecondary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -864,7 +863,7 @@ fun MoodSelectorRow(
                     text = mood.label,
                     fontSize = 11.5.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isSelected) Color.White else TextGray
+                    color = if (isSelected) BioOrange else TextSecondary
                 )
             }
         }
@@ -885,17 +884,17 @@ fun MetricCardDark(
         "SLEEP" -> MetricSleep
         "CALORIES" -> MetricCalories
         "OXYGEN_SATURATION" -> MetricOxygen
-        else -> BioRed
+        else -> BioOrange
     }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable { expanded = !expanded },
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        colors = CardDefaults.cardColors(containerColor = PureWhite),
         shape = RoundedCornerShape(18.dp),
         border = CardDefaults.outlinedCardBorder().copy(
-            brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+            brush = androidx.compose.ui.graphics.SolidColor(CardBorder)
         )
     ) {
         Column(
@@ -912,12 +911,12 @@ fun MetricCardDark(
                     text = metric.title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextWhite
+                    color = TextDark
                 )
                 Text(
                     text = metric.unit,
                     fontSize = 12.sp,
-                    color = TextGray
+                    color = TextSecondary
                 )
             }
 
@@ -942,7 +941,7 @@ fun MetricCardDark(
                         Text(
                             text = "Avg: %.1f %s".format(metric.averageValue, metric.unit),
                             fontSize = 11.5.sp,
-                            color = TextGray
+                            color = TextSecondary
                         )
                     }
                 }

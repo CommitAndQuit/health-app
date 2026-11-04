@@ -155,7 +155,7 @@ fun FoodScanScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(top = 4.dp, bottom = 80.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Scanning progress indicator
@@ -1146,6 +1146,7 @@ fun ManualMealEntryDialog(
     var protein by remember { mutableStateOf("") }
     var carbs by remember { mutableStateOf("") }
     var fats by remember { mutableStateOf("") }
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -1180,20 +1181,39 @@ fun ManualMealEntryDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Meal Name") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Next
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) }
+                    ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = BioOrange,
-                        unfocusedBorderColor = CardBorder
+                        unfocusedBorderColor = CardBorder,
+                        focusedTextColor = TextDark,
+                        unfocusedTextColor = TextDark
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
                     value = calories,
-                    onValueChange = { calories = it },
+                    onValueChange = { calories = it.filter { ch -> ch.isDigit() } },
                     label = { Text("Calories (kcal)") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Next
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) }
+                    ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = BioOrange,
-                        unfocusedBorderColor = CardBorder
+                        unfocusedBorderColor = CardBorder,
+                        focusedTextColor = TextDark,
+                        unfocusedTextColor = TextDark
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1204,31 +1224,61 @@ fun ManualMealEntryDialog(
                 ) {
                     OutlinedTextField(
                         value = protein,
-                        onValueChange = { protein = it },
+                        onValueChange = { protein = it.filter { ch -> ch.isDigit() || ch == '.' } },
                         label = { Text("Protein (g)") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Next
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Right) }
+                        ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MacroProteinColor,
-                            unfocusedBorderColor = CardBorder
+                            unfocusedBorderColor = CardBorder,
+                            focusedTextColor = TextDark,
+                            unfocusedTextColor = TextDark
                         ),
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = carbs,
-                        onValueChange = { carbs = it },
+                        onValueChange = { carbs = it.filter { ch -> ch.isDigit() || ch == '.' } },
                         label = { Text("Carbs (g)") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Next
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Right) }
+                        ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MacroCarbsColor,
-                            unfocusedBorderColor = CardBorder
+                            unfocusedBorderColor = CardBorder,
+                            focusedTextColor = TextDark,
+                            unfocusedTextColor = TextDark
                         ),
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = fats,
-                        onValueChange = { fats = it },
+                        onValueChange = { fats = it.filter { ch -> ch.isDigit() || ch == '.' } },
                         label = { Text("Fats (g)") },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Done
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onDone = { focusManager.clearFocus() }
+                        ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MacroFatsColor,
-                            unfocusedBorderColor = CardBorder
+                            unfocusedBorderColor = CardBorder,
+                            focusedTextColor = TextDark,
+                            unfocusedTextColor = TextDark
                         ),
                         modifier = Modifier.weight(1f)
                     )

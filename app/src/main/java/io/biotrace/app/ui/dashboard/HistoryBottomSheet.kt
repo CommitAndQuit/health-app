@@ -38,13 +38,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.biotrace.app.ui.theme.BioRed
-import io.biotrace.app.ui.theme.DarkBackground
-import io.biotrace.app.ui.theme.DarkSurface
-import io.biotrace.app.ui.theme.DarkSurfaceBorder
+import io.biotrace.app.ui.theme.BioOrange
+import io.biotrace.app.ui.theme.CardBorder
+import io.biotrace.app.ui.theme.LightBackground
+import io.biotrace.app.ui.theme.PureWhite
 import io.biotrace.app.ui.theme.StatusGreen
-import io.biotrace.app.ui.theme.TextGray
-import io.biotrace.app.ui.theme.TextWhite
+import io.biotrace.app.ui.theme.TextDark
+import io.biotrace.app.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,7 +57,7 @@ fun HistoryBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = DarkSurface,
+        containerColor = PureWhite,
         dragHandle = null
     ) {
         Column(
@@ -72,7 +72,7 @@ fun HistoryBottomSheet(
             ) {
                 Text(
                     text = "ECG & Heart Rate History",
-                    color = TextWhite,
+                    color = TextDark,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -80,7 +80,7 @@ fun HistoryBottomSheet(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
-                        tint = TextGray
+                        tint = TextSecondary
                     )
                 }
             }
@@ -97,14 +97,14 @@ fun HistoryBottomSheet(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = "No Heart Rate History",
-                            color = TextWhite,
+                            color = TextDark,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 16.sp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "No wearable or ECG records have been imported yet. Grant Health Connect permissions and tap 'Sync Now' on the dashboard, or tap 'Record EKG' to start a measurement.",
-                            color = TextGray,
+                            color = TextSecondary,
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center,
                             lineHeight = 18.sp
@@ -117,10 +117,10 @@ fun HistoryBottomSheet(
                 ) {
                     items(records, key = { it.id }) { record ->
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = DarkBackground),
+                            colors = CardDefaults.cardColors(containerColor = LightBackground),
                             shape = RoundedCornerShape(16.dp),
                             border = CardDefaults.outlinedCardBorder().copy(
-                                brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+                                brush = androidx.compose.ui.graphics.SolidColor(CardBorder)
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -136,13 +136,13 @@ fun HistoryBottomSheet(
                                         modifier = Modifier
                                             .size(44.dp)
                                             .clip(RoundedCornerShape(12.dp))
-                                            .background(Color(0x22FF5252)),
+                                            .background(Color(0xFFFFF3EB)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Favorite,
                                             contentDescription = null,
-                                            tint = BioRed,
+                                            tint = BioOrange,
                                             modifier = Modifier.size(22.dp)
                                         )
                                     }
@@ -150,7 +150,7 @@ fun HistoryBottomSheet(
                                     Column {
                                         Text(
                                             text = record.timestamp,
-                                            color = TextWhite,
+                                            color = TextDark,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.SemiBold
                                         )
@@ -164,7 +164,7 @@ fun HistoryBottomSheet(
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
                                                 text = record.rhythm,
-                                                color = TextGray,
+                                                color = TextSecondary,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Medium
                                             )
@@ -175,14 +175,14 @@ fun HistoryBottomSheet(
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
                                         text = "${record.bpm}",
-                                        color = TextWhite,
+                                        color = TextDark,
                                         fontSize = 22.sp,
                                         fontWeight = FontWeight.Bold,
                                         fontFamily = FontFamily.Monospace
                                     )
                                     Text(
                                         text = "BPM",
-                                        color = TextGray,
+                                        color = TextSecondary,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium
                                     )

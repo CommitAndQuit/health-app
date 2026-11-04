@@ -48,12 +48,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import io.biotrace.app.ui.theme.BioRed
-import io.biotrace.app.ui.theme.DarkBackground
-import io.biotrace.app.ui.theme.DarkSurface
-import io.biotrace.app.ui.theme.DarkSurfaceBorder
+import io.biotrace.app.ui.theme.BioOrange
+import io.biotrace.app.ui.theme.CardBorder
+import io.biotrace.app.ui.theme.LightBackground
+import io.biotrace.app.ui.theme.PureWhite
 import io.biotrace.app.ui.theme.StatusGreen
-import io.biotrace.app.ui.theme.TextGray
+import io.biotrace.app.ui.theme.TextDark
+import io.biotrace.app.ui.theme.TextSecondary
 import io.biotrace.app.ui.theme.TextWhite
 import kotlin.math.sin
 
@@ -79,8 +80,8 @@ fun EkgRecordDialog(
     Dialog(onDismissRequest = onCancel) {
         Card(
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)),
+            colors = CardDefaults.cardColors(containerColor = PureWhite),
+            border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(CardBorder)),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
@@ -99,14 +100,14 @@ fun EkgRecordDialog(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
-                            color = BioRed,
+                            color = BioOrange,
                             shape = CircleShape,
                             modifier = Modifier.size(10.dp)
                         ) {}
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "RECORDING EKG • LEAD I",
-                            color = TextWhite,
+                            color = TextDark,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                             letterSpacing = 1.sp
@@ -116,21 +117,21 @@ fun EkgRecordDialog(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = TextGray
+                            tint = TextSecondary
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Oscilloscope Screen
+                // Oscilloscope Screen (keeps clinical dark background for signal contrast)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(140.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(DarkBackground)
-                        .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(16.dp))
+                        .background(Color(0xFF0F172A))
+                        .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
                 ) {
                     // Grid background
                     Canvas(modifier = Modifier.matchParentSize()) {
@@ -172,7 +173,7 @@ fun EkgRecordDialog(
 
                         drawPath(
                             path = path,
-                            color = BioRed,
+                            color = BioOrange,
                             style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
                         )
                     }
@@ -203,12 +204,12 @@ fun EkgRecordDialog(
                 ) {
                     Text(
                         text = "Hold fingers steady on sensor",
-                        color = TextGray,
+                        color = TextSecondary,
                         fontSize = 12.sp
                     )
                     Text(
                         text = "${remainingSeconds}s remaining",
-                        color = TextWhite,
+                        color = TextDark,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )
@@ -222,8 +223,8 @@ fun EkgRecordDialog(
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp)),
-                    color = BioRed,
-                    trackColor = DarkSurfaceBorder
+                    color = BioOrange,
+                    trackColor = LightBackground
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -231,8 +232,8 @@ fun EkgRecordDialog(
                 Button(
                     onClick = onCancel,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF262A36),
-                        contentColor = TextWhite
+                        containerColor = LightBackground,
+                        contentColor = TextDark
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()

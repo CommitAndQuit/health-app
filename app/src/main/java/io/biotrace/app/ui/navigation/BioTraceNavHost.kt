@@ -98,12 +98,12 @@ fun BioTraceNavHost() {
                         border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(68.dp)
+                            .height(72.dp)
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
                             horizontalArrangement = Arrangement.SpaceAround,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -128,11 +128,11 @@ fun BioTraceNavHost() {
                                                     }
                                                 }
                                             }
-                                            .padding(vertical = 4.dp)
+                                            .padding(vertical = 2.dp)
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(44.dp)
+                                                .size(38.dp)
                                                 .clip(CircleShape)
                                                 .background(BioOrange)
                                                 .shadow(elevation = 6.dp, shape = CircleShape),
@@ -142,7 +142,7 @@ fun BioTraceNavHost() {
                                                 imageVector = tab.icon,
                                                 contentDescription = tab.title,
                                                 tint = PureWhite,
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(21.dp)
                                             )
                                         }
 
@@ -150,7 +150,7 @@ fun BioTraceNavHost() {
 
                                         Text(
                                             text = tab.title,
-                                            fontSize = 10.5.sp,
+                                            fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = BioOrange
                                         )

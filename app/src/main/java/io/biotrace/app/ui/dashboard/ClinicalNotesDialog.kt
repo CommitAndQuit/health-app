@@ -38,13 +38,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import io.biotrace.app.ui.theme.BioRed
-import io.biotrace.app.ui.theme.DarkBackground
-import io.biotrace.app.ui.theme.DarkInputBg
-import io.biotrace.app.ui.theme.DarkSurface
-import io.biotrace.app.ui.theme.DarkSurfaceBorder
-import io.biotrace.app.ui.theme.TextGray
-import io.biotrace.app.ui.theme.TextWhite
+import io.biotrace.app.ui.theme.BioOrange
+import io.biotrace.app.ui.theme.CardBorder
+import io.biotrace.app.ui.theme.LightBackground
+import io.biotrace.app.ui.theme.PureWhite
+import io.biotrace.app.ui.theme.TextDark
+import io.biotrace.app.ui.theme.TextMuted
+import io.biotrace.app.ui.theme.TextSecondary
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -66,9 +66,9 @@ fun ClinicalNotesDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            colors = CardDefaults.cardColors(containerColor = PureWhite),
             border = CardDefaults.outlinedCardBorder().copy(
-                brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+                brush = androidx.compose.ui.graphics.SolidColor(CardBorder)
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -86,7 +86,7 @@ fun ClinicalNotesDialog(
                 ) {
                     Text(
                         text = "Add Clinical Symptoms & Notes",
-                        color = TextWhite,
+                        color = TextDark,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -94,7 +94,7 @@ fun ClinicalNotesDialog(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = TextGray
+                            tint = TextSecondary
                         )
                     }
                 }
@@ -103,7 +103,7 @@ fun ClinicalNotesDialog(
 
                 Text(
                     text = "Quick Tag Symptoms:",
-                    color = TextGray,
+                    color = TextSecondary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -119,10 +119,10 @@ fun ClinicalNotesDialog(
                         val isContained = noteText.contains(symptom)
                         Surface(
                             shape = RoundedCornerShape(20.dp),
-                            color = if (isContained) BioRed else DarkInputBg,
+                            color = if (isContained) BioOrange else LightBackground,
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                if (isContained) BioRed else DarkSurfaceBorder
+                                if (isContained) BioOrange else CardBorder
                             ),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
@@ -136,7 +136,7 @@ fun ClinicalNotesDialog(
                         ) {
                             Text(
                                 text = symptom,
-                                color = if (isContained) TextWhite else TextGray,
+                                color = if (isContained) PureWhite else TextDark,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -150,18 +150,18 @@ fun ClinicalNotesDialog(
                 OutlinedTextField(
                     value = noteText,
                     onValueChange = { noteText = it },
-                    placeholder = { Text("Enter detailed clinical observation...", color = TextGray, fontSize = 13.sp) },
+                    placeholder = { Text("Enter detailed clinical observation...", color = TextMuted, fontSize = 13.sp) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(110.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = DarkBackground,
-                        unfocusedContainerColor = DarkBackground,
-                        focusedBorderColor = BioRed,
-                        unfocusedBorderColor = DarkSurfaceBorder,
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
+                        focusedContainerColor = LightBackground,
+                        unfocusedContainerColor = LightBackground,
+                        focusedBorderColor = BioOrange,
+                        unfocusedBorderColor = CardBorder,
+                        focusedTextColor = TextDark,
+                        unfocusedTextColor = TextDark
                     )
                 )
 
@@ -172,8 +172,8 @@ fun ClinicalNotesDialog(
                         if (noteText.isNotBlank()) onSave(noteText)
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = BioRed,
-                        contentColor = TextWhite
+                        containerColor = BioOrange,
+                        contentColor = PureWhite
                     ),
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()

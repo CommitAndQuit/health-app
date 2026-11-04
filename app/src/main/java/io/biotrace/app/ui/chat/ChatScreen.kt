@@ -66,17 +66,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import io.biotrace.app.R
 import io.biotrace.app.data.local.entity.ChatMessageEntity
 import io.biotrace.app.domain.agent.Citation
-import io.biotrace.app.ui.theme.BioRed
+import io.biotrace.app.ui.theme.BioOrange
+import io.biotrace.app.ui.theme.CardBorder
 import io.biotrace.app.ui.theme.LightBackground
-import io.biotrace.app.ui.theme.DarkBackground
-import io.biotrace.app.ui.theme.DarkInputBg
-import io.biotrace.app.ui.theme.DarkSurface
-import io.biotrace.app.ui.theme.DarkSurfaceBorder
-import io.biotrace.app.ui.theme.DarkSurfaceElevated
+import io.biotrace.app.ui.theme.PureWhite
 import io.biotrace.app.ui.theme.StatusGreen
-import io.biotrace.app.ui.theme.TextGray
+import io.biotrace.app.ui.theme.TextDark
 import io.biotrace.app.ui.theme.TextMuted
-import io.biotrace.app.ui.theme.TextWhite
+import io.biotrace.app.ui.theme.TextSecondary
 import org.json.JSONArray
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -119,9 +116,9 @@ fun ChatScreen(
             // Unconfigured API Key Banner
             if (!uiState.isConfigured) {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF2C1618)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF1ED)),
                     border = CardDefaults.outlinedCardBorder().copy(
-                        brush = androidx.compose.ui.graphics.SolidColor(Color(0xFF5A2024))
+                        brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFFFCCBC))
                     ),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
@@ -137,21 +134,21 @@ fun ChatScreen(
                         Icon(
                             imageVector = Icons.Default.Key,
                             contentDescription = null,
-                            tint = BioRed
+                            tint = BioOrange
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Gemini API key is required to query your vitals, lab reports, and meals.",
                                 fontSize = 12.sp,
-                                color = TextWhite
+                                color = TextDark
                             )
                         }
                         Button(
                             onClick = onNavigateToSettings,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = BioRed,
-                                contentColor = TextWhite
+                                containerColor = BioOrange,
+                                contentColor = PureWhite
                             ),
                             shape = RoundedCornerShape(10.dp)
                         ) {
@@ -181,7 +178,7 @@ fun ChatScreen(
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                tint = BioRed,
+                                tint = BioOrange,
                                 modifier = Modifier.size(36.dp)
                             )
                             Spacer(modifier = Modifier.height(10.dp))
@@ -189,13 +186,13 @@ fun ChatScreen(
                                 text = "Cross-Telemetry Health Intelligence",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextWhite
+                                color = TextDark
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Your AI assistant synthesizes Health Connect vitals, scanned blood reports, and food calories into actionable plans and insights.",
                                 fontSize = 12.5.sp,
-                                color = TextGray,
+                                color = TextSecondary,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 lineHeight = 17.sp,
                                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -210,29 +207,29 @@ fun ChatScreen(
                                 AssistChip(
                                     onClick = { viewModel.sendMessage("Create a comprehensive 7-day health, sleep, and nutrition plan based on my wearable vitals, lab reports, and meal logs.") },
                                     label = { Text("📋 Create 7-Day Plan", fontSize = 11.5.sp) },
-                                    colors = AssistChipDefaults.assistChipColors(containerColor = DarkSurfaceElevated, labelColor = TextWhite),
-                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = DarkSurfaceBorder),
+                                    colors = AssistChipDefaults.assistChipColors(containerColor = PureWhite, labelColor = TextDark),
+                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = CardBorder),
                                     modifier = Modifier.padding(4.dp)
                                 )
                                 AssistChip(
                                     onClick = { viewModel.sendMessage("Analyze my resting heart rate and HRV against my latest lab test biomarkers to find any correlations.") },
                                     label = { Text("🔬 Correlate Vitals with Labs", fontSize = 11.5.sp) },
-                                    colors = AssistChipDefaults.assistChipColors(containerColor = DarkSurfaceElevated, labelColor = TextWhite),
-                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = DarkSurfaceBorder),
+                                    colors = AssistChipDefaults.assistChipColors(containerColor = PureWhite, labelColor = TextDark),
+                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = CardBorder),
                                     modifier = Modifier.padding(4.dp)
                                 )
                                 AssistChip(
                                     onClick = { viewModel.sendMessage("Evaluate my calorie and macronutrient intake against my daily activity, sleep, and vitals.") },
                                     label = { Text("🥗 Meal & Calorie Analysis", fontSize = 11.5.sp) },
-                                    colors = AssistChipDefaults.assistChipColors(containerColor = DarkSurfaceElevated, labelColor = TextWhite),
-                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = DarkSurfaceBorder),
+                                    colors = AssistChipDefaults.assistChipColors(containerColor = PureWhite, labelColor = TextDark),
+                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = CardBorder),
                                     modifier = Modifier.padding(4.dp)
                                 )
                                 AssistChip(
                                     onClick = { viewModel.sendMessage("Check for any active anomalies across my vitals, lab biomarkers, and meals, and recommend next steps.") },
                                     label = { Text("⚡ Full Health Anomaly Scan", fontSize = 11.5.sp) },
-                                    colors = AssistChipDefaults.assistChipColors(containerColor = DarkSurfaceElevated, labelColor = TextWhite),
-                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = DarkSurfaceBorder),
+                                    colors = AssistChipDefaults.assistChipColors(containerColor = PureWhite, labelColor = TextDark),
+                                    border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = CardBorder),
                                     modifier = Modifier.padding(4.dp)
                                 )
                             }
@@ -247,7 +244,10 @@ fun ChatScreen(
                 if (uiState.isLoading) {
                     item {
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = DarkSurfaceElevated),
+                            colors = CardDefaults.cardColors(containerColor = PureWhite),
+                            border = CardDefaults.outlinedCardBorder().copy(
+                                brush = androidx.compose.ui.graphics.SolidColor(CardBorder)
+                            ),
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -256,20 +256,20 @@ fun ChatScreen(
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(16.dp),
                                         strokeWidth = 2.dp,
-                                        color = BioRed
+                                        color = BioOrange
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
                                         text = "Synthesizing vitals, blood markers, and meals...",
                                         fontSize = 12.sp,
-                                        color = TextGray
+                                        color = TextSecondary
                                     )
                                 }
                                 if (uiState.currentStreamingResponse.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(10.dp))
                                     Text(
                                         text = uiState.currentStreamingResponse,
-                                        color = TextWhite,
+                                        color = TextDark,
                                         fontSize = 13.5.sp
                                     )
                                 }
@@ -281,8 +281,9 @@ fun ChatScreen(
 
             // Input Bar
             Surface(
-                color = DarkBackground,
+                color = PureWhite,
                 tonalElevation = 4.dp,
+                shadowElevation = 4.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -294,17 +295,17 @@ fun ChatScreen(
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { inputText = it },
-                        placeholder = { Text("Ask about plans, vitals, labs, or food...", fontSize = 13.sp, color = TextGray) },
+                        placeholder = { Text("Ask about plans, vitals, labs, or food...", fontSize = 13.sp, color = TextMuted) },
                         modifier = Modifier.weight(1f),
                         maxLines = 4,
                         shape = RoundedCornerShape(22.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = DarkInputBg,
-                            unfocusedContainerColor = DarkInputBg,
-                            focusedBorderColor = BioRed,
-                            unfocusedBorderColor = DarkSurfaceBorder,
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite
+                            focusedContainerColor = LightBackground,
+                            unfocusedContainerColor = LightBackground,
+                            focusedBorderColor = BioOrange,
+                            unfocusedBorderColor = CardBorder,
+                            focusedTextColor = TextDark,
+                            unfocusedTextColor = TextDark
                         )
                     )
 
@@ -322,12 +323,12 @@ fun ChatScreen(
                         modifier = Modifier
                             .size(46.dp)
                             .clip(CircleShape)
-                            .background(if (inputText.isNotBlank() && !uiState.isLoading) BioRed else DarkSurfaceBorder)
+                            .background(if (inputText.isNotBlank() && !uiState.isLoading) BioOrange else CardBorder)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = stringResource(R.string.chat_send),
-                            tint = TextWhite,
+                            tint = PureWhite,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -351,7 +352,7 @@ fun ChatMessageBubble(message: ChatMessageEntity) {
     ) {
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = if (isUser) BioRed else DarkSurface
+                containerColor = if (isUser) BioOrange else PureWhite
             ),
             shape = RoundedCornerShape(
                 topStart = 16.dp,
@@ -361,7 +362,7 @@ fun ChatMessageBubble(message: ChatMessageEntity) {
             ),
             border = if (!isUser) {
                 CardDefaults.outlinedCardBorder().copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(DarkSurfaceBorder)
+                    brush = androidx.compose.ui.graphics.SolidColor(CardBorder)
                 )
             } else null,
             modifier = Modifier.fillMaxWidth(if (isUser) 0.82f else 0.95f)
@@ -371,7 +372,7 @@ fun ChatMessageBubble(message: ChatMessageEntity) {
                     text = message.content,
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
-                    color = TextWhite
+                    color = if (isUser) PureWhite else TextDark
                 )
 
                 if (citations.isNotEmpty()) {
@@ -381,7 +382,7 @@ fun ChatMessageBubble(message: ChatMessageEntity) {
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp,
-                        color = if (isUser) Color.White.copy(alpha = 0.8f) else BioRed
+                        color = if (isUser) PureWhite.copy(alpha = 0.85f) else BioOrange
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     citations.forEach { citation ->
@@ -392,14 +393,14 @@ fun ChatMessageBubble(message: ChatMessageEntity) {
                             Icon(
                                 imageVector = Icons.Default.Description,
                                 contentDescription = null,
-                                tint = TextGray,
+                                tint = if (isUser) PureWhite.copy(alpha = 0.7f) else TextSecondary,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "${citation.metric ?: "Record"}: ${citation.value} (#${citation.id})",
                                 fontSize = 11.sp,
-                                color = TextGray
+                                color = if (isUser) PureWhite.copy(alpha = 0.9f) else TextSecondary
                             )
                         }
                     }
