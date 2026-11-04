@@ -102,10 +102,25 @@ class ClinicalSchemaNormalizer @Inject constructor() {
         "psa" to "PSA", "total psa" to "PSA", "prostate specific antigen" to "PSA",
 
         // Vitamins & Inflammatory Markers
-        "vitamin d" to "VITAMIN_D", "25-hydroxy vitamin d" to "VITAMIN_D", "25-oh vitamin d" to "VITAMIN_D", "vitamin d3" to "VITAMIN_D", "25(oh)d" to "VITAMIN_D",
-        "vitamin b12" to "VITAMIN_B12", "b12" to "VITAMIN_B12", "cobalamin" to "VITAMIN_B12",
+        // Cross-lab normalization for Vitamin D across various regional and global diagnostic centers
+        "vitamin d" to "VITAMIN_D", "25-hydroxy vitamin d" to "VITAMIN_D", "25 hydroxy vitamin d" to "VITAMIN_D",
+        "25-hydroxyvitamin d" to "VITAMIN_D", "25 hydroxyvitamin d" to "VITAMIN_D",
+        "25-oh vitamin d" to "VITAMIN_D", "25 oh vitamin d" to "VITAMIN_D", "25-oh vit d" to "VITAMIN_D", "25 oh vit d" to "VITAMIN_D",
+        "25(oh)d" to "VITAMIN_D", "25 (oh) d" to "VITAMIN_D", "25-oh-d" to "VITAMIN_D",
+        "total 25-hydroxy vitamin d" to "VITAMIN_D", "total 25 hydroxy vitamin d" to "VITAMIN_D",
+        "total 25-oh vitamin d" to "VITAMIN_D", "total 25 oh vitamin d" to "VITAMIN_D", "total 25-oh vit d" to "VITAMIN_D",
+        "total vitamin d" to "VITAMIN_D", "vitamin d total" to "VITAMIN_D", "vit d total" to "VITAMIN_D",
+        "vitamin d3" to "VITAMIN_D", "vit d3" to "VITAMIN_D", "vit d" to "VITAMIN_D", "d3" to "VITAMIN_D",
+        "calcidiol" to "VITAMIN_D", "calcifediol" to "VITAMIN_D",
+        "cholecalciferol" to "VITAMIN_D", "25-hydroxycholecalciferol" to "VITAMIN_D", "25 hydroxycholecalciferol" to "VITAMIN_D",
+        "vitamin d, 25-hydroxy" to "VITAMIN_D", "vitamin d (25-oh)" to "VITAMIN_D", "vitamin d 25 oh" to "VITAMIN_D",
+        "25 oh d" to "VITAMIN_D", "25-oh vitamin d (total)" to "VITAMIN_D", "vitamin d (25-hydroxy)" to "VITAMIN_D",
+
+        "vitamin b12" to "VITAMIN_B12", "vit b12" to "VITAMIN_B12", "b12" to "VITAMIN_B12", "cobalamin" to "VITAMIN_B12",
+        "cyanocobalamin" to "VITAMIN_B12", "serum vitamin b12" to "VITAMIN_B12", "serum b12" to "VITAMIN_B12",
         "folate" to "FOLATE", "folic acid" to "FOLATE", "serum folate" to "FOLATE",
         "crp" to "CRP", "c-reactive protein" to "CRP", "hs-crp" to "HS_CRP", "high sensitivity crp" to "HS_CRP",
+        "high sensitivity c-reactive protein" to "HS_CRP",
         "esr" to "ESR", "erythrocyte sedimentation rate" to "ESR",
         "homocysteine" to "HOMOCYSTEINE"
     )
@@ -237,8 +252,20 @@ class ClinicalSchemaNormalizer @Inject constructor() {
                 else Pair(value, "mg/dL")
             }
             "VITAMIN_D" -> {
-                if (u == "nmol/l") Pair(value / 2.496, "ng/mL")
-                else Pair(value, "ng/mL")
+                when (u) {
+                    "nmol/l" -> Pair(value / 2.496, "ng/mL")
+                    "ug/l", "mcg/l", "μg/l" -> Pair(value, "ng/mL")
+                    "ug/dl", "mcg/dl", "μg/dl" -> Pair(value * 10.0, "ng/mL")
+                    "pmol/l" -> Pair(value / 2496.0, "ng/mL")
+                    else -> Pair(value, "ng/mL")
+                }
+            }
+            "VITAMIN_B12" -> {
+                when (u) {
+                    "pmol/l" -> Pair(value * 1.355, "pg/mL")
+                    "ng/l" -> Pair(value, "pg/mL")
+                    else -> Pair(value, "pg/mL")
+                }
             }
             "HEMOGLOBIN" -> {
                 if (u == "mmol/l") Pair(value * 1.6114, "g/dL")

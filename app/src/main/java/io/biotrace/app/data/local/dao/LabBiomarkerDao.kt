@@ -31,6 +31,9 @@ interface LabBiomarkerDao {
     @Query("SELECT * FROM lab_biomarkers WHERE flag IN ('HIGH', 'LOW') ORDER BY recorded_at DESC")
     suspend fun getAnomalies(): List<LabBiomarkerEntity>
 
+    @Query("DELETE FROM lab_biomarkers WHERE id LIKE 'scan_%'")
+    suspend fun deleteLegacyScanEntries()
+
     @Query("DELETE FROM lab_biomarkers")
     suspend fun deleteAll()
 }

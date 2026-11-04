@@ -44,7 +44,7 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun testApiKey(apiKey: String): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
+            val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
             val payload = JSONObject().apply {
                 put(
                     "contents",

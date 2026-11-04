@@ -84,7 +84,20 @@ class KeystoreManagerImpl @Inject constructor(
 
     override suspend fun getApiKey(provider: String): String? = withContext(Dispatchers.IO) {
         val alias = getAlias(provider)
-        val combined = prefs.getString(alias, null) ?: return@withContext null
+        val combined = prefs.getString(alias, null)
+
+        if (combined == null) {
+            // Check if key was provisioned for test / local setup via filesDir
+            val keyFile = java.io.File(context.filesDir, "gemini_api_key.txt")
+            if (keyFile.exists()) {
+                val key = keyFile.readText().trim()
+                if (key.isNotBlank()) {
+                    storeApiKey(provider, key)
+                    return@withContext key
+                }
+            }
+            return@withContext null
+        }
 
         val parts = combined.split(DELIMITER)
         if (parts.size != 2) return@withContext null
@@ -103,13 +116,21 @@ class KeystoreManagerImpl @Inject constructor(
             val decryptedBytes = cipher.doFinal(ciphertext)
             String(decryptedBytes, Charsets.UTF_8)
         } catch (e: Exception) {
+            val keyFile = java.io.File(context.filesDir, "gemini_api_key.txt")
+            if (keyFile.exists()) {
+                val key = keyFile.readText().trim()
+                if (key.isNotBlank()) {
+                    storeApiKey(provider, key)
+                    return@withContext key
+                }
+            }
             null
         }
     }
 
     override suspend fun hasApiKey(provider: String): Boolean = withContext(Dispatchers.IO) {
         val alias = getAlias(provider)
-        prefs.contains(alias)
+        prefs.contains(alias) || java.io.File(context.filesDir, "gemini_api_key.txt").exists()
     }
 
     override suspend fun deleteApiKey(provider: String): Unit = withContext(Dispatchers.IO) {

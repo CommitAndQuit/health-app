@@ -9,6 +9,7 @@ import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,16 +33,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShowChart
-import androidx.compose.material.icons.filled.SwapCalls
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -69,8 +69,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.biotrace.app.R
 import io.biotrace.app.data.local.entity.MealEntity
 import io.biotrace.app.ui.common.BioTraceTopBar
 import io.biotrace.app.ui.theme.BioOrange
@@ -405,7 +407,7 @@ fun FoodScanScreen(
                         ) {
                             MacroStatCard(
                                 title = "PROTEIN",
-                                icon = Icons.Default.SwapCalls,
+                                icon = { ProteinIcon(color = MacroProteinColor) },
                                 amountGrams = uiState.totalProtein.toInt(),
                                 goalGrams = uiState.proteinGoal.toInt(),
                                 barColor = MacroProteinColor,
@@ -413,7 +415,7 @@ fun FoodScanScreen(
                             )
                             MacroStatCard(
                                 title = "CARBS",
-                                icon = Icons.Default.Widgets,
+                                icon = { CarbsIcon(color = MacroCarbsColor) },
                                 amountGrams = uiState.totalCarbs.toInt(),
                                 goalGrams = uiState.carbsGoal.toInt(),
                                 barColor = MacroCarbsColor,
@@ -421,7 +423,7 @@ fun FoodScanScreen(
                             )
                             MacroStatCard(
                                 title = "FATS",
-                                icon = Icons.Default.WaterDrop,
+                                icon = { FatsIcon(color = MacroFatsColor) },
                                 amountGrams = uiState.totalFats.toInt(),
                                 goalGrams = uiState.fatsGoal.toInt(),
                                 barColor = MacroFatsColor,
@@ -456,7 +458,8 @@ fun FoodScanScreen(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(Color(0xFFFFF1ED)),
+                                        .background(Color(0xFFFFF1ED))
+                                        .border(1.dp, Color(0xFFFFD8CC), RoundedCornerShape(10.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -515,8 +518,13 @@ fun FoodScanScreen(
                                     )
                                 )
                         ) {
-                            // Artistic meal plate representation background
-                            PlateGraphicBackground()
+                            // High fidelity photorealistic food presentation
+                            Image(
+                                painter = painterResource(id = R.drawable.plate_salmon_scan),
+                                contentDescription = "Smart Macro Scan Meal Plate",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
 
                             // Orange Viewfinder Corner Crop Marks
                             CornerBracketMarks(
@@ -887,7 +895,7 @@ fun FoodScanScreen(
                                 modifier = Modifier.clickable { viewModel.openManualEntry(true) }
                             ) {
                                 Text(
-                                    text = "Add Manual +",
+                                    text = "View History >",
                                     fontSize = 12.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = BioOrange
@@ -913,9 +921,100 @@ fun FoodScanScreen(
 }
 
 @Composable
+fun ProteinIcon(color: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(13.dp)) {
+        val w = size.width
+        val h = size.height
+        val strokeWidth = 1.6.dp.toPx()
+
+        // Arrow 1: center to top-right
+        drawLine(
+            color = color,
+            start = androidx.compose.ui.geometry.Offset(w * 0.42f, h * 0.58f),
+            end = androidx.compose.ui.geometry.Offset(w * 0.95f, h * 0.05f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+        // Arrowhead 1
+        drawLine(
+            color = color,
+            start = androidx.compose.ui.geometry.Offset(w * 0.6f, h * 0.05f),
+            end = androidx.compose.ui.geometry.Offset(w * 0.95f, h * 0.05f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = color,
+            start = androidx.compose.ui.geometry.Offset(w * 0.95f, h * 0.4f),
+            end = androidx.compose.ui.geometry.Offset(w * 0.95f, h * 0.05f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+
+        // Arrow 2: center to bottom-left
+        drawLine(
+            color = color,
+            start = androidx.compose.ui.geometry.Offset(w * 0.58f, h * 0.42f),
+            end = androidx.compose.ui.geometry.Offset(w * 0.05f, h * 0.95f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+        // Arrowhead 2
+        drawLine(
+            color = color,
+            start = androidx.compose.ui.geometry.Offset(w * 0.4f, h * 0.95f),
+            end = androidx.compose.ui.geometry.Offset(w * 0.05f, h * 0.95f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = color,
+            start = androidx.compose.ui.geometry.Offset(w * 0.05f, h * 0.6f),
+            end = androidx.compose.ui.geometry.Offset(w * 0.05f, h * 0.95f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+fun CarbsIcon(color: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(13.dp)) {
+        val radius = 1.25.dp.toPx()
+        val spacingX = size.width * 0.38f
+        val spacingY = size.height * 0.32f
+        val startX = size.width * 0.31f
+        val startY = size.height * 0.2f
+
+        for (row in 0..2) {
+            for (col in 0..1) {
+                drawCircle(
+                    color = color,
+                    radius = radius,
+                    center = androidx.compose.ui.geometry.Offset(
+                        startX + col * spacingX,
+                        startY + row * spacingY
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FatsIcon(color: Color, modifier: Modifier = Modifier) {
+    Icon(
+        imageVector = Icons.Default.WaterDrop,
+        contentDescription = null,
+        tint = color,
+        modifier = modifier.size(13.dp)
+    )
+}
+
+@Composable
 fun MacroStatCard(
     title: String,
-    icon: ImageVector,
+    icon: @Composable () -> Unit,
     amountGrams: Int,
     goalGrams: Int,
     barColor: Color,
@@ -942,12 +1041,7 @@ fun MacroStatCard(
                     letterSpacing = 0.5.sp,
                     color = TextSecondary
                 )
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = barColor,
-                    modifier = Modifier.size(13.dp)
-                )
+                icon()
             }
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -996,6 +1090,13 @@ fun MealIntakeRowItem(meal: MealEntity) {
         else -> "MEAL"
     }
 
+    val thumbnailRes = when {
+        meal.name.contains("Oatmeal", ignoreCase = true) -> R.drawable.thumb_oatmeal
+        meal.name.contains("Salmon", ignoreCase = true) || meal.name.contains("Bowl", ignoreCase = true) -> R.drawable.thumb_salmon
+        meal.name.contains("Yogurt", ignoreCase = true) -> R.drawable.thumb_yogurt
+        else -> null
+    }
+
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = PureWhite,
@@ -1016,12 +1117,21 @@ fun MealIntakeRowItem(meal: MealEntity) {
                     .background(Color(0xFFFFF1ED)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Restaurant,
-                    contentDescription = null,
-                    tint = BioOrange,
-                    modifier = Modifier.size(22.dp)
-                )
+                if (thumbnailRes != null) {
+                    Image(
+                        painter = painterResource(id = thumbnailRes),
+                        contentDescription = meal.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Restaurant,
+                        contentDescription = null,
+                        tint = BioOrange,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -1035,12 +1145,16 @@ fun MealIntakeRowItem(meal: MealEntity) {
                     letterSpacing = 0.4.sp
                 )
 
+                Spacer(modifier = Modifier.height(2.dp))
+
                 Text(
                     text = meal.name,
                     fontSize = 14.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextDark
                 )
+
+                Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
                     text = "${meal.calories} kcal • ${meal.proteinGrams.toInt()}g Protein",
@@ -1049,12 +1163,22 @@ fun MealIntakeRowItem(meal: MealEntity) {
                 )
             }
 
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = "Verified",
-                tint = ClinicalEmerald,
-                modifier = Modifier.size(18.dp)
-            )
+            // Green Verified Badge
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE6F8F0))
+                    .border(1.dp, Color(0xFFA7F3D0), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Verified",
+                    tint = ClinicalEmeraldDark,
+                    modifier = Modifier.size(12.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.width(6.dp))
 

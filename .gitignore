@@ -12,3 +12,6 @@
 *.aab
 *.hprof
 .kotlin
+.env
+report.pdf
+

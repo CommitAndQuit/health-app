@@ -34,6 +34,24 @@ class ClinicalSchemaNormalizerTest {
         val vitd = normalizer.normalize("25-OH Vitamin D3", "45", "ng/mL")
         assertEquals("VITAMIN_D", vitd.canonicalName)
         assertEquals("NORMAL", vitd.flag)
+
+        // Multiple lab wordings for Vitamin D
+        val vitDVariants = listOf(
+            "Vitamin D, 25-Hydroxy",
+            "Total 25-Hydroxy Vitamin D",
+            "25-OH Vitamin D (Total)",
+            "Cholecalciferol",
+            "Calcidiol",
+            "25-Hydroxycholecalciferol",
+            "Vit D3 Total",
+            "25(OH)D",
+            "Total Vitamin D"
+        )
+        for (variant in vitDVariants) {
+            val result = normalizer.normalize(variant, "35.2", "ng/mL")
+            assertEquals("Expected $variant to normalize to VITAMIN_D", "VITAMIN_D", result.canonicalName)
+            assertEquals("ng/mL", result.unit)
+        }
     }
 
     @Test

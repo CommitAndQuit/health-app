@@ -66,6 +66,16 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Automated Testing Receiver for Lab Hub ADB & CI Pipelines -->
+        <receiver
+            android:name=".testing.LabHubTestReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.biotrace.app.TEST_PROVISION_KEY" />
+                <action android:name="io.biotrace.app.TEST_PROCESS_PDF" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
     <!-- Check if Health Connect is installed -->

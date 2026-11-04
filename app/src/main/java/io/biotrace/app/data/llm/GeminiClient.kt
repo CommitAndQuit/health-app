@@ -28,7 +28,7 @@ class GeminiClient @Inject constructor(
 
     companion object {
         const val PROVIDER_NAME = "gemini"
-        private const val MODEL_NAME = "gemini-2.0-flash"
+        private const val MODEL_NAME = "gemini-2.5-flash"
         private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
         private const val SYSTEM_INSTRUCTION =
             "You are BioTrace, an intelligent, private, local-first health & biomarker intelligence assistant. " +
@@ -148,20 +148,45 @@ class GeminiClient @Inject constructor(
             .post(jsonBody.toRequestBody("application/json".toMediaType()))
             .build()
 
-        okHttpClient.newCall(request).execute().use { response ->
-            val responseBody = response.body?.string().orEmpty()
+        var lastException: Exception? = null
+        val maxRetries = 3
 
-            if (!response.isSuccessful) {
-                when (response.code) {
-                    400 -> throw LlmApiException("Invalid request format: $responseBody")
-                    401, 403 -> throw LlmApiException("Invalid Gemini API key: $responseBody")
-                    429 -> throw LlmApiException("Rate limit exceeded. Please wait a moment.")
-                    else -> throw LlmApiException("Gemini API error (${response.code}): $responseBody")
+        for (attempt in 1..maxRetries) {
+            try {
+                val callResult = okHttpClient.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string().orEmpty()
+
+                    if (!response.isSuccessful) {
+                        if ((response.code == 503 || response.code == 429) && attempt < maxRetries) {
+                            return@use Pair(false, responseBody)
+                        }
+                        when (response.code) {
+                            400 -> throw LlmApiException("Invalid request format: $responseBody")
+                            401, 403 -> throw LlmApiException("Invalid Gemini API key: $responseBody")
+                            429 -> throw LlmApiException("Rate limit exceeded. Please wait a moment.")
+                            else -> throw LlmApiException("Gemini API error (${response.code}): $responseBody")
+                        }
+                    }
+
+                    Pair(true, extractTextFromResponse(responseBody))
+                }
+
+                if (callResult.first) {
+                    return@withContext callResult.second
+                } else {
+                    kotlinx.coroutines.delay(2500L * attempt)
+                }
+            } catch (e: LlmApiException) {
+                throw e
+            } catch (e: Exception) {
+                lastException = e
+                if (attempt < maxRetries) {
+                    kotlinx.coroutines.delay(2500L * attempt)
                 }
             }
-
-            extractTextFromResponse(responseBody)
         }
+
+        throw lastException ?: LlmApiException("Gemini API service unavailable after $maxRetries attempts. Please try again.")
     }
 
     override fun generateContentStream(prompt: String): Flow<String> = flow {
