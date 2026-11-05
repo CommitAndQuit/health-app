@@ -89,25 +89,26 @@ class BiometricInsightsViewModel @Inject constructor(
             // 1. Stress vs Resting Heart Rate
             val restingHrCard = cards.find { it.metricType == io.biotrace.app.domain.model.VitalMetricType.RESTING_HEART_RATE }
             val hrVal = restingHrCard?.primaryValue ?: profile.restingHr
-            val stressVal = avgStress?.toString() ?: "--"
-            val stressInsight = when {
-                avgStress != null && avgStress < 45 -> "Autonomic balance: High parasympathetic vagal tone suppresses elevated heart rate during resting windows."
-                avgStress != null && avgStress >= 65 -> "Sympathetic load elevated: Minor compensatory elevation in daytime heart rate variability baseline."
-                else -> "Wearable sensors indicate balanced autonomic nervous system tone between resting heart rate and daily stress index."
-            }
-            correlationsList.add(
-                CorrelationCardData(
-                    title = "Autonomic Nervous System Coupling",
-                    category = "HRV & STRESS INTEGRATION",
-                    primaryInsight = stressInsight,
-                    metric1Label = "Daily Avg Stress",
-                    metric1Value = if (avgStress != null) "$avgStress / 100" else "Linked ($stressCount pts)",
-                    metric2Label = "Overnight Resting HR",
-                    metric2Value = if (hrVal != "--") "$hrVal bpm" else profile.restingHr,
-                    couplingScore = if (avgStress != null && avgStress < 50) "94% Optimal" else "Balanced",
-                    statusTag = "PARASYMPATHETIC DOMINANT"
+            if ((avgStress != null || stressCount > 0) && hrVal != "--" && hrVal != "-- bpm") {
+                val stressInsight = when {
+                    avgStress != null && avgStress < 45 -> "Autonomic balance: High parasympathetic vagal tone suppresses elevated heart rate during resting windows."
+                    avgStress != null && avgStress >= 65 -> "Sympathetic load elevated: Minor compensatory elevation in daytime heart rate variability baseline."
+                    else -> "Wearable sensors indicate balanced autonomic nervous system tone between resting heart rate and daily stress index."
+                }
+                correlationsList.add(
+                    CorrelationCardData(
+                        title = "Autonomic Nervous System Coupling",
+                        category = "HRV & STRESS INTEGRATION",
+                        primaryInsight = stressInsight,
+                        metric1Label = "Daily Avg Stress",
+                        metric1Value = if (avgStress != null) "$avgStress / 100" else "Linked ($stressCount pts)",
+                        metric2Label = "Overnight Resting HR",
+                        metric2Value = "$hrVal bpm",
+                        couplingScore = if (avgStress != null && avgStress < 50) "94% Optimal" else "Balanced",
+                        statusTag = "PARASYMPATHETIC DOMINANT"
+                    )
                 )
-            )
+            }
 
             // 2. Sleep Architecture vs Metabolic Recovery
             val sleepCard = cards.find { it.metricType == io.biotrace.app.domain.model.VitalMetricType.SLEEP }
@@ -115,19 +116,21 @@ class BiometricInsightsViewModel @Inject constructor(
             val sleepDuration = sleepCard?.primaryValue ?: profile.sleepScore
             val calVal = calCard?.primaryValue ?: "--"
 
-            correlationsList.add(
-                CorrelationCardData(
-                    title = "Sleep & Glycemic Energy Expenditure",
-                    category = "CIRCADIAN METABOLISM",
-                    primaryInsight = "Overnight cellular repair window supports insulin sensitivity and glycogen restoration during active daytime exertion.",
-                    metric1Label = "Sleep Window",
-                    metric1Value = if (sleepDuration != "--") "$sleepDuration" else "Recorded",
-                    metric2Label = "Active Burn",
-                    metric2Value = if (calVal != "--") "$calVal kcal" else "Active",
-                    couplingScore = "Strong Sync",
-                    statusTag = "METABOLICALLY STABLE"
+            if (sleepDuration != "--" && sleepDuration != "--%" && calVal != "--" && calVal != "0" && calVal != "0 kcal") {
+                correlationsList.add(
+                    CorrelationCardData(
+                        title = "Sleep & Glycemic Energy Expenditure",
+                        category = "CIRCADIAN METABOLISM",
+                        primaryInsight = "Overnight cellular repair window supports insulin sensitivity and glycogen restoration during active daytime exertion.",
+                        metric1Label = "Sleep Window",
+                        metric1Value = "$sleepDuration",
+                        metric2Label = "Active Burn",
+                        metric2Value = "$calVal kcal",
+                        couplingScore = "Strong Sync",
+                        statusTag = "METABOLICALLY STABLE"
+                    )
                 )
-            )
+            }
 
             // 3. VO2 Max vs Aerobic Capacity
             val vo2Card = cards.find { it.metricType == io.biotrace.app.domain.model.VitalMetricType.VO2_MAX_WORKOUTS }
@@ -135,19 +138,21 @@ class BiometricInsightsViewModel @Inject constructor(
             val stepsCard = cards.find { it.metricType == io.biotrace.app.domain.model.VitalMetricType.STEPS }
             val stepsVal = stepsCard?.primaryValue ?: "--"
 
-            correlationsList.add(
-                CorrelationCardData(
-                    title = "Cardio-Respiratory Endurance Index",
-                    category = "AEROBIC FITNESS",
-                    primaryInsight = "Peak oxygen uptake corresponds to sustained stroke volume and efficient daily physical locomotive output.",
-                    metric1Label = "VO2 Max Rating",
-                    metric1Value = if (vo2Score != "--") "$vo2Score ml/kg" else "Optimal Tier",
-                    metric2Label = "Daily Step Volume",
-                    metric2Value = if (stepsVal != "--") "$stepsVal steps" else "Tracked",
-                    couplingScore = "High Endurance",
-                    statusTag = "CARDIOVASCULAR PEAK"
+            if (vo2Score != "--" && stepsVal != "--" && stepsVal != "0" && stepsVal != "0 steps") {
+                correlationsList.add(
+                    CorrelationCardData(
+                        title = "Cardio-Respiratory Endurance Index",
+                        category = "AEROBIC FITNESS",
+                        primaryInsight = "Peak oxygen uptake corresponds to sustained stroke volume and efficient daily physical locomotive output.",
+                        metric1Label = "VO2 Max Rating",
+                        metric1Value = "$vo2Score mL/kg",
+                        metric2Label = "Daily Step Volume",
+                        metric2Value = "$stepsVal steps",
+                        couplingScore = "High Endurance",
+                        statusTag = "CARDIOVASCULAR PEAK"
+                    )
                 )
-            )
+            }
 
             _uiState.update {
                 it.copy(

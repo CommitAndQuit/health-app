@@ -78,55 +78,8 @@ class FoodScanViewModel @Inject constructor(
 
     private fun initOrLoadMeals() {
         viewModelScope.launch {
-            val zone = ZoneId.systemDefault()
-            val startOfDay = LocalDate.now().atStartOfDay(zone).toInstant()
-            val endOfDay = LocalDate.now().plusDays(1).atStartOfDay(zone).toInstant()
-
-            val existing = mealDao.getMealsBetween(startOfDay, endOfDay)
-            if (existing.isEmpty()) {
-                seedInitialIntake()
-            }
             loadTodayMeals()
         }
-    }
-
-    private suspend fun seedInitialIntake() {
-        val zone = ZoneId.systemDefault()
-        val today = LocalDate.now(zone)
-        val breakfast = MealEntity(
-            id = "meal_breakfast_${UUID.randomUUID()}",
-            name = "Oatmeal, Berries & Whey",
-            calories = 410,
-            proteinGrams = 28.0,
-            carbsGrams = 55.0,
-            fatsGrams = 9.0,
-            fiberGrams = 7.0,
-            consumedAt = today.atTime(7, 45).atZone(zone).toInstant(),
-            photoPath = null
-        )
-        val lunch = MealEntity(
-            id = "meal_lunch_${UUID.randomUUID()}",
-            name = "Salmon Quinoa Harvest Bowl",
-            calories = 640,
-            proteinGrams = 42.0,
-            carbsGrams = 68.0,
-            fatsGrams = 22.0,
-            fiberGrams = 8.0,
-            consumedAt = today.atTime(13, 15).atZone(zone).toInstant(),
-            photoPath = null
-        )
-        val snack = MealEntity(
-            id = "meal_snack_${UUID.randomUUID()}",
-            name = "Greek Yogurt & Walnuts",
-            calories = 220,
-            proteinGrams = 18.0,
-            carbsGrams = 14.0,
-            fatsGrams = 11.0,
-            fiberGrams = 2.0,
-            consumedAt = today.atTime(16, 30).atZone(zone).toInstant(),
-            photoPath = null
-        )
-        mealDao.insertAll(listOf(breakfast, lunch, snack))
     }
 
     fun loadTodayMeals() {
@@ -142,29 +95,20 @@ class FoodScanViewModel @Inject constructor(
                     val mealsCarbs = meals.sumOf { it.carbsGrams }
                     val mealsFats = meals.sumOf { it.fatsGrams }
 
-                    // When default 3 intake meals are present (total 1,270 kcal, 88g P, 137g C, 42g F):
-                    // Incorporate baseline metabolic burn telemetry: 570 kcal, 47g P, 43g C, 16g F
-                    // Result: 1,840 kcal (84% of 2200), 135g P, 180g C, 58g F matching clinical telemetry mockup
-                    val isSeededDataset = meals.size == 3 && meals.any { it.name.contains("Oatmeal") } && meals.any { it.name.contains("Salmon") }
-                    val baseCals = if (isSeededDataset) 570 else 0
-                    val baseProtein = if (isSeededDataset) 47.0 else 0.0
-                    val baseCarbs = if (isSeededDataset) 43.0 else 0.0
-                    val baseFats = if (isSeededDataset) 16.0 else 0.0
-
-                    val cals = if (meals.isNotEmpty()) mealsCals + baseCals else 1840
-                    val protein = if (meals.isNotEmpty()) mealsProtein + baseProtein else 135.0
-                    val carbs = if (meals.isNotEmpty()) mealsCarbs + baseCarbs else 180.0
-                    val fats = if (meals.isNotEmpty()) mealsFats + baseFats else 58.0
+                    val cals = mealsCals
+                    val protein = mealsProtein
+                    val carbs = mealsCarbs
+                    val fats = mealsFats
 
                     val target = _uiState.value.dailyTargetCalories
-                    val pct = ((cals.toDouble() / target.toDouble()) * 100).toInt().coerceIn(0, 100)
+                    val pct = if (target > 0) ((cals.toDouble() / target.toDouble()) * 100).toInt().coerceIn(0, 100) else 0
 
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             todayMeals = meals,
                             totalCalories = cals,
-                            burntPercentage = if (meals.isNotEmpty()) pct else 84,
+                            burntPercentage = pct,
                             totalProtein = (protein * 10).toInt() / 10.0,
                             totalCarbs = (carbs * 10).toInt() / 10.0,
                             totalFats = (fats * 10).toInt() / 10.0

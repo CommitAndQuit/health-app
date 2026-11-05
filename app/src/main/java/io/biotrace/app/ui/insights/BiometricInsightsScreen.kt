@@ -177,8 +177,48 @@ fun BiometricInsightsScreen(
                 }
 
                 // 5. Cross-Correlation Cards
-                items(uiState.correlations) { correlation ->
-                    CorrelationCard(item = correlation)
+                if (uiState.correlations.isEmpty()) {
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            color = CardSurface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Science,
+                                    contentDescription = null,
+                                    tint = TextMuted,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = "No Correlations Analyzed Yet",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Sync Health Connect or import your Gadgetbridge database to calculate multi-metric physiological couplings.",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = TextSecondary,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    items(uiState.correlations) { correlation ->
+                        CorrelationCard(item = correlation)
+                    }
                 }
 
                 // 6. Blood Biomarker Triangulation Banner
@@ -274,15 +314,16 @@ fun ProfileTriptychHeroCard(
                     }
                 }
 
+                val isOptimal = !profile.cardioStatus.contains("NO DATA")
                 Surface(
-                    color = EmeraldSoftTint,
+                    color = if (isOptimal) EmeraldSoftTint else InnerWellSurface,
                     shape = BioTraceTokens.PillShape
                 ) {
                     Text(
-                        text = "CARDIO • OPTIMAL",
+                        text = profile.cardioStatus,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = EmeraldPrimary,
+                        color = if (isOptimal) EmeraldPrimary else TextMuted,
                         maxLines = 1,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )

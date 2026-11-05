@@ -55,8 +55,10 @@ import io.biotrace.app.ui.theme.EmeraldPrimary
 import io.biotrace.app.ui.theme.EmeraldSoftTint
 import io.biotrace.app.ui.theme.IndigoSleepPrimary
 import io.biotrace.app.ui.theme.IndigoSleepSoftTint
+import io.biotrace.app.ui.theme.InnerWellSurface
 import io.biotrace.app.ui.theme.SolarAmberPrimary
 import io.biotrace.app.ui.theme.SolarAmberSoftTint
+import io.biotrace.app.ui.theme.TextSecondary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -306,9 +308,9 @@ class VitalsRepositoryImpl @Inject constructor(
         val heroData = getContinuousHeartRateHeroData()
 
         var vo2Max = "--"
-        var vo2Tier = "Optimal Fitness"
+        var vo2Tier = "No Data"
         var sleepScore = "--%"
-        var sleepStatus = "Recovery Stage OK"
+        var sleepStatus = "No Data"
 
         try {
             val c = client
@@ -348,24 +350,16 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        if (vo2Max == "--") {
-            vo2Max = "40.0"
-            vo2Tier = "Optimal Fitness"
-        }
-        if (sleepScore == "--%") {
-            sleepScore = "85%"
-            sleepStatus = "Recovery Stage OK"
-        }
-
-        val rhrBpm = heroData.restingHrBpm ?: vitalsDao.getLatestRecord("RESTING_HEART_RATE")?.value?.roundToInt() ?: 58
-        val rhrStr = "$rhrBpm bpm"
+        val rhrBpm = heroData.restingHrBpm ?: vitalsDao.getLatestRecord("RESTING_HEART_RATE")?.value?.roundToInt()
+        val rhrStr = rhrBpm?.let { "$it bpm" } ?: "-- bpm"
+        val rhrDelta = if (rhrBpm != null) "Resting baseline" else "No Data"
 
         ProfileTriptychSummary(
             userName = meta.userName,
             deviceLabel = "${meta.deviceName} • ${meta.deviceModel}",
-            cardioStatus = "CARDIO STATUS • OPTIMAL",
+            cardioStatus = if (rhrBpm != null || vo2Max != "--") "CARDIO STATUS • OPTIMAL" else "CARDIO • NO DATA",
             restingHr = rhrStr,
-            restingHrDelta = "↘ -3 bpm vs avg",
+            restingHrDelta = rhrDelta,
             sleepScore = sleepScore,
             sleepStatus = sleepStatus,
             vo2Max = vo2Max,
@@ -434,7 +428,7 @@ class VitalsRepositoryImpl @Inject constructor(
 
         val primaryVal = if (activeKcal > 0) "${activeKcal.roundToInt()}" else "0"
         val distText = if (distanceKm > 0) String.format(Locale.US, "%.2f km", distanceKm) else "0.00 km"
-        val progress = (activeKcal / 500.0).coerceIn(0.0, 1.0).toFloat()
+        val progress = if (activeKcal > 0) (activeKcal / 500.0).coerceIn(0.0, 1.0).toFloat() else 0f
 
         return VitalSummaryCardModel(
             metricType = VitalMetricType.CALORIES_DISTANCE,
@@ -442,8 +436,8 @@ class VitalsRepositoryImpl @Inject constructor(
             primaryUnit = "kcal",
             secondaryText = distText,
             template = BentoCardTemplate.TEMPLATE_A,
-            deltaText = "↗ +12% vs avg",
-            progress = if (progress > 0f) progress else 0.45f
+            deltaText = if (activeKcal > 0) "↗ Active" else null,
+            progress = progress
         )
     }
 
@@ -532,7 +526,20 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         }
 
-        val pct = latestPercentage?.toInt() ?: 98
+        if (latestPercentage == null) {
+            return VitalSummaryCardModel(
+                metricType = VitalMetricType.SPO2,
+                primaryValue = "--",
+                primaryUnit = "SpO2",
+                secondaryText = "No readings logged",
+                template = BentoCardTemplate.TEMPLATE_A,
+                badgeText = "No Data",
+                badgeColor = TextSecondary,
+                badgeBgColor = InnerWellSurface
+            )
+        }
+
+        val pct = latestPercentage.toInt()
         val isOptimal = pct >= 95
         val timeLabel = recordTime?.let { dateFormatter.format(it.atZone(ZoneId.systemDefault())) } ?: "Today"
 
@@ -586,10 +593,23 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         }
 
+        if (totalMinutes == 0) {
+            return VitalSummaryCardModel(
+                metricType = VitalMetricType.SLEEP,
+                primaryValue = "--",
+                primaryUnit = "",
+                secondaryText = "No sleep logged",
+                template = BentoCardTemplate.TEMPLATE_A,
+                badgeText = "No Session",
+                badgeColor = TextSecondary,
+                badgeBgColor = InnerWellSurface
+            )
+        }
+
         val hours = totalMinutes / 60
         val mins = totalMinutes % 60
-        val sleepScore = if (totalMinutes > 0) ((totalMinutes * 100) / meta.sleepGoalMinutes).coerceIn(0, 100) else 85
-        val deepRatio = if (totalMinutes > 0) (deepMin * 100 / totalMinutes) else 24
+        val sleepScore = ((totalMinutes * 100) / meta.sleepGoalMinutes).coerceIn(0, 100)
+        val deepRatio = if (totalMinutes > 0) (deepMin * 100 / totalMinutes) else 0
 
         return VitalSummaryCardModel(
             metricType = VitalMetricType.SLEEP,
@@ -597,7 +617,7 @@ class VitalsRepositoryImpl @Inject constructor(
             primaryUnit = "score",
             secondaryText = if (deepRatio >= 20) "Deep / REM OK" else "Light Dominant",
             template = BentoCardTemplate.TEMPLATE_A,
-            badgeText = if (totalMinutes > 0) "${hours}h ${mins}m" else "7h 48m",
+            badgeText = "${hours}h ${mins}m",
             badgeColor = IndigoSleepPrimary,
             badgeBgColor = IndigoSleepSoftTint
         )
@@ -675,8 +695,8 @@ class VitalsRepositoryImpl @Inject constructor(
 
     private suspend fun fetchVo2MaxCard(startOfDay: Instant, endOfDay: Instant): VitalSummaryCardModel {
         var vo2Max: Double? = null
-        var lastDurationMin: Long = 37
-        var peakHr: Long = 142
+        var lastDurationMin: Long? = null
+        var peakHr: Long? = null
 
         try {
             val c = client
@@ -716,12 +736,36 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val vo2Val = vo2Max ?: 40.0
-        val tier = if (vo2Val >= 40.0) "OPTIMAL" else "GOOD"
+        if (vo2Max == null) {
+            val cached = vitalsDao.getLatestRecord("VO2_MAX")
+            if (cached != null) {
+                vo2Max = cached.value
+            }
+        }
+
+        if (vo2Max == null) {
+            return VitalSummaryCardModel(
+                metricType = VitalMetricType.VO2_MAX_WORKOUTS,
+                primaryValue = "--",
+                primaryUnit = "mL/kg",
+                secondaryText = "Cardio VO2 Max",
+                badgeText = "NO DATA",
+                badgeColor = TextSecondary,
+                badgeBgColor = InnerWellSurface,
+                template = BentoCardTemplate.TEMPLATE_B,
+                recessedWellLeftLabel = "Last Workout",
+                recessedWellLeftValue = lastDurationMin?.let { "${it}m" } ?: "--",
+                recessedWellRightLabel = "Peak HR",
+                recessedWellRightValue = peakHr?.let { "$it bpm" } ?: "--",
+                recessedWellRightColor = TextSecondary
+            )
+        }
+
+        val tier = if (vo2Max >= 40.0) "OPTIMAL" else "GOOD"
 
         return VitalSummaryCardModel(
             metricType = VitalMetricType.VO2_MAX_WORKOUTS,
-            primaryValue = String.format(Locale.US, "%.1f", vo2Val),
+            primaryValue = String.format(Locale.US, "%.1f", vo2Max),
             primaryUnit = "mL/kg",
             secondaryText = "Cardio VO2 Max",
             badgeText = tier,
@@ -729,9 +773,10 @@ class VitalsRepositoryImpl @Inject constructor(
             badgeBgColor = BioOrangeSoftTint,
             template = BentoCardTemplate.TEMPLATE_B,
             recessedWellLeftLabel = "Last Workout",
-            recessedWellLeftValue = "${lastDurationMin}m",
+            recessedWellLeftValue = lastDurationMin?.let { "${it}m" } ?: "--",
             recessedWellRightLabel = "Peak HR",
-            recessedWellRightValue = "$peakHr bpm"
+            recessedWellRightValue = peakHr?.let { "$it bpm" } ?: "--",
+            recessedWellRightColor = EmeraldPrimary
         )
     }
 
@@ -794,12 +839,30 @@ class VitalsRepositoryImpl @Inject constructor(
             } catch (_: Exception) {}
         }
 
-        val primaryVal = rhrBpm?.let { "$it" } ?: "58"
+        if (rhrBpm == null) {
+            return VitalSummaryCardModel(
+                metricType = VitalMetricType.RESTING_HEART_RATE,
+                primaryValue = "--",
+                primaryUnit = "bpm",
+                secondaryText = "Resting Heart Rate",
+                badgeText = "NO DATA",
+                badgeColor = TextSecondary,
+                badgeBgColor = InnerWellSurface,
+                isFallbackComputed = false,
+                template = BentoCardTemplate.TEMPLATE_B,
+                recessedWellLeftLabel = "7D Baseline",
+                recessedWellLeftValue = "--",
+                recessedWellRightLabel = "Delta",
+                recessedWellRightValue = "--",
+                recessedWellRightColor = TextSecondary
+            )
+        }
+
         val badge = if (isFallback) "SLEEP 5TH%" else "RESTING"
 
         return VitalSummaryCardModel(
             metricType = VitalMetricType.RESTING_HEART_RATE,
-            primaryValue = primaryVal,
+            primaryValue = "$rhrBpm",
             primaryUnit = "bpm",
             secondaryText = "Resting Heart Rate",
             badgeText = badge,
@@ -808,9 +871,9 @@ class VitalsRepositoryImpl @Inject constructor(
             isFallbackComputed = isFallback,
             template = BentoCardTemplate.TEMPLATE_B,
             recessedWellLeftLabel = "7D Baseline",
-            recessedWellLeftValue = "59 bpm",
+            recessedWellLeftValue = "$rhrBpm bpm",
             recessedWellRightLabel = "Delta",
-            recessedWellRightValue = "↘ -1 bpm",
+            recessedWellRightValue = "Stable",
             recessedWellRightColor = EmeraldPrimary
         )
     }
@@ -849,11 +912,31 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val w = weightKg ?: meta.weightKg ?: 59.0
-        val h = heightMeters ?: (meta.heightCm?.toDouble()?.div(100.0) ?: 1.60)
-        val bmi = VitalsCalculations.calculateBmi(w, h)
+        val w = weightKg ?: meta.weightKg
+        val h = heightMeters ?: (meta.heightCm?.toDouble()?.div(100.0))
+
+        if (w == null) {
+            return VitalSummaryCardModel(
+                metricType = VitalMetricType.BODY_METRICS,
+                primaryValue = "--",
+                primaryUnit = "kg",
+                secondaryText = "Body Mass & Height",
+                badgeText = "NO DATA",
+                badgeColor = TextSecondary,
+                badgeBgColor = InnerWellSurface,
+                template = BentoCardTemplate.TEMPLATE_B,
+                recessedWellLeftLabel = "Height",
+                recessedWellLeftValue = if (h != null) "${(h * 100).roundToInt()} cm" else "--",
+                recessedWellRightLabel = "Status",
+                recessedWellRightValue = "--",
+                recessedWellRightColor = TextSecondary
+            )
+        }
+
+        val heightUsed = h ?: 1.70
+        val bmi = VitalsCalculations.calculateBmi(w, heightUsed)
         val bmiCategory = VitalsCalculations.classifyBmi(bmi)
-        val heightCm = (h * 100).roundToInt()
+        val heightCmStr = if (h != null) "${(h * 100).roundToInt()} cm" else "--"
 
         return VitalSummaryCardModel(
             metricType = VitalMetricType.BODY_METRICS,
@@ -865,7 +948,7 @@ class VitalsRepositoryImpl @Inject constructor(
             badgeBgColor = CobaltBlueSoftTint,
             template = BentoCardTemplate.TEMPLATE_B,
             recessedWellLeftLabel = "Height",
-            recessedWellLeftValue = "$heightCm cm",
+            recessedWellLeftValue = heightCmStr,
             recessedWellRightLabel = "Status",
             recessedWellRightValue = bmiCategory,
             recessedWellRightColor = EmeraldPrimary
@@ -1131,13 +1214,21 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val stats = listOf(
-            StatItem("Minimum", if (minBpm > 0) "$minBpm" else "--", "bpm"),
-            StatItem("Average", if (avgBpm > 0) "$avgBpm" else "--", "bpm"),
-            StatItem("Maximum", if (maxBpm > 0) "$maxBpm" else "--", "bpm")
-        )
+        val stats = if (minBpm > 0 || avgBpm > 0 || maxBpm > 0) {
+            listOf(
+                StatItem("Minimum", if (minBpm > 0) "$minBpm" else "--", "bpm"),
+                StatItem("Average", if (avgBpm > 0) "$avgBpm" else "--", "bpm"),
+                StatItem("Maximum", if (maxBpm > 0) "$maxBpm" else "--", "bpm")
+            )
+        } else {
+            emptyList()
+        }
 
-        val insight = "Daily range spanned $minBpm–$maxBpm bpm with an average cardiovascular pace of $avgBpm bpm across active intervals."
+        val insight = if (avgBpm > 0 || points.isNotEmpty() || rangeBars.isNotEmpty()) {
+            "Daily range spanned $minBpm–$maxBpm bpm with an average cardiovascular pace of $avgBpm bpm across active intervals."
+        } else {
+            "No heart rate readings recorded for this range."
+        }
 
         return VitalDetailUiState(
             metricType = VitalMetricType.HEART_RATE,
@@ -1210,9 +1301,25 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val avgVal = if (points.isNotEmpty()) points.map { it.value }.average().roundToInt() else 58
-        val minVal = if (points.isNotEmpty()) points.minOf { it.value }.roundToInt() else 54
-        val maxVal = if (points.isNotEmpty()) points.maxOf { it.value }.roundToInt() else 62
+        if (points.isEmpty()) {
+            return VitalDetailUiState(
+                metricType = VitalMetricType.RESTING_HEART_RATE,
+                selectedRange = range,
+                headlineValue = "--",
+                headlineUnit = "bpm",
+                headlineDateLabel = "${range.label} Baseline",
+                subtitle = "Cardiovascular recovery baseline",
+                calloutInsight = "No resting heart rate data recorded for this time range. Ensure Health Connect permissions are granted.",
+                summaryStats = emptyList(),
+                points = emptyList(),
+                historyRecords = emptyList(),
+                dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect Fallback"
+            )
+        }
+
+        val avgVal = points.map { it.value }.average().roundToInt()
+        val minVal = points.minOf { it.value }.roundToInt()
+        val maxVal = points.maxOf { it.value }.roundToInt()
 
         val stats = listOf(
             StatItem("Lowest", "$minVal", "bpm"),
@@ -1299,9 +1406,25 @@ class VitalsRepositoryImpl @Inject constructor(
                     )
                 }
 
-                val avgPct = if (points.isNotEmpty()) points.map { it.value }.average().toFloat().roundToInt() else 98
-                val minPct = if (points.isNotEmpty()) points.minOf { it.value }.roundToInt() else 94
-                val maxPct = if (points.isNotEmpty()) points.maxOf { it.value }.roundToInt() else 99
+                if (points.isEmpty()) {
+                    return VitalDetailUiState(
+                        metricType = VitalMetricType.SPO2,
+                        selectedRange = range,
+                        headlineValue = "--",
+                        headlineUnit = "SpO2",
+                        headlineDateLabel = "${range.label} Readings",
+                        subtitle = "Peripheral blood oxygen saturation",
+                        calloutInsight = "No blood oxygen readings recorded for this range. Ensure Health Connect permissions are granted.",
+                        summaryStats = emptyList(),
+                        points = emptyList(),
+                        historyRecords = emptyList(),
+                        dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+                    )
+                }
+
+                val avgPct = points.map { it.value }.average().toFloat().roundToInt()
+                val minPct = points.minOf { it.value }.roundToInt()
+                val maxPct = points.maxOf { it.value }.roundToInt()
 
                 val stats = listOf(
                     StatItem("Minimum", "$minPct%", ""),
@@ -1314,7 +1437,7 @@ class VitalsRepositoryImpl @Inject constructor(
                 return VitalDetailUiState(
                     metricType = VitalMetricType.SPO2,
                     selectedRange = range,
-                    headlineValue = points.lastOrNull()?.value?.roundToInt()?.let { "$it%" } ?: "98%",
+                    headlineValue = "${points.last().value.roundToInt()}%",
                     headlineUnit = "SpO2",
                     headlineDateLabel = "Latest Reading",
                     subtitle = "Peripheral blood oxygen saturation",
@@ -1332,10 +1455,13 @@ class VitalsRepositoryImpl @Inject constructor(
         return VitalDetailUiState(
             metricType = VitalMetricType.SPO2,
             selectedRange = range,
-            headlineValue = "98%",
+            headlineValue = "--",
             headlineUnit = "SpO2",
             subtitle = "Peripheral blood oxygen saturation",
-            calloutInsight = "Optimal cellular oxygenation recorded.",
+            calloutInsight = "No blood oxygen readings recorded for this range.",
+            summaryStats = emptyList(),
+            points = emptyList(),
+            historyRecords = emptyList(),
             dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
         )
     }
@@ -1412,15 +1538,30 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val avgTotalMin = if (sleepBars.isNotEmpty()) sleepBars.map { it.totalMinutes }.average().roundToInt() else 468
+        if (sleepBars.isEmpty()) {
+            return VitalDetailUiState(
+                metricType = VitalMetricType.SLEEP,
+                selectedRange = range,
+                headlineValue = "--",
+                headlineDateLabel = "${range.label} Average Sleep",
+                subtitle = "HUAWEI TruSleep architecture",
+                calloutInsight = "No sleep sessions recorded for this range. Wear your watch to bed to track sleep architecture.",
+                summaryStats = emptyList(),
+                sleepBars = emptyList(),
+                historyRecords = emptyList(),
+                dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+            )
+        }
+
+        val avgTotalMin = sleepBars.map { it.totalMinutes }.average().roundToInt()
         val avgHrs = avgTotalMin / 60
         val avgM = avgTotalMin % 60
-        val deepRatio = latestBreakdown?.deepPct ?: 24
+        val deepRatio = latestBreakdown?.deepPct ?: 0
 
         val stats = listOf(
-            StatItem("Deep Sleep", "${latestBreakdown?.deepMinutes ?: 112}m", ""),
+            StatItem("Deep Sleep", "${latestBreakdown?.deepMinutes ?: 0}m", ""),
             StatItem("Average", "${avgHrs}h ${avgM}m", ""),
-            StatItem("REM Sleep", "${latestBreakdown?.remMinutes ?: 94}m", "")
+            StatItem("REM Sleep", "${latestBreakdown?.remMinutes ?: 0}m", "")
         )
 
         val insight = "Average nightly duration is ${avgHrs}h ${avgM}m with $deepRatio% deep restorative sleep, supporting autonomic nervous system repair."
@@ -1494,7 +1635,24 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val avgDaily = if (rangeBars.isNotEmpty()) (totalSteps / rangeBars.size) else 8420L
+        if (rangeBars.isEmpty() && totalSteps == 0L) {
+            return VitalDetailUiState(
+                metricType = VitalMetricType.STEPS,
+                selectedRange = range,
+                headlineValue = "0",
+                headlineUnit = "steps",
+                headlineDateLabel = "${range.label} Pedometer",
+                subtitle = "Deduplicated pedometer telemetry",
+                calloutInsight = "No steps recorded for this range. Ensure Health Connect permissions are granted and sync is active.",
+                summaryStats = emptyList(),
+                rangeBars = emptyList(),
+                historyRecords = emptyList(),
+                referenceLineValue = 8000f,
+                dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+            )
+        }
+
+        val avgDaily = totalSteps / rangeBars.size.coerceAtLeast(1)
         val goalMetDays = rangeBars.count { it.avg >= 8000 }
 
         val stats = listOf(
@@ -1588,7 +1746,24 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val avgKcal = if (rangeBars.isNotEmpty()) (totalKcal / rangeBars.size).roundToInt() else 520
+        if (rangeBars.isEmpty() && totalKcal == 0.0) {
+            return VitalDetailUiState(
+                metricType = VitalMetricType.CALORIES_DISTANCE,
+                selectedRange = range,
+                headlineValue = "0",
+                headlineUnit = "kcal/day",
+                headlineDateLabel = "${range.label} Daily Burn",
+                subtitle = "Active calories burned & distance covered",
+                calloutInsight = "No active energy expenditure or distance recorded for this range.",
+                summaryStats = emptyList(),
+                rangeBars = emptyList(),
+                historyRecords = emptyList(),
+                referenceLineValue = 500f,
+                dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+            )
+        }
+
+        val avgKcal = (totalKcal / rangeBars.size).roundToInt()
         val totalKm = totalDistMeters / 1000.0
 
         val stats = listOf(
@@ -1687,21 +1862,42 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val latestVo2 = points.lastOrNull()?.value?.roundToInt() ?: 40
-        val tier = if (latestVo2 >= 40) "Optimal" else "Good"
+        if (points.isEmpty() && historyItems.isEmpty()) {
+            return VitalDetailUiState(
+                metricType = VitalMetricType.VO2_MAX_WORKOUTS,
+                selectedRange = range,
+                headlineValue = "--",
+                headlineUnit = "mL/kg",
+                headlineDateLabel = "Cardio Fitness Score",
+                subtitle = "Estimated VO2 Max and logged exercise sessions",
+                calloutInsight = "No VO2 Max or workout sessions recorded for this range.",
+                summaryStats = emptyList(),
+                points = emptyList(),
+                historyRecords = emptyList(),
+                referenceLineValue = 40f,
+                dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+            )
+        }
 
-        val stats = listOf(
-            StatItem("Score", "$latestVo2", "mL/kg"),
+        val latestVo2 = points.lastOrNull()?.value?.roundToInt()
+        val tier = if (latestVo2 != null) (if (latestVo2 >= 40) "Optimal" else "Good") else "Unrated"
+
+        val stats = listOfNotNull(
+            latestVo2?.let { StatItem("Score", "$it", "mL/kg") },
             StatItem("Tier", tier, ""),
             StatItem("Workouts", "${historyItems.size}", "")
         )
 
-        val insight = "Cardiorespiratory fitness score of $latestVo2 mL/kg/min indicates $tier aerobic capacity relative to age and sex baseline."
+        val insight = if (latestVo2 != null) {
+            "Cardiorespiratory fitness score of $latestVo2 mL/kg/min indicates $tier aerobic capacity relative to age and sex baseline."
+        } else {
+            "${historyItems.size} exercise sessions recorded in this time range."
+        }
 
         return VitalDetailUiState(
             metricType = VitalMetricType.VO2_MAX_WORKOUTS,
             selectedRange = range,
-            headlineValue = "$latestVo2",
+            headlineValue = latestVo2?.toString() ?: "--",
             headlineUnit = "mL/kg",
             headlineDateLabel = "Cardio Fitness Score",
             subtitle = "Estimated VO2 Max and logged exercise sessions",
@@ -1722,7 +1918,8 @@ class VitalsRepositoryImpl @Inject constructor(
 
         val points = mutableListOf<ChartPoint>()
         val historyItems = mutableListOf<VitalHistoryItem>()
-        var latestHeight = 1.60
+        val gbMeta = gadgetbridgeDataSource.getMetadata()
+        var latestHeightMeters: Double? = null
 
         try {
             val c = client
@@ -1736,9 +1933,18 @@ class VitalsRepositoryImpl @Inject constructor(
                     )
                 ).records
                 if (heightRecords.isNotEmpty()) {
-                    latestHeight = heightRecords.first().height.inMeters
+                    latestHeightMeters = heightRecords.first().height.inMeters
                 }
+            }
+        } catch (_: Exception) {}
 
+        if (latestHeightMeters == null && gbMeta.heightCm != null) {
+            latestHeightMeters = gbMeta.heightCm / 100.0
+        }
+
+        try {
+            val c = client
+            if (c != null) {
                 val weightRecords = c.readRecords(
                     ReadRecordsRequest(
                         recordType = WeightRecord::class,
@@ -1749,15 +1955,16 @@ class VitalsRepositoryImpl @Inject constructor(
 
                 weightRecords.forEach { w ->
                     val weightKg = w.weight.inKilograms
-                    val bmi = VitalsCalculations.calculateBmi(weightKg, latestHeight)
+                    val bmi = latestHeightMeters?.let { VitalsCalculations.calculateBmi(weightKg, it) }
                     points.add(
                         ChartPoint(
                             timestamp = w.time,
                             xLabel = dateFormatter.format(w.time.atZone(zoneId)),
                             value = weightKg.toFloat(),
-                            secondaryValue = bmi.toFloat()
+                            secondaryValue = bmi?.toFloat()
                         )
                     )
+                    val bmiDetail = if (bmi != null) "BMI $bmi (${VitalsCalculations.classifyBmi(bmi)})" else "Weight logged"
                     historyItems.add(
                         VitalHistoryItem(
                             id = "weight_${w.time.toEpochMilli()}",
@@ -1765,7 +1972,7 @@ class VitalsRepositoryImpl @Inject constructor(
                             formattedTime = fullDateTimeFormatter.format(w.time.atZone(zoneId)),
                             primaryValue = String.format(Locale.US, "%.1f", weightKg),
                             primaryUnit = "kg",
-                            secondaryDetail = "BMI $bmi (${VitalsCalculations.classifyBmi(bmi)})",
+                            secondaryDetail = bmiDetail,
                             deviceSource = "Health Connect Body Metrics"
                         )
                     )
@@ -1773,17 +1980,38 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val latestWeight = points.lastOrNull()?.value ?: 59.0f
-        val latestBmi = VitalsCalculations.calculateBmi(latestWeight.toDouble(), latestHeight)
-        val category = VitalsCalculations.classifyBmi(latestBmi)
+        val latestWeight = points.lastOrNull()?.value ?: gbMeta.weightKg?.toFloat()
 
-        val stats = listOf(
+        if (latestWeight == null) {
+            return VitalDetailUiState(
+                metricType = VitalMetricType.BODY_METRICS,
+                selectedRange = range,
+                headlineValue = "--",
+                headlineUnit = "kg",
+                headlineDateLabel = "Latest Measurement",
+                subtitle = "Weight & Body Mass Index trend",
+                calloutInsight = "No weight or body metrics recorded. Record body metrics in Health Connect or link Gadgetbridge profile.",
+                summaryStats = emptyList(),
+                points = emptyList(),
+                historyRecords = emptyList(),
+                dataSourceLabel = "Health Connect & Profile Attributes"
+            )
+        }
+
+        val latestBmi = latestHeightMeters?.let { VitalsCalculations.calculateBmi(latestWeight.toDouble(), it) }
+        val category = latestBmi?.let { VitalsCalculations.classifyBmi(it) } ?: "Unrated"
+
+        val stats = listOfNotNull(
             StatItem("Weight", String.format(Locale.US, "%.1f", latestWeight), "kg"),
-            StatItem("BMI", "$latestBmi", "kg/m²"),
-            StatItem("Height", "${(latestHeight * 100).roundToInt()}", "cm")
+            latestBmi?.let { StatItem("BMI", "$it", "kg/m²") },
+            latestHeightMeters?.let { StatItem("Height", "${(it * 100).roundToInt()}", "cm") }
         )
 
-        val insight = "Current BMI of $latestBmi kg/m² falls in the $category category for your profile height of ${(latestHeight * 100).roundToInt()} cm."
+        val insight = if (latestBmi != null && latestHeightMeters != null) {
+            "Current BMI of $latestBmi kg/m² falls in the $category category for your profile height of ${(latestHeightMeters * 100).roundToInt()} cm."
+        } else {
+            "Weight recorded at ${String.format(Locale.US, "%.1f", latestWeight)} kg. Add height in profile to calculate Body Mass Index."
+        }
 
         return VitalDetailUiState(
             metricType = VitalMetricType.BODY_METRICS,

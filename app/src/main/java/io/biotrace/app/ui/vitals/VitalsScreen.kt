@@ -65,6 +65,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -503,19 +504,29 @@ fun HeartRateHeroCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Time Axis Labels
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                data.timeLabels.forEach { label ->
-                    Text(
-                        text = label,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextMuted
-                    )
+            if (data.samples.isNotEmpty() || data.latestBpm != null) {
+                // Time Axis Labels
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    data.timeLabels.forEach { label ->
+                        Text(
+                            text = label,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextMuted
+                        )
+                    }
                 }
+            } else {
+                Text(
+                    text = "No heart rate readings logged today • Health Connect sync active",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = TextMuted,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
     }
@@ -529,6 +540,23 @@ fun HeartRateHeroCanvasChart(
     fallbackMaxBpm: Int?,
     modifier: Modifier = Modifier
 ) {
+    if (points.isEmpty() && fallbackLatestBpm == null) {
+        Canvas(modifier = modifier) {
+            val width = size.width
+            val height = size.height
+            val midY = height / 2f
+
+            drawLine(
+                color = DividerSubtle,
+                start = Offset(0f, midY),
+                end = Offset(width, midY),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+            )
+        }
+        return
+    }
+
     Canvas(modifier = modifier) {
         val width = size.width
         val height = size.height
@@ -536,14 +564,17 @@ fun HeartRateHeroCanvasChart(
         // Prepare points: use real samples or synthesize an accurate smooth intraday spline from min/max/latest
         val effectivePoints: List<Float> = when {
             points.size >= 2 -> points.map { it.value }
+            points.size == 1 -> listOf(points.first().value, points.first().value)
             fallbackLatestBpm != null -> {
                 val minVal = (fallbackMinBpm ?: (fallbackLatestBpm - 15)).toFloat()
                 val maxVal = (fallbackMaxBpm ?: (fallbackLatestBpm + 25)).toFloat()
                 val midVal = fallbackLatestBpm.toFloat()
                 listOf(minVal + 4f, minVal + 10f, minVal + 2f, maxVal - 8f, midVal + 5f, midVal)
             }
-            else -> listOf(65f, 72f, 68f, 85f, 74f, 70f)
+            else -> emptyList()
         }
+
+        if (effectivePoints.isEmpty()) return@Canvas
 
         val minVal = (effectivePoints.minOrNull() ?: 50f) - 6f
         val maxVal = (effectivePoints.maxOrNull() ?: 120f) + 8f

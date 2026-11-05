@@ -158,13 +158,13 @@ data class ContinuousHeartRateHeroData(
 data class ProfileTriptychSummary(
     val userName: String = "HONOR Watch User",
     val deviceLabel: String = "HONOR MagicWatch 2-38D • Hebe-B19S",
-    val cardioStatus: String = "CARDIO STATUS • OPTIMAL",
+    val cardioStatus: String = "CARDIO • NO DATA",
     val restingHr: String = "-- bpm",
-    val restingHrDelta: String = "Stable vs 7d avg",
+    val restingHrDelta: String = "No Data",
     val sleepScore: String = "--%",
-    val sleepStatus: String = "Recovery Stage OK",
+    val sleepStatus: String = "No Data",
     val vo2Max: String = "--",
-    val vo2MaxTier: String = "Optimal Fitness"
+    val vo2MaxTier: String = "No Data"
 )
 
 data class VitalSummaryCardModel(

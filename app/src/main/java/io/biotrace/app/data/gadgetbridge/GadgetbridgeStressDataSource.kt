@@ -16,14 +16,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 data class GadgetbridgeMetadata(
-    val deviceName: String = "HONOR MagicWatch 2-38D",
-    val deviceModel: String = "Hebe-B19S",
-    val userName: String = "HONOR Watch User",
+    val deviceName: String = "No Wearable Connected",
+    val deviceModel: String = "Link Gadgetbridge",
+    val userName: String = "User Profile",
     val gender: String = "User",
     val stepsGoal: Int = 8000,
     val sleepGoalMinutes: Int = 420,
-    val heightCm: Int? = 160,
-    val weightKg: Double? = 59.0
+    val heightCm: Int? = null,
+    val weightKg: Double? = null
 )
 
 @Singleton
@@ -63,14 +63,14 @@ class GadgetbridgeStressDataSource @Inject constructor(
 
     fun getMetadata(): GadgetbridgeMetadata {
         return GadgetbridgeMetadata(
-            deviceName = prefs.getString(KEY_DEVICE_NAME, "HONOR MagicWatch 2-38D") ?: "HONOR MagicWatch 2-38D",
-            deviceModel = prefs.getString(KEY_DEVICE_MODEL, "Hebe-B19S") ?: "Hebe-B19S",
-            userName = prefs.getString(KEY_USER_NAME, "HONOR Watch User") ?: "HONOR Watch User",
-            gender = prefs.getString(KEY_USER_GENDER, "User") ?: "User",
+            deviceName = prefs.getString(KEY_DEVICE_NAME, null) ?: "No Wearable Connected",
+            deviceModel = prefs.getString(KEY_DEVICE_MODEL, null) ?: "Link Gadgetbridge",
+            userName = prefs.getString(KEY_USER_NAME, null) ?: "User Profile",
+            gender = prefs.getString(KEY_USER_GENDER, null) ?: "User",
             stepsGoal = prefs.getInt(KEY_STEPS_GOAL, 8000),
             sleepGoalMinutes = prefs.getInt(KEY_SLEEP_GOAL, 420),
-            heightCm = if (prefs.contains(KEY_HEIGHT_CM)) prefs.getInt(KEY_HEIGHT_CM, 160) else 160,
-            weightKg = if (prefs.contains(KEY_WEIGHT_KG)) prefs.getFloat(KEY_WEIGHT_KG, 59f).toDouble() else 59.0
+            heightCm = if (prefs.contains(KEY_HEIGHT_CM)) prefs.getInt(KEY_HEIGHT_CM, 0).takeIf { it > 0 } else null,
+            weightKg = if (prefs.contains(KEY_WEIGHT_KG)) prefs.getFloat(KEY_WEIGHT_KG, 0f).toDouble().takeIf { it > 0.0 } else null
         )
     }
 
