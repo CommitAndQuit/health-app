@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.biotrace.app.data.healthconnect.HealthConnectAvailability
 import io.biotrace.app.data.healthconnect.HealthConnectManager
+import io.biotrace.app.domain.model.ContinuousHeartRateHeroData
+import io.biotrace.app.domain.model.ProfileTriptychSummary
 import io.biotrace.app.domain.model.VitalSummaryCardModel
 import io.biotrace.app.domain.repository.VitalsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +20,8 @@ import javax.inject.Inject
 
 data class VitalsUiState(
     val cards: List<VitalSummaryCardModel> = emptyList(),
+    val heroHeartRate: ContinuousHeartRateHeroData = ContinuousHeartRateHeroData(),
+    val profileTriptych: ProfileTriptychSummary = ProfileTriptychSummary(),
     val isRefreshing: Boolean = false,
     val hasHealthConnectPermissions: Boolean = true,
     val availability: HealthConnectAvailability = HealthConnectAvailability.AVAILABLE,
@@ -70,9 +74,14 @@ class VitalsViewModel @Inject constructor(
                 runCatching { vitalsRepository.syncFromHealthConnect(days = 7) }
 
                 val cards = vitalsRepository.getVitalsDashboardSnapshot()
+                val heroHr = vitalsRepository.getContinuousHeartRateHeroData()
+                val profile = vitalsRepository.getProfileTriptychSummary()
+
                 _uiState.update {
                     it.copy(
                         cards = cards,
+                        heroHeartRate = heroHr,
+                        profileTriptych = profile,
                         isRefreshing = false,
                         lastSyncTime = Instant.now(),
                         hasSavedGadgetbridgeDb = vitalsRepository.hasSavedGadgetbridgeUri()
@@ -91,9 +100,14 @@ class VitalsViewModel @Inject constructor(
             result.fold(
                 onSuccess = { count ->
                     val cards = vitalsRepository.getVitalsDashboardSnapshot()
+                    val heroHr = vitalsRepository.getContinuousHeartRateHeroData()
+                    val profile = vitalsRepository.getProfileTriptychSummary()
+
                     _uiState.update {
                         it.copy(
                             cards = cards,
+                            heroHeartRate = heroHr,
+                            profileTriptych = profile,
                             isRefreshing = false,
                             importMessage = "Successfully imported $count stress records from Gadgetbridge",
                             hasSavedGadgetbridgeDb = true,

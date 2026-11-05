@@ -1,6 +1,14 @@
 package io.biotrace.app.domain.model
 
 import androidx.compose.ui.graphics.Color
+import io.biotrace.app.ui.theme.CobaltBluePrimary
+import io.biotrace.app.ui.theme.CobaltBlueSoftTint
+import io.biotrace.app.ui.theme.CoralAlertPrimary
+import io.biotrace.app.ui.theme.CoralAlertSoftTint
+import io.biotrace.app.ui.theme.EmeraldPrimary
+import io.biotrace.app.ui.theme.EmeraldSoftTint
+import io.biotrace.app.ui.theme.SolarAmberPrimary
+import io.biotrace.app.ui.theme.SolarAmberSoftTint
 
 enum class StressLevel(
     val levelNumber: Int,
@@ -9,10 +17,10 @@ enum class StressLevel(
     val color: Color,
     val backgroundColor: Color
 ) {
-    RELAXED(1, "Relaxed", "1–29", Color(0xFF0D9488), Color(0xFFCCFBF1)),
-    NORMAL(2, "Normal", "30–59", Color(0xFF2563EB), Color(0xFFDBEAFE)),
-    MEDIUM(3, "Medium", "60–79", Color(0xFFD97706), Color(0xFFFEF3C7)),
-    HIGH(4, "High", "80–99", Color(0xFFDC2626), Color(0xFFFEE2E2));
+    RELAXED(1, "Relaxed", "1–29", EmeraldPrimary, EmeraldSoftTint),
+    NORMAL(2, "Normal", "30–59", CobaltBluePrimary, CobaltBlueSoftTint),
+    MEDIUM(3, "Medium", "60–79", SolarAmberPrimary, SolarAmberSoftTint),
+    HIGH(4, "High", "80–99", CoralAlertPrimary, CoralAlertSoftTint);
 
     companion object {
         fun fromScore(score: Int): StressLevel {

@@ -5,15 +5,26 @@ import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.net.Uri
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.biotrace.app.data.local.dao.StressDao
 import io.biotrace.app.data.local.entity.StressSampleEntity
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
+
+data class GadgetbridgeMetadata(
+    val deviceName: String = "HONOR MagicWatch 2-38D",
+    val deviceModel: String = "Hebe-B19S",
+    val userName: String = "HONOR Watch User",
+    val gender: String = "User",
+    val stepsGoal: Int = 8000,
+    val sleepGoalMinutes: Int = 420,
+    val heightCm: Int? = 160,
+    val weightKg: Double? = 59.0
+)
 
 @Singleton
 class GadgetbridgeStressDataSource @Inject constructor(
@@ -26,6 +37,15 @@ class GadgetbridgeStressDataSource @Inject constructor(
         private const val PREFS_NAME = "gadgetbridge_prefs"
         private const val KEY_SAVED_URI = "saved_db_uri"
         private const val TEMP_DB_NAME = "gadgetbridge_temp.db"
+
+        private const val KEY_DEVICE_NAME = "meta_device_name"
+        private const val KEY_DEVICE_MODEL = "meta_device_model"
+        private const val KEY_USER_NAME = "meta_user_name"
+        private const val KEY_USER_GENDER = "meta_user_gender"
+        private const val KEY_STEPS_GOAL = "meta_steps_goal"
+        private const val KEY_SLEEP_GOAL = "meta_sleep_goal"
+        private const val KEY_HEIGHT_CM = "meta_height_cm"
+        private const val KEY_WEIGHT_KG = "meta_weight_kg"
     }
 
     fun getSavedUri(): Uri? {
@@ -39,6 +59,19 @@ class GadgetbridgeStressDataSource @Inject constructor(
 
     fun clearSavedUri() {
         prefs.edit().remove(KEY_SAVED_URI).apply()
+    }
+
+    fun getMetadata(): GadgetbridgeMetadata {
+        return GadgetbridgeMetadata(
+            deviceName = prefs.getString(KEY_DEVICE_NAME, "HONOR MagicWatch 2-38D") ?: "HONOR MagicWatch 2-38D",
+            deviceModel = prefs.getString(KEY_DEVICE_MODEL, "Hebe-B19S") ?: "Hebe-B19S",
+            userName = prefs.getString(KEY_USER_NAME, "HONOR Watch User") ?: "HONOR Watch User",
+            gender = prefs.getString(KEY_USER_GENDER, "User") ?: "User",
+            stepsGoal = prefs.getInt(KEY_STEPS_GOAL, 8000),
+            sleepGoalMinutes = prefs.getInt(KEY_SLEEP_GOAL, 420),
+            heightCm = if (prefs.contains(KEY_HEIGHT_CM)) prefs.getInt(KEY_HEIGHT_CM, 160) else 160,
+            weightKg = if (prefs.contains(KEY_WEIGHT_KG)) prefs.getFloat(KEY_WEIGHT_KG, 59f).toDouble() else 59.0
+        )
     }
 
     private fun persistUri(uri: Uri) {
@@ -93,6 +126,10 @@ class GadgetbridgeStressDataSource @Inject constructor(
                 SQLiteDatabase.OPEN_READONLY
             )
 
+            // 1. Extract Device & User Metadata if available
+            extractMetadata(database)
+
+            // 2. Query HUAWEI_STRESS_SAMPLE
             val queryWithDevice = """
                 SELECT s.TIMESTAMP, s.START_TIME, s.STRESS, s.LEVEL, s.DEVICE_ID, d.NAME, d.MODEL
                 FROM HUAWEI_STRESS_SAMPLE s
@@ -160,5 +197,57 @@ class GadgetbridgeStressDataSource @Inject constructor(
         } finally {
             database?.close()
         }
+    }
+
+    private fun extractMetadata(database: SQLiteDatabase) {
+        val editor = prefs.edit()
+
+        // Device
+        try {
+            database.rawQuery("SELECT NAME, MODEL FROM DEVICE LIMIT 1", null).use { c ->
+                if (c.moveToNext()) {
+                    val name = c.getString(0)
+                    val model = c.getString(1)
+                    if (!name.isNullOrBlank()) editor.putString(KEY_DEVICE_NAME, name)
+                    if (!model.isNullOrBlank()) editor.putString(KEY_DEVICE_MODEL, model)
+                }
+            }
+        } catch (_: Exception) {}
+
+        // User
+        try {
+            database.rawQuery("SELECT NAME, GENDER, HEIGHT_CM, WEIGHT_KG FROM USER LIMIT 1", null).use { c ->
+                if (c.moveToNext()) {
+                    val name = c.getString(0)
+                    val genderInt = if (!c.isNull(1)) c.getInt(1) else -1
+                    val height = if (!c.isNull(2)) c.getInt(2) else -1
+                    val weight = if (!c.isNull(3)) c.getFloat(3) else -1f
+
+                    if (!name.isNullOrBlank()) editor.putString(KEY_USER_NAME, name)
+                    val genderStr = when (genderInt) {
+                        0 -> "Male"
+                        1 -> "Female"
+                        else -> "User"
+                    }
+                    editor.putString(KEY_USER_GENDER, genderStr)
+                    if (height > 0) editor.putInt(KEY_HEIGHT_CM, height)
+                    if (weight > 0) editor.putFloat(KEY_WEIGHT_KG, weight)
+                }
+            }
+        } catch (_: Exception) {}
+
+        // User Attributes (Goals)
+        try {
+            database.rawQuery("SELECT STEPS_GOAL_SPD, SLEEP_GOAL_MPD FROM USER_ATTRIBUTES LIMIT 1", null).use { c ->
+                if (c.moveToNext()) {
+                    val steps = c.getInt(0)
+                    val sleep = c.getInt(1)
+                    if (steps > 0) editor.putInt(KEY_STEPS_GOAL, steps)
+                    if (sleep > 0) editor.putInt(KEY_SLEEP_GOAL, sleep)
+                }
+            }
+        } catch (_: Exception) {}
+
+        editor.apply()
     }
 }

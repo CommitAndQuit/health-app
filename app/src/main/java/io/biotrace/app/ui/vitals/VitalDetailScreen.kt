@@ -9,7 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -84,11 +85,16 @@ import io.biotrace.app.domain.model.VitalDetailUiState
 import io.biotrace.app.domain.model.VitalHistoryItem
 import io.biotrace.app.domain.model.VitalMetricType
 import io.biotrace.app.ui.theme.BioOrange
+import io.biotrace.app.ui.theme.BioOrangePrimary
+import io.biotrace.app.ui.theme.BioTraceTokens
 import io.biotrace.app.ui.theme.CardBorder
 import io.biotrace.app.ui.theme.ClinicalEmerald
+import io.biotrace.app.ui.theme.CoralAlertPrimary
+import io.biotrace.app.ui.theme.InnerWellSurface
 import io.biotrace.app.ui.theme.LightBackground
 import io.biotrace.app.ui.theme.PureWhite
 import io.biotrace.app.ui.theme.SoftInputBg
+import io.biotrace.app.ui.theme.SolarAmberPrimary
 import io.biotrace.app.ui.theme.TextDark
 import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextSecondary
@@ -226,6 +232,44 @@ fun VitalDetailScreen(
                     }
                 }
 
+                // High Contrast Alert Banner (if anomaly detected)
+                if (uiState.alertBanner != null) {
+                    item {
+                        Surface(
+                            color = Color(0xFFFEF2F2),
+                            shape = BioTraceTokens.BentoCardShape,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = CoralAlertPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = uiState.alertBanner!!.headline,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF991B1B)
+                                    )
+                                    Text(
+                                        text = uiState.alertBanner!!.subtitle,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFFB91C1C)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // 3. Hero Summary Card
                 item {
                     HeroSummaryCard(uiState = uiState)
@@ -342,73 +386,119 @@ fun TimeRangeSegmentedControl(
 fun HeroSummaryCard(uiState: VitalDetailUiState) {
     Surface(
         color = PureWhite,
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-        shadowElevation = 2.dp,
+        shape = BioTraceTokens.HeroCardShape,
+        border = BioTraceTokens.CardHairlineBorder,
+        shadowElevation = BioTraceTokens.HeroCardElevation,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = uiState.headlineDateLabel.ifEmpty { "Metric Summary" },
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextSecondary
-                )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // 4.dp gradient accent bar at the top
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(BioOrangePrimary, SolarAmberPrimary)
+                        )
+                    )
+            )
 
-                if (uiState.statusBadge != null) {
-                    Surface(
-                        color = uiState.statusBadge.backgroundColor,
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = uiState.headlineDateLabel.ifEmpty { "Metric Summary" },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextSecondary
+                    )
+
+                    if (uiState.statusBadge != null) {
+                        Surface(
+                            color = uiState.statusBadge.backgroundColor,
+                            shape = BioTraceTokens.PillShape
+                        ) {
+                            Text(
+                                text = uiState.statusBadge.text,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = uiState.statusBadge.textColor,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = uiState.headlineValue,
+                        fontSize = 38.sp,
+                        fontWeight = FontWeight.Black,
+                        color = TextDark,
+                        lineHeight = 40.sp
+                    )
+                    if (uiState.headlineUnit.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = uiState.statusBadge.text,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = uiState.statusBadge.textColor,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            text = uiState.headlineUnit,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(bottom = 4.dp)
                         )
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-            Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = uiState.headlineValue,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Black,
-                    color = TextDark,
-                    lineHeight = 40.sp
+                    text = uiState.subtitle,
+                    fontSize = 12.sp,
+                    color = TextMuted
                 )
-                if (uiState.headlineUnit.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = uiState.headlineUnit,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
+
+                // Clinical Callout Insight Well
+                if (uiState.calloutInsight.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Surface(
+                        color = InnerWellSurface,
+                        shape = BioTraceTokens.InnerWellSmallShape,
+                        border = BioTraceTokens.WellHairlineBorder,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = BioOrangePrimary,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .padding(top = 1.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = uiState.calloutInsight,
+                                fontSize = 12.sp,
+                                color = TextDark,
+                                lineHeight = 17.sp
+                            )
+                        }
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = uiState.subtitle,
-                fontSize = 12.sp,
-                color = TextMuted
-            )
         }
     }
 }
@@ -534,12 +624,12 @@ fun InteractiveTimeSeriesCanvas(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(points) {
-                    detectDragGestures(
+                    detectHorizontalDragGestures(
                         onDragStart = { offset ->
                             val step = size.width / points.size.coerceAtLeast(1)
                             selectedIndex = (offset.x / step).toInt().coerceIn(0, points.size - 1)
                         },
-                        onDrag = { change, _ ->
+                        onHorizontalDrag = { change, _ ->
                             val step = size.width / points.size.coerceAtLeast(1)
                             selectedIndex = (change.position.x / step).toInt().coerceIn(0, points.size - 1)
                         },
@@ -971,44 +1061,52 @@ fun SleepBreakdownCard(breakdown: SleepStagesBreakdown) {
 fun SummaryStatsStrip(stats: List<StatItem>) {
     Surface(
         color = PureWhite,
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-        shadowElevation = 2.dp,
+        shape = BioTraceTokens.BentoCardShape,
+        border = BioTraceTokens.CardHairlineBorder,
+        shadowElevation = BioTraceTokens.BentoCardElevation,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 14.dp, horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceAround
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             stats.forEach { stat ->
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Surface(
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.InnerWellSmallShape,
+                    border = BioTraceTokens.WellHairlineBorder,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = stat.label,
-                        fontSize = 11.sp,
-                        color = TextMuted,
-                        maxLines = 1
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.Bottom) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp)
+                    ) {
                         Text(
-                            text = stat.value,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDark
+                            text = stat.label,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextSecondary,
+                            maxLines = 1
                         )
-                        if (stat.unit.isNotEmpty()) {
-                            Spacer(modifier = Modifier.width(2.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
                             Text(
-                                text = stat.unit,
-                                fontSize = 10.sp,
-                                color = TextSecondary,
-                                modifier = Modifier.padding(bottom = 1.dp)
+                                text = stat.value,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Black,
+                                color = TextDark
                             )
+                            if (stat.unit.isNotEmpty()) {
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = stat.unit,
+                                    fontSize = 10.sp,
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(bottom = 1.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -1021,8 +1119,9 @@ fun SummaryStatsStrip(stats: List<StatItem>) {
 fun VitalHistoryRecordRow(item: VitalHistoryItem) {
     Surface(
         color = PureWhite,
-        shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+        shape = BioTraceTokens.RecordCardShape,
+        border = BioTraceTokens.CardHairlineBorder,
+        shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(

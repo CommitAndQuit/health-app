@@ -12,6 +12,16 @@ import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import io.biotrace.app.ui.theme.BioOrangePrimary
+import io.biotrace.app.ui.theme.BioOrangeSoftTint
+import io.biotrace.app.ui.theme.CobaltBluePrimary
+import io.biotrace.app.ui.theme.CobaltBlueSoftTint
+import io.biotrace.app.ui.theme.EmeraldPrimary
+import io.biotrace.app.ui.theme.EmeraldSoftTint
+import io.biotrace.app.ui.theme.IndigoSleepPrimary
+import io.biotrace.app.ui.theme.IndigoSleepSoftTint
+import io.biotrace.app.ui.theme.SolarAmberPrimary
+import io.biotrace.app.ui.theme.SolarAmberSoftTint
 import java.time.Instant
 
 enum class VitalMetricType(
@@ -19,17 +29,18 @@ enum class VitalMetricType(
     val defaultUnit: String,
     val goalDescription: String,
     val defaultGoalValue: Double,
-    val accentColor: Color
+    val accentColor: Color,
+    val softTintColor: Color
 ) {
-    HEART_RATE("Heart Rate", "bpm", "60–100 bpm", 70.0, Color(0xFFFF5722)),
-    RESTING_HEART_RATE("Resting HR", "bpm", "< 65 bpm", 60.0, Color(0xFFEF4444)),
-    STRESS("Stress Score", "", "< 60 Normal", 59.0, Color(0xFF3B82F6)),
-    SPO2("Blood Oxygen", "%", "≥ 95% Normal", 95.0, Color(0xFF0EA5E9)),
-    SLEEP("Sleep", "h m", "7h 00m Goal", 420.0, Color(0xFF8B5CF6)),
-    STEPS("Daily Steps", "steps", "8,000 Goal", 8000.0, Color(0xFF10B981)),
-    CALORIES_DISTANCE("Calories & Dist", "kcal", "500 kcal Goal", 500.0, Color(0xFFFF9800)),
-    VO2_MAX_WORKOUTS("Cardio Fitness", "mL/kg/min", "VO2 Max & Workouts", 40.0, Color(0xFF6366F1)),
-    BODY_METRICS("Body Metrics", "kg", "BMI 18.5–24.9", 22.0, Color(0xFF64748B));
+    HEART_RATE("Heart Rate", "bpm", "60–100 bpm", 70.0, BioOrangePrimary, BioOrangeSoftTint),
+    RESTING_HEART_RATE("Resting Heart Rate", "bpm", "< 65 bpm", 60.0, BioOrangePrimary, BioOrangeSoftTint),
+    STRESS("Autonomic Stress", "", "< 60 Normal", 59.0, CobaltBluePrimary, CobaltBlueSoftTint),
+    SPO2("Blood Oxygen", "SpO2", "≥ 95% Normal", 95.0, CobaltBluePrimary, CobaltBlueSoftTint),
+    SLEEP("Sleep Recovery", "score", "7h 00m Goal", 420.0, IndigoSleepPrimary, IndigoSleepSoftTint),
+    STEPS("Daily Steps", "steps", "8,000 Goal", 8000.0, SolarAmberPrimary, SolarAmberSoftTint),
+    CALORIES_DISTANCE("Active Calories", "kcal", "500 kcal Goal", 500.0, BioOrangePrimary, BioOrangeSoftTint),
+    VO2_MAX_WORKOUTS("Cardio VO2 Max", "mL/kg", "VO2 Max & Workouts", 40.0, BioOrangePrimary, BioOrangeSoftTint),
+    BODY_METRICS("Body Mass & Height", "kg", "BMI 18.5–24.9", 22.0, CobaltBluePrimary, CobaltBlueSoftTint);
 
     val icon: ImageVector
         get() = when (this) {
@@ -45,11 +56,16 @@ enum class VitalMetricType(
         }
 }
 
+enum class BentoCardTemplate {
+    TEMPLATE_A, // Primary Bento: Top title/icon, Center big number, Bottom progress/pill
+    TEMPLATE_B  // Integrated Biomarker: Top icon/pill, Center big value, Bottom recessed 2-col well
+}
+
 enum class MetricTimeRange(val label: String, val days: Int) {
     DAY("Day", 1),
-    WEEK("7D", 7),
-    MONTH("30D", 30),
-    THREE_MONTHS("90D", 90)
+    WEEK("7 Days", 7),
+    MONTH("30 Days", 30),
+    THREE_MONTHS("90 Days", 90)
 }
 
 data class StatusBadge(
@@ -127,7 +143,28 @@ data class VitalHistoryItem(
     val primaryUnit: String,
     val secondaryDetail: String? = null,
     val badge: StatusBadge? = null,
-    val deviceSource: String = "HONOR MagicWatch 2 • Gadgetbridge"
+    val deviceSource: String = "HONOR MagicWatch 2-38D • Gadgetbridge"
+)
+
+data class ContinuousHeartRateHeroData(
+    val latestBpm: Int? = null,
+    val restingHrBpm: Int? = null,
+    val dailyMinBpm: Int? = null,
+    val dailyMaxBpm: Int? = null,
+    val samples: List<ChartPoint> = emptyList(),
+    val timeLabels: List<String> = listOf("06:00", "09:00", "12:00", "15:00", "18:00", "Now")
+)
+
+data class ProfileTriptychSummary(
+    val userName: String = "HONOR Watch User",
+    val deviceLabel: String = "HONOR MagicWatch 2-38D • Hebe-B19S",
+    val cardioStatus: String = "CARDIO STATUS • OPTIMAL",
+    val restingHr: String = "-- bpm",
+    val restingHrDelta: String = "Stable vs 7d avg",
+    val sleepScore: String = "--%",
+    val sleepStatus: String = "Recovery Stage OK",
+    val vo2Max: String = "--",
+    val vo2MaxTier: String = "Optimal Fitness"
 )
 
 data class VitalSummaryCardModel(
@@ -142,8 +179,22 @@ data class VitalSummaryCardModel(
     val sparklinePoints: List<Float>? = null,
     val actionText: String? = null,
     val stressLevel: StressLevel? = null,
-    val sleepStageProportions: List<Float>? = null, // [deep, light, rem, awake]
-    val isFallbackComputed: Boolean = false
+    val sleepStageProportions: List<Float>? = null,
+    val isFallbackComputed: Boolean = false,
+    val template: BentoCardTemplate = BentoCardTemplate.TEMPLATE_A,
+    val deltaText: String? = null,
+    val goalText: String? = null,
+    val recessedWellLeftLabel: String? = null,
+    val recessedWellLeftValue: String? = null,
+    val recessedWellRightLabel: String? = null,
+    val recessedWellRightValue: String? = null,
+    val recessedWellRightColor: Color? = null
+)
+
+data class AlertBannerData(
+    val headline: String,
+    val subtitle: String,
+    val actionText: String? = null
 )
 
 data class VitalDetailUiState(
@@ -154,6 +205,7 @@ data class VitalDetailUiState(
     val headlineDateLabel: String = "",
     val subtitle: String = "",
     val statusBadge: StatusBadge? = null,
+    val calloutInsight: String = "",
     val summaryStats: List<StatItem> = emptyList(),
     val points: List<ChartPoint> = emptyList(),
     val rangeBars: List<RangeBarItem> = emptyList(),
@@ -161,9 +213,11 @@ data class VitalDetailUiState(
     val stressDistribution: StressZoneDistribution? = null,
     val sleepBreakdown: SleepStagesBreakdown? = null,
     val historyRecords: List<VitalHistoryItem> = emptyList(),
+    val alertBanner: AlertBannerData? = null,
     val referenceLineValue: Float? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isHistoricalAnchor: Boolean = false,
-    val anchorNotice: String? = null
+    val anchorNotice: String? = null,
+    val dataSourceLabel: String = "HONOR MagicWatch 2 • Health Connect"
 )
