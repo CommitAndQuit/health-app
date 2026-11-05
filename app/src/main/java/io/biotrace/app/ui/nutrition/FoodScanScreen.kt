@@ -26,15 +26,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Nightlight
@@ -64,7 +61,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -96,7 +92,6 @@ import io.biotrace.app.ui.theme.MacroProteinColor
 import io.biotrace.app.ui.theme.MintBadgeBg
 import io.biotrace.app.ui.theme.MintBadgeText
 import io.biotrace.app.ui.theme.PureWhite
-import io.biotrace.app.ui.theme.SoftInputBg
 import io.biotrace.app.ui.theme.TextDark
 import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextSecondary
@@ -146,9 +141,7 @@ fun FoodScanScreen(
         containerColor = LightBackground,
         topBar = {
             BioTraceTopBar(
-                subtitle = "Nutrition",
-                onAvatarClick = onNavigateToSettings,
-                onSettingsClick = onNavigateToSettings
+                onProfileClick = onNavigateToSettings
             )
         }
     ) { paddingValues ->
@@ -626,7 +619,6 @@ fun FoodScanScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp)
-                                .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp))
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CameraAlt,

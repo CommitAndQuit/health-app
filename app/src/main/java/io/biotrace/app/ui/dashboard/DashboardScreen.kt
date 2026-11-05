@@ -1,10 +1,5 @@
 package io.biotrace.app.ui.dashboard
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,8 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.History
@@ -39,34 +32,27 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Nightlight
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.SentimentDissatisfied
 import androidx.compose.material.icons.filled.SentimentNeutral
 import androidx.compose.material.icons.filled.SentimentSatisfied
 import androidx.compose.material.icons.filled.SentimentVerySatisfied
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -76,10 +62,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -88,9 +72,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import io.biotrace.app.R
 import io.biotrace.app.domain.model.MetricOverview
 import io.biotrace.app.domain.model.TimeRangeSelection
+import io.biotrace.app.ui.common.BioTraceTopBar
 import io.biotrace.app.ui.theme.BioOrange
 import io.biotrace.app.ui.theme.CardBorder
-import io.biotrace.app.ui.theme.ClinicalEmerald
 import io.biotrace.app.ui.theme.LightBackground
 import io.biotrace.app.ui.theme.PureWhite
 import io.biotrace.app.ui.theme.HeroCardBg
@@ -109,7 +93,6 @@ import io.biotrace.app.ui.theme.StatusOptimalText
 import io.biotrace.app.ui.theme.TextDark
 import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextSecondary
-import io.biotrace.app.ui.theme.TextWhite
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,10 +132,8 @@ fun DashboardScreen(
     Scaffold(
         containerColor = LightBackground,
         topBar = {
-            io.biotrace.app.ui.common.BioTraceTopBar(
-                subtitle = "Vitals & Telemetry",
-                onAvatarClick = onNavigateToSettings,
-                onSettingsClick = onNavigateToSettings
+            BioTraceTopBar(
+                onProfileClick = onNavigateToSettings
             )
         }
     ) { paddingValues ->
@@ -174,7 +155,7 @@ fun DashboardScreen(
                 ) {
                     Column {
                         Text(
-                            text = if (uiState.userName != null) "Hello, ${uiState.userName}!" else "Welcome to BioTrace",
+                            text = if (uiState.userName != null) "Hello, ${uiState.userName}!" else "Welcome!",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
                             color = TextSecondary
@@ -425,7 +406,6 @@ fun DashboardScreen(
                                 modifier = Modifier
                                     .weight(1.2f)
                                     .height(48.dp)
-                                    .shadow(elevation = 6.dp, shape = RoundedCornerShape(16.dp), ambientColor = BioOrange, spotColor = BioOrange)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.FiberManualRecord,

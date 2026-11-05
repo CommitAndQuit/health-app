@@ -3,13 +3,9 @@ package io.biotrace.app.ui.vitals
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,7 +39,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -108,6 +103,7 @@ import java.util.Locale
 fun VitalsScreen(
     onNavigateToDetail: (VitalMetricType) -> Unit,
     onNavigateToPermissions: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     viewModel: VitalsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -136,7 +132,7 @@ fun VitalsScreen(
         containerColor = AppCanvasBackground,
         topBar = {
             BioTraceTopBar(
-                subtitle = "Health Connect"
+                onProfileClick = onNavigateToSettings
             )
         }
     ) { innerPadding ->
@@ -278,7 +274,6 @@ fun HeartRateHeroCard(
         color = CardSurface,
         shape = BioTraceTokens.HeroCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = BioTraceTokens.HeroCardElevation,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
@@ -587,7 +582,6 @@ fun BioTraceTemplateACard(
         color = CardSurface,
         shape = BioTraceTokens.BentoCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = BioTraceTokens.BentoCardElevation,
         modifier = modifier
             .fillMaxWidth()
             .height(184.dp)
@@ -747,7 +741,6 @@ fun BioTraceTemplateBCard(
         color = CardSurface,
         shape = BioTraceTokens.BentoCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = BioTraceTokens.BentoCardElevation,
         modifier = modifier
             .fillMaxWidth()
             .height(184.dp)

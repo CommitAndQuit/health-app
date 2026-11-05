@@ -1,10 +1,7 @@
 package io.biotrace.app.ui.chat
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -24,10 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -38,14 +33,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -58,7 +50,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,11 +57,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import io.biotrace.app.R
 import io.biotrace.app.data.local.entity.ChatMessageEntity
 import io.biotrace.app.domain.agent.Citation
+import io.biotrace.app.ui.common.BioTraceTopBar
 import io.biotrace.app.ui.theme.BioOrange
 import io.biotrace.app.ui.theme.CardBorder
 import io.biotrace.app.ui.theme.LightBackground
 import io.biotrace.app.ui.theme.PureWhite
-import io.biotrace.app.ui.theme.StatusGreen
 import io.biotrace.app.ui.theme.TextDark
 import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextSecondary
@@ -101,10 +92,8 @@ fun ChatScreen(
     Scaffold(
         containerColor = LightBackground,
         topBar = {
-            io.biotrace.app.ui.common.BioTraceTopBar(
-                subtitle = "AI Copilot",
-                onAvatarClick = onNavigateToSettings,
-                onSettingsClick = onNavigateToSettings
+            BioTraceTopBar(
+                onProfileClick = onNavigateToSettings
             )
         }
     ) { paddingValues ->
@@ -282,8 +271,6 @@ fun ChatScreen(
             // Input Bar
             Surface(
                 color = PureWhite,
-                tonalElevation = 4.dp,
-                shadowElevation = 4.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(

@@ -27,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -53,8 +52,8 @@ val bioTraceBottomTabs = listOf(
 
 @Composable
 fun BioTraceFloatingBottomBar(
-    currentRoute: String?,
-    onNavigate: (String) -> Unit,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -67,7 +66,6 @@ fun BioTraceFloatingBottomBar(
         Surface(
             color = CardSurface,
             shape = BioTraceTokens.FloatingBarShape,
-            shadowElevation = 10.dp,
             border = BioTraceTokens.CardHairlineBorder,
             modifier = Modifier
                 .fillMaxWidth()
@@ -80,8 +78,8 @@ fun BioTraceFloatingBottomBar(
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                bioTraceBottomTabs.forEach { tab ->
-                    val isSelected = currentRoute == tab.route
+                bioTraceBottomTabs.forEachIndexed { index, tab ->
+                    val isSelected = index == selectedIndex
 
                     val activeBgColor by animateColorAsState(
                         targetValue = if (isSelected) BioOrangePrimary else Color.Transparent,
@@ -104,7 +102,7 @@ fun BioTraceFloatingBottomBar(
                                 indication = null
                             ) {
                                 if (!isSelected) {
-                                    onNavigate(tab.route)
+                                    onSelect(index)
                                 }
                             },
                         contentAlignment = Alignment.Center

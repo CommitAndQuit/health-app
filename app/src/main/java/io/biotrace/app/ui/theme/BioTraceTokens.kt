@@ -17,17 +17,7 @@ object BioTraceTokens {
     val PillShape = RoundedCornerShape(50)
     val IconBadgeShape = CircleShape
 
-    // Elevations & Shadows
-    val HeroCardElevation = 6.dp
-    val BentoCardElevation = 3.dp
-    val FloatingBarElevation = 12.dp
-    val PillElevation = 2.dp
-
     // Borders
     val CardHairlineBorder = BorderStroke(1.dp, Color(0xFFF1F5F9))
     val WellHairlineBorder = BorderStroke(1.dp, Color(0xFFE2E8F0))
-
-    // Shadow Spot & Ambient Colors
-    val ShadowSpotColor = Color(0x140F172A)
-    val ShadowAmbientColor = Color(0x0A0F172A)
 }

@@ -1,8 +1,5 @@
 package io.biotrace.app.ui.vitals
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -346,7 +343,6 @@ fun HeroSummaryCard(uiState: VitalDetailUiState) {
         color = PureWhite,
         shape = BioTraceTokens.HeroCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = BioTraceTokens.HeroCardElevation,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -467,7 +463,6 @@ fun InteractiveChartCard(uiState: VitalDetailUiState) {
         color = PureWhite,
         shape = RoundedCornerShape(16.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-        shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -838,7 +833,6 @@ fun SleepBreakdownCard(breakdown: SleepStagesBreakdown) {
         color = PureWhite,
         shape = RoundedCornerShape(16.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-        shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -891,7 +885,6 @@ fun SummaryStatsStrip(stats: List<StatItem>) {
         color = PureWhite,
         shape = BioTraceTokens.BentoCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = BioTraceTokens.BentoCardElevation,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -949,7 +942,6 @@ fun VitalHistoryRecordRow(item: VitalHistoryItem) {
         color = PureWhite,
         shape = BioTraceTokens.RecordCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(

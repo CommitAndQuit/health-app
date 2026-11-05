@@ -2,7 +2,6 @@ package io.biotrace.app.ui.insights
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +25,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -51,22 +49,20 @@ import io.biotrace.app.ui.theme.BioOrangePrimary
 import io.biotrace.app.ui.theme.BioOrangeSoftTint
 import io.biotrace.app.ui.theme.BioTraceTokens
 import io.biotrace.app.ui.theme.CardSurface
-import io.biotrace.app.ui.theme.CobaltBluePrimary
 import io.biotrace.app.ui.theme.DividerSubtle
 import io.biotrace.app.ui.theme.EmeraldPrimary
 import io.biotrace.app.ui.theme.EmeraldSoftTint
 import io.biotrace.app.ui.theme.IndigoSleepPrimary
 import io.biotrace.app.ui.theme.IndigoSleepSoftTint
 import io.biotrace.app.ui.theme.InnerWellSurface
-import io.biotrace.app.ui.theme.SolarAmberPrimary
 import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextPrimary
 import io.biotrace.app.ui.theme.TextSecondary
-import io.biotrace.app.ui.theme.TextWhite
 
 @Composable
 fun BiometricInsightsScreen(
     onNavigateToLabs: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     viewModel: BiometricInsightsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -74,7 +70,9 @@ fun BiometricInsightsScreen(
     Scaffold(
         containerColor = AppCanvasBackground,
         topBar = {
-            BioTraceTopBar(subtitle = "Cross-Correlation & Physiological Models")
+            BioTraceTopBar(
+                onProfileClick = onNavigateToSettings
+            )
         }
     ) { innerPadding ->
         if (uiState.isLoading && uiState.correlations.isEmpty()) {
@@ -237,7 +235,6 @@ fun ProfileTriptychHeroCard(
         color = CardSurface,
         shape = BioTraceTokens.HeroCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = BioTraceTokens.HeroCardElevation,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
@@ -446,7 +443,6 @@ fun CorrelationCard(
         color = CardSurface,
         shape = BioTraceTokens.BentoCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = BioTraceTokens.BentoCardElevation,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
@@ -600,7 +596,6 @@ fun LabBiomarkersSummaryCard(
         color = CardSurface,
         shape = BioTraceTokens.BentoCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = BioTraceTokens.BentoCardElevation,
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -661,7 +656,6 @@ fun LabTriangulationInviteCard(
         color = CardSurface,
         shape = BioTraceTokens.BentoCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = BioTraceTokens.BentoCardElevation,
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
