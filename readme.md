@@ -1,7 +1,7 @@
 # BioTrace 🛡️
 ### *Local-First, Zero-Server AI Health & Biomarker Intelligence for Android*
 
-BioTrace is a private, zero-backend Android application that unifies wearable data from **Google Health Connect** (fed by Gadgetbridge, smartbands, and watches) with **blood/lab report parsing** and **meal photo logging**. It delivers deep biometric visualization and conversational health insights powered by client-side Large Language Models (LLMs) using your own API key (BYOK) or on-device AI.
+BioTrace is a private, zero-backend Android application that unifies wearable data from **Google Health Connect** (data comes from apps that write to Health Connect) with **blood/lab report parsing** and **meal photo logging**. It delivers deep biometric visualization and conversational health insights powered by client-side Large Language Models (LLMs) using your own API key (BYOK) or on-device AI.
 
 All health data, raw time-series metrics, and Q&A histories remain strictly on your physical device in an encrypted SQLite/Room database. No personal cloud servers, Docker containers, or third-party relays are required.
 
@@ -10,7 +10,7 @@ All health data, raw time-series metrics, and Q&A histories remain strictly on y
 ## 🌟 Key Pillars
 
 1. **Zero-Server Simplicity**: No self-hosted servers, Docker containers, or database instances to manage. Install the APK, grant permissions, and run everything locally.
-2. **Direct Health Connect Sync**: Native ingestion of wearable data forwarded by [Gadgetbridge](https://gadgetbridge.org/) or companion apps (heart rate, HRV, sleep stages, steps, active calories, and SpO2).
+2. **Direct Health Connect Sync**: Native ingestion of health data from apps that write to Health Connect (heart rate, HRV, sleep stages, steps, active calories, and SpO2).
 3. **Clinical Lab & Blood Report Parsing**: Camera/gallery capture of paper or digital lab results. A multimodal Vision LLM extracts 50+ structured blood markers (CBC, metabolic panel, lipid panel, thyroid, vitamins) into normalized clinical units.
 4. **Conversational AI Health Agent**: A streaming, record-grounded ReAct agent capable of correlating wearable sleep/HRV trends with blood markers (e.g., ferritin levels vs. resting HR trends) while citing verified local data.
 5. **Photo Meal Logging (Smart Macro Scan)**: Snap a photo of a meal to estimate macronutrients, calories, and glycemic impact via Vision LLM.
@@ -48,7 +48,7 @@ All health data, raw time-series metrics, and Q&A histories remain strictly on y
 │   ▲                   │                 │  • Google Gemini             │
 │   │ (Syncs Vitals)    │                 │  • Anthropic Claude          │
 │ ┌───────────────────┐ │                 │  • OpenAI GPT-4o             │
-│ │ Gadgetbridge /    │ │                 │  • DeepSeek / Local Ollama   │
+│ │ Health Connect /  │ │                 │  • DeepSeek / Local Ollama   │
 │ │ Smart Wearables   │ │                 │  • On-Device Gemini Nano     │
 │ └───────────────────┘ │                 └──────────────────────────────┘
 ```

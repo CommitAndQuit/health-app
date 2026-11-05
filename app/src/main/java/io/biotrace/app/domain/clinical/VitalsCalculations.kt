@@ -8,7 +8,7 @@ object VitalsCalculations {
 
     /**
      * Computes the 5th-percentile BPM from a collection of heart rate samples.
-     * Used as the resting heart rate fallback when wearables (e.g. Honor MagicWatch 2)
+     * Used as the resting heart rate fallback when wearables (for example, a wearable that does not emit RestingHeartRateRecord)
      * do not write RestingHeartRateRecord directly into Health Connect.
      */
     fun calculateRestingHeartRate5thPercentile(bpmList: List<Int>): Int? {

@@ -1,8 +1,5 @@
 package io.biotrace.app.ui.vitals
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,7 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
@@ -79,8 +75,6 @@ import io.biotrace.app.domain.model.SleepStageBarItem
 import io.biotrace.app.domain.model.SleepStagesBreakdown
 import io.biotrace.app.domain.model.StatItem
 import io.biotrace.app.domain.model.StatusBadge
-import io.biotrace.app.domain.model.StressLevel
-import io.biotrace.app.domain.model.StressZoneDistribution
 import io.biotrace.app.domain.model.VitalDetailUiState
 import io.biotrace.app.domain.model.VitalHistoryItem
 import io.biotrace.app.domain.model.VitalMetricType
@@ -109,14 +103,6 @@ fun VitalDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showInfoDialog by remember { mutableStateOf(false) }
-
-    val openDocumentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            viewModel.importGadgetbridgeDatabase(uri)
-        }
-    }
 
     if (showInfoDialog) {
         MetricInfoDialog(
@@ -147,27 +133,6 @@ fun VitalDetailScreen(
                     }
                 },
                 actions = {
-                    if (uiState.metricType == VitalMetricType.STRESS) {
-                        IconButton(
-                            onClick = {
-                                openDocumentLauncher.launch(
-                                    arrayOf(
-                                        "application/octet-stream",
-                                        "application/x-sqlite3",
-                                        "application/vnd.sqlite3",
-                                        "*/*"
-                                    )
-                                )
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.FolderOpen,
-                                contentDescription = "Update Gadgetbridge File",
-                                tint = BioOrange
-                            )
-                        }
-                    }
-
                     IconButton(onClick = { showInfoDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Info,
@@ -280,14 +245,7 @@ fun VitalDetailScreen(
                     InteractiveChartCard(uiState = uiState)
                 }
 
-                // 5. Stress 4-Zone Distribution Card (Specialized for STRESS)
-                if (uiState.metricType == VitalMetricType.STRESS && uiState.stressDistribution != null) {
-                    item {
-                        StressDistributionCard(distribution = uiState.stressDistribution!!)
-                    }
-                }
-
-                // 6. Sleep Stages Summary (Specialized for SLEEP)
+                // 5. Sleep Stages Summary (Specialized for SLEEP)
                 if (uiState.metricType == VitalMetricType.SLEEP && uiState.sleepBreakdown != null) {
                     item {
                         SleepBreakdownCard(breakdown = uiState.sleepBreakdown!!)
@@ -875,136 +833,6 @@ fun SleepStackedBarCanvas(bars: List<SleepStageBarItem>) {
 }
 
 @Composable
-fun StressDistributionCard(distribution: StressZoneDistribution) {
-    Surface(
-        color = PureWhite,
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Stress Zone Distribution",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
-            Text(
-                text = "Proportion of readings recorded across 4 clinical zones",
-                fontSize = 11.sp,
-                color = TextMuted
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 4-Color Proportion Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(14.dp)
-                    .clip(RoundedCornerShape(7.dp)),
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                if (distribution.totalCount > 0) {
-                    if (distribution.relaxedCount > 0) {
-                        Box(
-                            modifier = Modifier
-                                .weight(distribution.relaxedPct)
-                                .fillMaxSize()
-                                .background(StressLevel.RELAXED.color)
-                        )
-                    }
-                    if (distribution.normalCount > 0) {
-                        Box(
-                            modifier = Modifier
-                                .weight(distribution.normalPct)
-                                .fillMaxSize()
-                                .background(StressLevel.NORMAL.color)
-                        )
-                    }
-                    if (distribution.mediumCount > 0) {
-                        Box(
-                            modifier = Modifier
-                                .weight(distribution.mediumPct)
-                                .fillMaxSize()
-                                .background(StressLevel.MEDIUM.color)
-                        )
-                    }
-                    if (distribution.highCount > 0) {
-                        Box(
-                            modifier = Modifier
-                                .weight(distribution.highPct)
-                                .fillMaxSize()
-                                .background(StressLevel.HIGH.color)
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFFE2E8F0))
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 4-Column Legend with counts & percentages
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                val items = listOf(
-                    Triple(StressLevel.RELAXED, distribution.relaxedCount, (distribution.relaxedPct * 100).roundToInt()),
-                    Triple(StressLevel.NORMAL, distribution.normalCount, (distribution.normalPct * 100).roundToInt()),
-                    Triple(StressLevel.MEDIUM, distribution.mediumCount, (distribution.mediumPct * 100).roundToInt()),
-                    Triple(StressLevel.HIGH, distribution.highCount, (distribution.highPct * 100).roundToInt())
-                )
-
-                items.forEach { (level, count, pct) ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(level.color)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = level.title,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextDark
-                            )
-                        }
-                        Text(
-                            text = "$pct%",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDark
-                        )
-                        Text(
-                            text = "$count logs",
-                            fontSize = 10.sp,
-                            color = TextMuted
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun SleepBreakdownCard(breakdown: SleepStagesBreakdown) {
     Surface(
         color = PureWhite,
@@ -1201,10 +1029,9 @@ fun MetricInfoDialog(
 ) {
     val description = when (metricType) {
         VitalMetricType.HEART_RATE -> "Heart Rate is measured continuously via the watch's optical photoplethysmography (PPG) sensor. Health Connect aggregates Min, Average, and Max BPM across active time windows."
-        VitalMetricType.RESTING_HEART_RATE -> "Resting Heart Rate represents baseline cardiovascular effort during minimum physical exertion. For HONOR MagicWatch 2, when RestingHeartRateRecord is omitted by firmware, it is computed as the 5th-percentile BPM recorded during sleep."
-        VitalMetricType.STRESS -> "Stress Score (1–99) is derived from Heart Rate Variability (HRV) pulse-wave interval analysis via HUAWEI TruRelax algorithms. Imported directly from the Gadgetbridge HUAWEI_STRESS_SAMPLE database table across 4 clinical zones: Relaxed (1–29), Normal (30–59), Medium (60–79), and High (80–99)."
+        VitalMetricType.RESTING_HEART_RATE -> "Resting Heart Rate represents baseline cardiovascular effort during minimum physical exertion. When RestingHeartRateRecord is omitted, it is computed as the 5th-percentile BPM recorded during sleep."
         VitalMetricType.SPO2 -> "Peripheral Blood Oxygen Saturation reflects the percentage of oxygenated hemoglobin in the blood. Measured via red and infrared light absorption. Normal values typically range from 95% to 100%."
-        VitalMetricType.SLEEP -> "HUAWEI TruSleep tracks sleep sessions across 4 distinct stages: Deep, Light, REM, and Awake. The clinical target is set to 7 hours (420 minutes) per night."
+        VitalMetricType.SLEEP -> "Health Connect tracks sleep sessions across 4 distinct stages: Deep, Light, REM, and Awake. The clinical target is set to 7 hours (420 minutes) per night."
         VitalMetricType.STEPS -> "Daily steps are tracked via the onboard 3-axis accelerometer and deduplicated automatically through Health Connect's aggregation pipelines against an 8,000 steps daily goal."
         VitalMetricType.CALORIES_DISTANCE -> "Active calories burned and distance covered during movement and workouts. Distance is calculated from step cadence and GPS tracking when available."
         VitalMetricType.VO2_MAX_WORKOUTS -> "Cardio Fitness (VO2 Max in mL/kg/min) measures maximum rate of oxygen consumption during strenuous exercise, correlated with heart rate dynamics and workout duration."
@@ -1229,19 +1056,11 @@ fun MetricInfoDialog(
 
 @Preview(showBackground = true)
 @Composable
-fun StressDetailScreenPreview() {
-    val sampleDistribution = StressZoneDistribution(
-        relaxedCount = 52,
-        normalCount = 142,
-        mediumCount = 46,
-        highCount = 12,
-        totalCount = 252
-    )
-
+fun VitalDetailScreenPreview() {
     val sampleStats = listOf(
-        StatItem("Average", "48", "/ 99"),
-        StatItem("Minimum", "18", "/ 99"),
-        StatItem("Maximum", "82", "/ 99"),
+        StatItem("Average", "72", "bpm"),
+        StatItem("Minimum", "58", "bpm"),
+        StatItem("Maximum", "112", "bpm"),
         StatItem("Readings", "252")
     )
 
@@ -1250,31 +1069,31 @@ fun StressDetailScreenPreview() {
             id = "1",
             timestamp = Instant.now(),
             formattedTime = "Today, 14:32",
-            primaryValue = "54",
-            primaryUnit = "/ 99",
+            primaryValue = "72",
+            primaryUnit = "bpm",
             secondaryDetail = "Measured for 58s",
-            badge = StatusBadge("Normal", StressLevel.NORMAL.color, StressLevel.NORMAL.backgroundColor),
-            deviceSource = "HONOR MagicWatch 2-38D • Gadgetbridge"
+            badge = StatusBadge("Normal", ClinicalEmerald, ClinicalEmerald.copy(alpha = 0.12f)),
+            deviceSource = "Health Connect"
         ),
         VitalHistoryItem(
             id = "2",
             timestamp = Instant.now().minusSeconds(1800),
             formattedTime = "Today, 14:02",
-            primaryValue = "72",
-            primaryUnit = "/ 99",
+            primaryValue = "78",
+            primaryUnit = "bpm",
             secondaryDetail = "Measured for 60s",
-            badge = StatusBadge("Medium", StressLevel.MEDIUM.color, StressLevel.MEDIUM.backgroundColor),
-            deviceSource = "HONOR MagicWatch 2-38D • Gadgetbridge"
+            badge = StatusBadge("Normal", ClinicalEmerald, ClinicalEmerald.copy(alpha = 0.12f)),
+            deviceSource = "Health Connect"
         ),
         VitalHistoryItem(
             id = "3",
             timestamp = Instant.now().minusSeconds(3600),
             formattedTime = "Today, 13:30",
-            primaryValue = "24",
-            primaryUnit = "/ 99",
+            primaryValue = "65",
+            primaryUnit = "bpm",
             secondaryDetail = "Measured for 57s",
-            badge = StatusBadge("Relaxed", StressLevel.RELAXED.color, StressLevel.RELAXED.backgroundColor),
-            deviceSource = "HONOR MagicWatch 2-38D • Gadgetbridge"
+            badge = StatusBadge("Optimal", ClinicalEmerald, ClinicalEmerald.copy(alpha = 0.12f)),
+            deviceSource = "Health Connect"
         )
     )
 
@@ -1293,16 +1112,14 @@ fun StressDetailScreenPreview() {
 
             HeroSummaryCard(
                 uiState = VitalDetailUiState(
-                    metricType = VitalMetricType.STRESS,
-                    headlineValue = "54",
-                    headlineUnit = "/ 99",
+                    metricType = VitalMetricType.HEART_RATE,
+                    headlineValue = "72",
+                    headlineUnit = "bpm",
                     headlineDateLabel = "Today's Average",
-                    subtitle = "Stress score monitored by optical PPG pulse wave analysis",
-                    statusBadge = StatusBadge("Normal", StressLevel.NORMAL.color, StressLevel.NORMAL.backgroundColor)
+                    subtitle = "Heart rate monitored by optical PPG sensor",
+                    statusBadge = StatusBadge("Normal", ClinicalEmerald, ClinicalEmerald.copy(alpha = 0.12f))
                 )
             )
-
-            StressDistributionCard(distribution = sampleDistribution)
 
             SummaryStatsStrip(stats = sampleStats)
 

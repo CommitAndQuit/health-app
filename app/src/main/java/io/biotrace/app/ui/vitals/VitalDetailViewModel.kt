@@ -1,6 +1,5 @@
 package io.biotrace.app.ui.vitals
 
-import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,7 +24,7 @@ class VitalDetailViewModel @Inject constructor(
     private val metricTypeArg: String = checkNotNull(savedStateHandle["metricType"])
     val metricType: VitalMetricType = runCatching {
         VitalMetricType.valueOf(metricTypeArg)
-    }.getOrDefault(VitalMetricType.STRESS)
+    }.getOrDefault(VitalMetricType.HEART_RATE)
 
     private val _uiState = MutableStateFlow(
         VitalDetailUiState(
@@ -46,14 +45,6 @@ class VitalDetailViewModel @Inject constructor(
 
     fun refresh() {
         loadData(_uiState.value.selectedRange)
-    }
-
-    fun importGadgetbridgeDatabase(uri: Uri) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            vitalsRepository.importGadgetbridgeUri(uri)
-            loadData(_uiState.value.selectedRange)
-        }
     }
 
     private fun loadData(range: MetricTimeRange) {

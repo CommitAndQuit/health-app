@@ -8,7 +8,6 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Nightlight
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,7 +33,6 @@ enum class VitalMetricType(
 ) {
     HEART_RATE("Heart Rate", "bpm", "60–100 bpm", 70.0, BioOrangePrimary, BioOrangeSoftTint),
     RESTING_HEART_RATE("Resting Heart Rate", "bpm", "< 65 bpm", 60.0, BioOrangePrimary, BioOrangeSoftTint),
-    STRESS("Autonomic Stress", "", "< 60 Normal", 59.0, CobaltBluePrimary, CobaltBlueSoftTint),
     SPO2("Blood Oxygen", "SpO2", "≥ 95% Normal", 95.0, CobaltBluePrimary, CobaltBlueSoftTint),
     SLEEP("Sleep Recovery", "score", "7h 00m Goal", 420.0, IndigoSleepPrimary, IndigoSleepSoftTint),
     STEPS("Daily Steps", "steps", "8,000 Goal", 8000.0, SolarAmberPrimary, SolarAmberSoftTint),
@@ -46,7 +44,6 @@ enum class VitalMetricType(
         get() = when (this) {
             HEART_RATE -> Icons.Default.Favorite
             RESTING_HEART_RATE -> Icons.Default.MonitorHeart
-            STRESS -> Icons.Default.Psychology
             SPO2 -> Icons.Default.Air
             SLEEP -> Icons.Default.Nightlight
             STEPS -> Icons.AutoMirrored.Filled.DirectionsWalk
@@ -109,19 +106,6 @@ data class SleepStageBarItem(
     val totalMinutes: Float
 )
 
-data class StressZoneDistribution(
-    val relaxedCount: Int,
-    val normalCount: Int,
-    val mediumCount: Int,
-    val highCount: Int,
-    val totalCount: Int
-) {
-    val relaxedPct: Float get() = if (totalCount > 0) relaxedCount.toFloat() / totalCount else 0f
-    val normalPct: Float get() = if (totalCount > 0) normalCount.toFloat() / totalCount else 0f
-    val mediumPct: Float get() = if (totalCount > 0) mediumCount.toFloat() / totalCount else 0f
-    val highPct: Float get() = if (totalCount > 0) highCount.toFloat() / totalCount else 0f
-}
-
 data class SleepStagesBreakdown(
     val deepMinutes: Int,
     val lightMinutes: Int,
@@ -143,7 +127,7 @@ data class VitalHistoryItem(
     val primaryUnit: String,
     val secondaryDetail: String? = null,
     val badge: StatusBadge? = null,
-    val deviceSource: String = "HONOR MagicWatch 2-38D • Gadgetbridge"
+    val deviceSource: String = "Health Connect"
 )
 
 data class ContinuousHeartRateHeroData(
@@ -156,8 +140,8 @@ data class ContinuousHeartRateHeroData(
 )
 
 data class ProfileTriptychSummary(
-    val userName: String = "HONOR Watch User",
-    val deviceLabel: String = "HONOR MagicWatch 2-38D • Hebe-B19S",
+    val userName: String = "BioTrace User",
+    val deviceLabel: String = "Health Connect",
     val cardioStatus: String = "CARDIO • NO DATA",
     val restingHr: String = "-- bpm",
     val restingHrDelta: String = "No Data",
@@ -178,7 +162,6 @@ data class VitalSummaryCardModel(
     val progress: Float? = null,
     val sparklinePoints: List<Float>? = null,
     val actionText: String? = null,
-    val stressLevel: StressLevel? = null,
     val sleepStageProportions: List<Float>? = null,
     val isFallbackComputed: Boolean = false,
     val template: BentoCardTemplate = BentoCardTemplate.TEMPLATE_A,
@@ -210,7 +193,6 @@ data class VitalDetailUiState(
     val points: List<ChartPoint> = emptyList(),
     val rangeBars: List<RangeBarItem> = emptyList(),
     val sleepBars: List<SleepStageBarItem> = emptyList(),
-    val stressDistribution: StressZoneDistribution? = null,
     val sleepBreakdown: SleepStagesBreakdown? = null,
     val historyRecords: List<VitalHistoryItem> = emptyList(),
     val alertBanner: AlertBannerData? = null,
@@ -219,5 +201,5 @@ data class VitalDetailUiState(
     val errorMessage: String? = null,
     val isHistoricalAnchor: Boolean = false,
     val anchorNotice: String? = null,
-    val dataSourceLabel: String = "HONOR MagicWatch 2 • Health Connect"
+    val dataSourceLabel: String = "Health Connect"
 )

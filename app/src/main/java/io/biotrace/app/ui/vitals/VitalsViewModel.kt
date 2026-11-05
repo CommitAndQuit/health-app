@@ -1,6 +1,5 @@
 package io.biotrace.app.ui.vitals
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,9 +24,7 @@ data class VitalsUiState(
     val isRefreshing: Boolean = false,
     val hasHealthConnectPermissions: Boolean = true,
     val availability: HealthConnectAvailability = HealthConnectAvailability.AVAILABLE,
-    val lastSyncTime: Instant? = null,
-    val importMessage: String? = null,
-    val hasSavedGadgetbridgeDb: Boolean = false
+    val lastSyncTime: Instant? = null
 )
 
 @HiltViewModel
@@ -47,13 +44,11 @@ class VitalsViewModel @Inject constructor(
         viewModelScope.launch {
             val availability = healthConnectManager.checkAvailability()
             val hasPerms = healthConnectManager.hasAllPermissions()
-            val hasDb = vitalsRepository.hasSavedGadgetbridgeUri()
 
             _uiState.update {
                 it.copy(
                     availability = availability,
-                    hasHealthConnectPermissions = hasPerms,
-                    hasSavedGadgetbridgeDb = hasDb
+                    hasHealthConnectPermissions = hasPerms
                 )
             }
 
@@ -63,13 +58,8 @@ class VitalsViewModel @Inject constructor(
 
     fun refreshDashboard() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true, importMessage = null) }
+            _uiState.update { it.copy(isRefreshing = true) }
             try {
-                // Auto refresh Gadgetbridge stress if saved URI is present
-                if (vitalsRepository.hasSavedGadgetbridgeUri()) {
-                    runCatching { vitalsRepository.refreshGadgetbridgeStress() }
-                }
-
                 // Sync latest from Health Connect
                 runCatching { vitalsRepository.syncFromHealthConnect(days = 7) }
 
@@ -83,51 +73,12 @@ class VitalsViewModel @Inject constructor(
                         heroHeartRate = heroHr,
                         profileTriptych = profile,
                         isRefreshing = false,
-                        lastSyncTime = Instant.now(),
-                        hasSavedGadgetbridgeDb = vitalsRepository.hasSavedGadgetbridgeUri()
+                        lastSyncTime = Instant.now()
                     )
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isRefreshing = false) }
             }
         }
-    }
-
-    fun importGadgetbridgeDatabase(uri: Uri) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true) }
-            val result = vitalsRepository.importGadgetbridgeUri(uri)
-            result.fold(
-                onSuccess = { count ->
-                    val cards = vitalsRepository.getVitalsDashboardSnapshot()
-                    val heroHr = vitalsRepository.getContinuousHeartRateHeroData()
-                    val profile = vitalsRepository.getProfileTriptychSummary()
-
-                    _uiState.update {
-                        it.copy(
-                            cards = cards,
-                            heroHeartRate = heroHr,
-                            profileTriptych = profile,
-                            isRefreshing = false,
-                            importMessage = "Successfully imported $count stress records from Gadgetbridge",
-                            hasSavedGadgetbridgeDb = true,
-                            lastSyncTime = Instant.now()
-                        )
-                    }
-                },
-                onFailure = { error ->
-                    _uiState.update {
-                        it.copy(
-                            isRefreshing = false,
-                            importMessage = "Import failed: ${error.localizedMessage ?: "Unknown error"}"
-                        )
-                    }
-                }
-            )
-        }
-    }
-
-    fun clearImportMessage() {
-        _uiState.update { it.copy(importMessage = null) }
     }
 }

@@ -7,12 +7,10 @@ import io.biotrace.app.data.local.converter.Converters
 import io.biotrace.app.data.local.dao.ChatHistoryDao
 import io.biotrace.app.data.local.dao.LabBiomarkerDao
 import io.biotrace.app.data.local.dao.MealDao
-import io.biotrace.app.data.local.dao.StressDao
 import io.biotrace.app.data.local.dao.VitalsDao
 import io.biotrace.app.data.local.entity.ChatMessageEntity
 import io.biotrace.app.data.local.entity.LabBiomarkerEntity
 import io.biotrace.app.data.local.entity.MealEntity
-import io.biotrace.app.data.local.entity.StressSampleEntity
 import io.biotrace.app.data.local.entity.VitalsRecordEntity
 
 @Database(
@@ -20,10 +18,9 @@ import io.biotrace.app.data.local.entity.VitalsRecordEntity
         VitalsRecordEntity::class,
         LabBiomarkerEntity::class,
         MealEntity::class,
-        ChatMessageEntity::class,
-        StressSampleEntity::class
+        ChatMessageEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -33,7 +30,6 @@ abstract class BioTraceDatabase : RoomDatabase() {
     abstract fun labBiomarkerDao(): LabBiomarkerDao
     abstract fun mealDao(): MealDao
     abstract fun chatHistoryDao(): ChatHistoryDao
-    abstract fun stressDao(): StressDao
 
     companion object {
         const val DATABASE_NAME = "biotrace.db"

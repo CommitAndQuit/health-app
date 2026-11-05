@@ -10,7 +10,6 @@ import dagger.hilt.components.SingletonComponent
 import io.biotrace.app.data.local.dao.ChatHistoryDao
 import io.biotrace.app.data.local.dao.LabBiomarkerDao
 import io.biotrace.app.data.local.dao.MealDao
-import io.biotrace.app.data.local.dao.StressDao
 import io.biotrace.app.data.local.dao.VitalsDao
 import io.biotrace.app.data.local.database.BioTraceDatabase
 import javax.inject.Singleton
@@ -34,11 +33,6 @@ object DatabaseModule {
     @Provides
     fun provideVitalsDao(database: BioTraceDatabase): VitalsDao {
         return database.vitalsDao()
-    }
-
-    @Provides
-    fun provideStressDao(database: BioTraceDatabase): StressDao {
-        return database.stressDao()
     }
 
     @Provides

@@ -45,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.biotrace.app.domain.model.ProfileTriptychSummary
-import io.biotrace.app.domain.model.StressZoneDistribution
 import io.biotrace.app.ui.common.BioTraceTopBar
 import io.biotrace.app.ui.theme.AppCanvasBackground
 import io.biotrace.app.ui.theme.BioOrangePrimary
@@ -53,7 +52,6 @@ import io.biotrace.app.ui.theme.BioOrangeSoftTint
 import io.biotrace.app.ui.theme.BioTraceTokens
 import io.biotrace.app.ui.theme.CardSurface
 import io.biotrace.app.ui.theme.CobaltBluePrimary
-import io.biotrace.app.ui.theme.CoralAlertPrimary
 import io.biotrace.app.ui.theme.DividerSubtle
 import io.biotrace.app.ui.theme.EmeraldPrimary
 import io.biotrace.app.ui.theme.EmeraldSoftTint
@@ -155,18 +153,7 @@ fun BiometricInsightsScreen(
                     ProfileTriptychHeroCard(profile = uiState.profile)
                 }
 
-                // 3. Stress Zone Distribution Card (If Gadgetbridge samples present)
-                if (uiState.stressDistribution != null) {
-                    item {
-                        StressAutonomicCard(
-                            distribution = uiState.stressDistribution!!,
-                            totalSamples = uiState.totalStressSamples,
-                            avgStress = uiState.averageStress
-                        )
-                    }
-                }
-
-                // 4. Cross-Correlation Section Header
+                // 3. Cross-Correlation Section Header
                 item {
                     Text(
                         text = "Physiological Cross-Correlations",
@@ -176,7 +163,7 @@ fun BiometricInsightsScreen(
                     )
                 }
 
-                // 5. Cross-Correlation Cards
+                // 4. Cross-Correlation Cards
                 if (uiState.correlations.isEmpty()) {
                     item {
                         Surface(
@@ -206,7 +193,7 @@ fun BiometricInsightsScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Sync Health Connect or import your Gadgetbridge database to calculate multi-metric physiological couplings.",
+                                    text = "Sync Health Connect to calculate multi-metric physiological couplings.",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Normal,
                                     color = TextSecondary,
@@ -443,138 +430,6 @@ fun TriptychCapsule(
                 overflow = TextOverflow.Ellipsis
             )
         }
-    }
-}
-
-// =============================================================================
-// Stress Autonomic Distribution Card
-// =============================================================================
-
-@Composable
-fun StressAutonomicCard(
-    distribution: StressZoneDistribution,
-    totalSamples: Int,
-    avgStress: Int?,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        color = CardSurface,
-        shape = BioTraceTokens.BentoCardShape,
-        border = BioTraceTokens.CardHairlineBorder,
-        shadowElevation = BioTraceTokens.BentoCardElevation,
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Autonomic Stress Balance",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                    Text(
-                        text = "$totalSamples Huawei samples from Gadgetbridge",
-                        fontSize = 11.sp,
-                        color = TextSecondary
-                    )
-                }
-
-                if (avgStress != null) {
-                    Surface(
-                        color = EmeraldSoftTint,
-                        shape = BioTraceTokens.PillShape
-                    ) {
-                        Text(
-                            text = "Avg: $avgStress / 100",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = EmeraldPrimary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 4-Zone Segmented Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(6.dp))
-            ) {
-                if (distribution.relaxedPct > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .weight(distribution.relaxedPct.coerceAtLeast(0.02f))
-                            .background(EmeraldPrimary)
-                    )
-                }
-                if (distribution.normalPct > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .weight(distribution.normalPct.coerceAtLeast(0.02f))
-                            .background(CobaltBluePrimary)
-                    )
-                }
-                if (distribution.mediumPct > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .weight(distribution.mediumPct.coerceAtLeast(0.02f))
-                            .background(SolarAmberPrimary)
-                    )
-                }
-                if (distribution.highPct > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .weight(distribution.highPct.coerceAtLeast(0.02f))
-                            .background(CoralAlertPrimary)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 4-Zone Legend
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                LegendZoneItem(label = "Relaxed", pct = (distribution.relaxedPct * 100).toInt(), color = EmeraldPrimary)
-                LegendZoneItem(label = "Normal", pct = (distribution.normalPct * 100).toInt(), color = CobaltBluePrimary)
-                LegendZoneItem(label = "Medium", pct = (distribution.mediumPct * 100).toInt(), color = SolarAmberPrimary)
-                LegendZoneItem(label = "High", pct = (distribution.highPct * 100).toInt(), color = CoralAlertPrimary)
-            }
-        }
-    }
-}
-
-@Composable
-fun LegendZoneItem(label: String, pct: Int, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(7.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = "$label $pct%",
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            color = TextSecondary
-        )
     }
 }
 
@@ -843,7 +698,7 @@ fun LabTriangulationInviteCard(
                         color = TextPrimary
                     )
                     Text(
-                        text = "Import PDF lab report in Lab Hub to correlate lipids & glucose with wearable stress.",
+                        text = "Import PDF lab report in Lab Hub to correlate lipids & glucose with wearable vitals.",
                         fontSize = 11.sp,
                         color = TextSecondary
                     )

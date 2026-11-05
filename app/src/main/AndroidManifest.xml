@@ -82,7 +82,6 @@
             <intent-filter>
                 <action android:name="io.biotrace.app.TEST_PROVISION_KEY" />
                 <action android:name="io.biotrace.app.TEST_PROCESS_PDF" />
-                <action android:name="io.biotrace.app.TEST_IMPORT_GADGETBRIDGE" />
             </intent-filter>
         </receiver>
 

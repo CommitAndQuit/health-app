@@ -1,6 +1,5 @@
 package io.biotrace.app.domain.repository
 
-import android.net.Uri
 import io.biotrace.app.data.healthconnect.SyncResult
 import io.biotrace.app.domain.model.ContinuousHeartRateHeroData
 import io.biotrace.app.domain.model.MetricTimeRange
@@ -22,12 +21,8 @@ interface VitalsRepository {
     suspend fun syncFromHealthConnect(days: Long = 7): SyncResult
     suspend fun clearAll()
 
-    // Health Connect + Gadgetbridge Stress feature extensions
     suspend fun getVitalsDashboardSnapshot(): List<VitalSummaryCardModel>
     suspend fun getContinuousHeartRateHeroData(): ContinuousHeartRateHeroData
     suspend fun getProfileTriptychSummary(): ProfileTriptychSummary
     suspend fun getMetricDetailData(metricType: VitalMetricType, range: MetricTimeRange): VitalDetailUiState
-    suspend fun importGadgetbridgeUri(uri: Uri): Result<Int>
-    suspend fun refreshGadgetbridgeStress(): Result<Int>?
-    fun hasSavedGadgetbridgeUri(): Boolean
 }

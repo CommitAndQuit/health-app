@@ -1,5 +1,6 @@
 package io.biotrace.app.data.healthconnect
 
+import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BodyFatRecord
@@ -11,6 +12,7 @@ import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.biotrace.app.data.local.dao.VitalsDao
 import io.biotrace.app.data.local.entity.VitalsRecordEntity
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +25,7 @@ import javax.inject.Singleton
 
 @Singleton
 class HealthConnectSyncService @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val healthConnectManager: HealthConnectManager,
     private val vitalsDao: VitalsDao
 ) {
@@ -40,6 +43,7 @@ class HealthConnectSyncService @Inject constructor(
         val weightResult = syncWeight(startTime, endTime)
         val bodyFatResult = syncBodyFat(startTime, endTime)
 
+        LastSyncStore.record(context)
         hrResult + hrvResult + stepsResult + sleepResult + caloriesResult + oxygenResult + weightResult + bodyFatResult
     }
 

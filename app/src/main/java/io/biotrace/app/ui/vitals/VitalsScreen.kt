@@ -3,7 +3,6 @@ package io.biotrace.app.ui.vitals
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,15 +32,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -137,23 +132,11 @@ fun VitalsScreen(
         viewModel.checkStatusAndRefresh()
     }
 
-    // Gadgetbridge SQLite file picker launcher (SAF)
-    val openDocumentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            viewModel.importGadgetbridgeDatabase(uri)
-        }
-    }
-
     Scaffold(
         containerColor = AppCanvasBackground,
         topBar = {
             BioTraceTopBar(
-                subtitle = "HONOR MagicWatch 2-38D • Hebe-B19S",
-                onImportGadgetbridgeUri = { uri ->
-                    viewModel.importGadgetbridgeDatabase(uri)
-                }
+                subtitle = "Health Connect"
             )
         }
     ) { innerPadding ->
@@ -242,49 +225,6 @@ fun VitalsScreen(
                     }
                 }
 
-                // 3. Import Notice Banner (Feedback from Gadgetbridge import)
-                if (uiState.importMessage != null) {
-                    item(span = { GridItemSpan(2) }) {
-                        Surface(
-                            color = BioOrangeSoftTint,
-                            shape = RoundedCornerShape(16.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, BioOrangePrimary.copy(alpha = 0.3f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CloudDownload,
-                                    contentDescription = null,
-                                    tint = BioOrangePrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = uiState.importMessage!!,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = TextPrimary,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                IconButton(
-                                    onClick = { viewModel.clearImportMessage() },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Dismiss",
-                                        tint = TextSecondary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
                 // 4. Hero Card: Continuous Heart Rate (Spans 2 Columns)
                 item(span = { GridItemSpan(2) }) {
                     HeartRateHeroCard(
@@ -305,17 +245,7 @@ fun VitalsScreen(
                         BentoCardTemplate.TEMPLATE_B -> {
                             BioTraceTemplateBCard(
                                 card = card,
-                                onClick = { onNavigateToDetail(card.metricType) },
-                                onImportGadgetbridge = {
-                                    openDocumentLauncher.launch(
-                                        arrayOf(
-                                            "application/octet-stream",
-                                            "application/x-sqlite3",
-                                            "application/vnd.sqlite3",
-                                            "*/*"
-                                        )
-                                    )
-                                }
+                                onClick = { onNavigateToDetail(card.metricType) }
                             )
                         }
                     }
@@ -325,17 +255,7 @@ fun VitalsScreen(
                 item(span = { GridItemSpan(2) }) {
                     SyncHealthConnectBottomRow(
                         isRefreshing = uiState.isRefreshing,
-                        onSyncHealthConnect = { viewModel.refreshDashboard() },
-                        onPickGadgetbridge = {
-                            openDocumentLauncher.launch(
-                                arrayOf(
-                                    "application/octet-stream",
-                                    "application/x-sqlite3",
-                                    "application/vnd.sqlite3",
-                                    "*/*"
-                                )
-                            )
-                        }
+                        onSyncHealthConnect = { viewModel.refreshDashboard() }
                     )
                 }
             }
@@ -820,7 +740,6 @@ fun BioTraceTemplateACard(
 fun BioTraceTemplateBCard(
     card: VitalSummaryCardModel,
     onClick: () -> Unit,
-    onImportGadgetbridge: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -850,7 +769,6 @@ fun BioTraceTemplateBCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     val (icon, iconTint, iconBg) = when (card.metricType) {
-                        VitalMetricType.STRESS -> Triple(Icons.Default.Spa, BioOrangePrimary, BioOrangeSoftTint)
                         VitalMetricType.VO2_MAX_WORKOUTS -> Triple(Icons.Default.Speed, EmeraldPrimary, EmeraldSoftTint)
                         VitalMetricType.RESTING_HEART_RATE -> Triple(Icons.Default.Favorite, BioOrangePrimary, BioOrangeSoftTint)
                         else -> Triple(card.metricType.icon, card.metricType.accentColor, card.metricType.accentColor.copy(alpha = 0.12f))
@@ -921,97 +839,65 @@ fun BioTraceTemplateBCard(
             }
 
             // Bottom: Recessed Inner Well Container (#F6F7FB)
-            if (card.metricType == VitalMetricType.STRESS && card.actionText != null && card.primaryValue == "--") {
-                // If stress is empty, show Link Gadgetbridge action inside well
-                Surface(
-                    onClick = onImportGadgetbridge,
-                    color = BioOrangeSoftTint,
-                    shape = BioTraceTokens.InnerWellSmallShape,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BioOrangePrimary.copy(alpha = 0.2f)),
-                    modifier = Modifier.fillMaxWidth()
+            Surface(
+                color = InnerWellSurface,
+                shape = BioTraceTokens.InnerWellSmallShape,
+                border = BioTraceTokens.WellHairlineBorder,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CloudDownload,
-                            contentDescription = null,
-                            tint = BioOrangePrimary,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Link Gadgetbridge",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = BioOrangePrimary,
+                            text = card.recessedWellLeftLabel ?: "Baseline",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextSecondary,
                             maxLines = 1
                         )
-                    }
-                }
-            } else {
-                Surface(
-                    color = InnerWellSurface,
-                    shape = BioTraceTokens.InnerWellSmallShape,
-                    border = BioTraceTokens.WellHairlineBorder,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = card.recessedWellLeftLabel ?: "Baseline",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = TextSecondary,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = card.recessedWellLeftValue ?: "--",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(16.dp)
-                                .background(DividerSubtle)
+                        Text(
+                            text = card.recessedWellLeftValue ?: "--",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                    }
 
-                        Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(16.dp)
+                            .background(DividerSubtle)
+                    )
 
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = card.recessedWellRightLabel ?: "Status",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = TextSecondary,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = card.recessedWellRightValue ?: "--",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = card.recessedWellRightColor ?: EmeraldPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = card.recessedWellRightLabel ?: "Status",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextSecondary,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = card.recessedWellRightValue ?: "--",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = card.recessedWellRightColor ?: EmeraldPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -1020,21 +906,20 @@ fun BioTraceTemplateBCard(
 }
 
 // =============================================================================
-// Bottom Action Row: Sync Health Connect + Gadgetbridge SAF Importer
+// Bottom Action Row: Sync Health Connect
 // =============================================================================
 
 @Composable
 fun SyncHealthConnectBottomRow(
     isRefreshing: Boolean,
     onSyncHealthConnect: () -> Unit,
-    onPickGadgetbridge: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Main Sync Pill Button (54.dp height)
@@ -1046,7 +931,7 @@ fun SyncHealthConnectBottomRow(
             ),
             shape = BioTraceTokens.PillShape,
             modifier = Modifier
-                .weight(1f)
+                .fillMaxWidth()
                 .height(54.dp)
         ) {
             Icon(
@@ -1061,27 +946,6 @@ fun SyncHealthConnectBottomRow(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
-        }
-
-        // Square Gadgetbridge SQLite Import Button (54x54dp)
-        Surface(
-            onClick = onPickGadgetbridge,
-            color = BioOrangeSoftTint,
-            shape = RoundedCornerShape(18.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, BioOrangePrimary.copy(alpha = 0.25f)),
-            modifier = Modifier.size(54.dp)
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FolderOpen,
-                    contentDescription = "Import Gadgetbridge SQLite",
-                    tint = BioOrangePrimary,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
         }
     }
 }

@@ -714,7 +714,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (uiState.signalQuality != null) "/100" else "UNPAIRED",
+                                    text = if (uiState.signalQuality != null) "/100" else "NO DATA",
                                     fontSize = 13.sp,
                                     color = TextSecondary,
                                     modifier = Modifier.padding(bottom = 3.dp)

@@ -1,8 +1,5 @@
 package io.biotrace.app.ui.common
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,12 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,50 +33,35 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.biotrace.app.data.healthconnect.LastSyncStore
 import io.biotrace.app.ui.theme.AppCanvasBackground
 import io.biotrace.app.ui.theme.BioOrangePrimary
 import io.biotrace.app.ui.theme.CardSurface
 import io.biotrace.app.ui.theme.ClinicalEmerald
-import io.biotrace.app.ui.theme.DividerSubtle
 import io.biotrace.app.ui.theme.InnerWellSurface
 import io.biotrace.app.ui.theme.TextPrimary
 import io.biotrace.app.ui.theme.TextSecondary
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun BioTraceTopBar(
     subtitle: String? = null,
-    onImportGadgetbridgeUri: ((Uri) -> Unit)? = null,
     onAvatarClick: (() -> Unit)? = null,
     onSettingsClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var showWearableDialog by remember { mutableStateOf(false) }
+    var showDataSourceDialog by remember { mutableStateOf(false) }
 
-    val openDocumentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            onImportGadgetbridgeUri?.invoke(uri)
-            showWearableDialog = false
-        }
-    }
-
-    if (showWearableDialog) {
-        WearableConnectionDialog(
-            onDismiss = { showWearableDialog = false },
-            onPickFile = {
-                openDocumentLauncher.launch(
-                    arrayOf(
-                        "application/octet-stream",
-                        "application/x-sqlite3",
-                        "application/vnd.sqlite3",
-                        "*/*"
-                    )
-                )
-            }
+    if (showDataSourceDialog) {
+        DataSourceDialog(
+            onDismiss = { showDataSourceDialog = false }
         )
     }
 
@@ -128,14 +106,14 @@ fun BioTraceTopBar(
                     if (onAvatarClick != null) {
                         onAvatarClick()
                     } else {
-                        showWearableDialog = true
+                        showDataSourceDialog = true
                     }
                 },
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
-                contentDescription = "Profile & Device",
+                contentDescription = "Data source",
                 tint = TextSecondary,
                 modifier = Modifier.size(20.dp)
             )
@@ -144,23 +122,29 @@ fun BioTraceTopBar(
 }
 
 @Composable
-fun WearableConnectionDialog(
-    onDismiss: () -> Unit,
-    onPickFile: () -> Unit
+fun DataSourceDialog(
+    onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val lastSync = remember { LastSyncStore.lastSyncMillis(context) }
+    val lastSyncLabel = remember(lastSync) {
+        if (lastSync != null) {
+            val formatter = DateTimeFormatter.ofPattern("MMM d, HH:mm", Locale.getDefault())
+            val formatted = formatter.format(Instant.ofEpochMilli(lastSync).atZone(ZoneId.systemDefault()))
+            "Last sync: $formatted"
+        } else {
+            "Last sync: Not synced yet"
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Watch,
-                    contentDescription = null,
-                    tint = BioOrangePrimary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Connected Wearable", fontWeight = FontWeight.Bold, color = TextPrimary)
-            }
+            Text(
+                text = "Data Source",
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
+            )
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -169,33 +153,22 @@ fun WearableConnectionDialog(
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = ClinicalEmerald,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "HONOR MagicWatch 2-38D",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Model: Hebe-B19S • Device ID: 1",
-                            fontSize = 12.sp,
-                            color = TextSecondary
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = ClinicalEmerald,
+                            modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Sync pipelines: Heart Rate, Sleep, SpO2, Workouts, Steps",
-                            fontSize = 11.sp,
-                            color = TextSecondary
+                            text = "Health Connect",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
                         )
                     }
                 }
@@ -203,43 +176,28 @@ fun WearableConnectionDialog(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
-                    text = "Gadgetbridge SQLite Sync",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Text(
-                    text = "Stress data (HUAWEI_STRESS_SAMPLE) is imported directly from your Gadgetbridge SQLite database export.",
-                    fontSize = 12.sp,
-                    color = TextSecondary
+                    text = "BioTrace reads health data directly from Health Connect. Data appears here from any app you allow to write to Health Connect.",
+                    fontSize = 13.sp,
+                    color = TextSecondary,
+                    lineHeight = 18.sp
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Button(
-                    onClick = onPickFile,
-                    colors = ButtonDefaults.buttonColors(containerColor = BioOrangePrimary),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FolderOpen,
-                        contentDescription = null,
-                        tint = CardSurface,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Import Gadgetbridge DB File",
-                        fontWeight = FontWeight.Bold,
-                        color = CardSurface
-                    )
-                }
+                Text(
+                    text = lastSyncLabel,
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Close", color = TextSecondary, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "Close",
+                    color = TextSecondary,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     )

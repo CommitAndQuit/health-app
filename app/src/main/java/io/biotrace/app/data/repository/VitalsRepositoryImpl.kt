@@ -1,7 +1,6 @@
 package io.biotrace.app.data.repository
 
 import android.content.Context
-import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
@@ -19,13 +18,10 @@ import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.biotrace.app.data.gadgetbridge.GadgetbridgeStressDataSource
 import io.biotrace.app.data.healthconnect.HealthConnectManager
 import io.biotrace.app.data.healthconnect.HealthConnectSyncService
 import io.biotrace.app.data.healthconnect.SyncResult
-import io.biotrace.app.data.local.dao.StressDao
 import io.biotrace.app.data.local.dao.VitalsDao
-import io.biotrace.app.data.local.entity.StressSampleEntity
 import io.biotrace.app.data.local.entity.VitalsRecordEntity
 import io.biotrace.app.domain.clinical.VitalsCalculations
 import io.biotrace.app.domain.model.AlertBannerData
@@ -39,8 +35,7 @@ import io.biotrace.app.domain.model.SleepStageBarItem
 import io.biotrace.app.domain.model.SleepStagesBreakdown
 import io.biotrace.app.domain.model.StatItem
 import io.biotrace.app.domain.model.StatusBadge
-import io.biotrace.app.domain.model.StressLevel
-import io.biotrace.app.domain.model.StressZoneDistribution
+import io.biotrace.app.domain.model.UserProfile
 import io.biotrace.app.domain.model.VitalDetailUiState
 import io.biotrace.app.domain.model.VitalHistoryItem
 import io.biotrace.app.domain.model.VitalMetricType
@@ -79,11 +74,11 @@ import kotlin.math.roundToInt
 class VitalsRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val vitalsDao: VitalsDao,
-    private val stressDao: StressDao,
     private val syncService: HealthConnectSyncService,
-    private val healthConnectManager: HealthConnectManager,
-    private val gadgetbridgeDataSource: GadgetbridgeStressDataSource
+    private val healthConnectManager: HealthConnectManager
 ) : VitalsRepository {
+
+    private val userProfile = UserProfile()
 
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
     private val dateFormatter = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
@@ -144,19 +139,6 @@ class VitalsRepositoryImpl @Inject constructor(
 
     override suspend fun clearAll() {
         vitalsDao.deleteAll()
-        stressDao.deleteAll()
-    }
-
-    override suspend fun importGadgetbridgeUri(uri: Uri): Result<Int> {
-        return gadgetbridgeDataSource.importFromGadgetbridgeUri(uri)
-    }
-
-    override suspend fun refreshGadgetbridgeStress(): Result<Int>? {
-        return gadgetbridgeDataSource.refreshFromSavedUri()
-    }
-
-    override fun hasSavedGadgetbridgeUri(): Boolean {
-        return gadgetbridgeDataSource.hasSavedUri()
     }
 
     // =========================================================================
@@ -304,7 +286,6 @@ class VitalsRepositoryImpl @Inject constructor(
     // =========================================================================
 
     override suspend fun getProfileTriptychSummary(): ProfileTriptychSummary = withContext(Dispatchers.IO) {
-        val meta = gadgetbridgeDataSource.getMetadata()
         val heroData = getContinuousHeartRateHeroData()
 
         var vo2Max = "--"
@@ -341,7 +322,7 @@ class VitalsRepositoryImpl @Inject constructor(
 
                 if (sleep != null) {
                     val durationMin = Duration.between(sleep.startTime, sleep.endTime).toMinutes().toInt()
-                    val score = (durationMin * 100 / meta.sleepGoalMinutes).coerceIn(0, 100)
+                    val score = (durationMin * 100 / userProfile.sleepGoalMinutes).coerceIn(0, 100)
                     sleepScore = "$score%"
                     val deepMin = sleep.stages.filter { it.stage == SleepSessionRecord.STAGE_TYPE_DEEP }
                         .sumOf { Duration.between(it.startTime, it.endTime).toMinutes() }
@@ -355,8 +336,8 @@ class VitalsRepositoryImpl @Inject constructor(
         val rhrDelta = if (rhrBpm != null) "Resting baseline" else "No Data"
 
         ProfileTriptychSummary(
-            userName = meta.userName,
-            deviceLabel = "${meta.deviceName} • ${meta.deviceModel}",
+            userName = userProfile.userName,
+            deviceLabel = "Health Connect",
             cardioStatus = if (rhrBpm != null || vo2Max != "--") "CARDIO STATUS • OPTIMAL" else "CARDIO • NO DATA",
             restingHr = rhrStr,
             restingHrDelta = rhrDelta,
@@ -386,7 +367,6 @@ class VitalsRepositoryImpl @Inject constructor(
             val sleepDeferred = async { fetchSleepCard(startOfDay, endOfDay, zoneId) }
 
             // Template B Cards
-            val stressDeferred = async { fetchStressCard(startOfDay, endOfDay, zoneId) }
             val vo2Deferred = async { fetchVo2MaxCard(startOfDay, endOfDay) }
             val rhrDeferred = async { fetchRestingHeartRateCard(startOfDay, endOfDay, zoneId) }
             val bodyDeferred = async { fetchBodyMetricsCard() }
@@ -396,7 +376,6 @@ class VitalsRepositoryImpl @Inject constructor(
                 stepsDeferred.await(),
                 spo2Deferred.await(),
                 sleepDeferred.await(),
-                stressDeferred.await(),
                 vo2Deferred.await(),
                 rhrDeferred.await(),
                 bodyDeferred.await()
@@ -442,7 +421,6 @@ class VitalsRepositoryImpl @Inject constructor(
     }
 
     private suspend fun fetchStepsCard(startOfDay: Instant, endOfDay: Instant): VitalSummaryCardModel {
-        val meta = gadgetbridgeDataSource.getMetadata()
         var stepsCount = 0L
 
         try {
@@ -465,7 +443,7 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         }
 
-        val goal = meta.stepsGoal.toFloat()
+        val goal = userProfile.stepsGoal.toFloat()
         val progress = (stepsCount / goal).coerceIn(0f, 1f)
         val formattedSteps = String.format(Locale.US, "%,d", stepsCount)
         val pct = (progress * 100).roundToInt()
@@ -474,9 +452,9 @@ class VitalsRepositoryImpl @Inject constructor(
             metricType = VitalMetricType.STEPS,
             primaryValue = formattedSteps,
             primaryUnit = "steps",
-            secondaryText = "Goal: ${String.format(Locale.US, "%,d", meta.stepsGoal)}",
+            secondaryText = "Goal: ${String.format(Locale.US, "%,d", userProfile.stepsGoal)}",
             template = BentoCardTemplate.TEMPLATE_A,
-            goalText = "Goal: ${String.format(Locale.US, "%,d", meta.stepsGoal)}",
+            goalText = "Goal: ${String.format(Locale.US, "%,d", userProfile.stepsGoal)}",
             deltaText = "$pct%",
             progress = progress
         )
@@ -560,7 +538,6 @@ class VitalsRepositoryImpl @Inject constructor(
         endOfDay: Instant,
         zoneId: ZoneId
     ): VitalSummaryCardModel {
-        val meta = gadgetbridgeDataSource.getMetadata()
         var totalMinutes = 0
         var deepMin = 0
 
@@ -608,7 +585,7 @@ class VitalsRepositoryImpl @Inject constructor(
 
         val hours = totalMinutes / 60
         val mins = totalMinutes % 60
-        val sleepScore = ((totalMinutes * 100) / meta.sleepGoalMinutes).coerceIn(0, 100)
+        val sleepScore = ((totalMinutes * 100) / userProfile.sleepGoalMinutes).coerceIn(0, 100)
         val deepRatio = if (totalMinutes > 0) (deepMin * 100 / totalMinutes) else 0
 
         return VitalSummaryCardModel(
@@ -620,76 +597,6 @@ class VitalsRepositoryImpl @Inject constructor(
             badgeText = "${hours}h ${mins}m",
             badgeColor = IndigoSleepPrimary,
             badgeBgColor = IndigoSleepSoftTint
-        )
-    }
-
-    private suspend fun fetchStressCard(
-        startOfDay: Instant,
-        endOfDay: Instant,
-        zoneId: ZoneId
-    ): VitalSummaryCardModel {
-        val totalCount = stressDao.getStressSampleCount()
-        if (totalCount == 0) {
-            return VitalSummaryCardModel(
-                metricType = VitalMetricType.STRESS,
-                primaryValue = "--",
-                primaryUnit = "/ 99",
-                secondaryText = "No Gadgetbridge DB linked",
-                actionText = "Tap to link Gadgetbridge DB",
-                template = BentoCardTemplate.TEMPLATE_B,
-                recessedWellLeftLabel = "Day Range",
-                recessedWellLeftValue = "--",
-                recessedWellRightLabel = "Avg Score",
-                recessedWellRightValue = "Link DB"
-            )
-        }
-
-        val startMillis = startOfDay.toEpochMilli()
-        val endMillis = endOfDay.toEpochMilli()
-
-        val latestSample = stressDao.getLatestStressSample()
-        val todayMin = stressDao.getMinStress(startMillis, endMillis)
-        val todayMax = stressDao.getMaxStress(startMillis, endMillis)
-        val todayAvg = stressDao.getAvgStress(startMillis, endMillis)
-
-        val minVal: Int
-        val maxVal: Int
-        val avgVal: Int
-        if (todayMin != null && todayMax != null && todayAvg != null) {
-            minVal = todayMin
-            maxVal = todayMax
-            avgVal = todayAvg.roundToInt()
-        } else if (latestSample != null) {
-            val sampleDate = Instant.ofEpochMilli(latestSample.timestampMillis).atZone(zoneId).toLocalDate()
-            val dayStart = sampleDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
-            val dayEnd = sampleDate.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
-            minVal = stressDao.getMinStress(dayStart, dayEnd) ?: latestSample.stress
-            maxVal = stressDao.getMaxStress(dayStart, dayEnd) ?: latestSample.stress
-            avgVal = stressDao.getAvgStress(dayStart, dayEnd)?.roundToInt() ?: latestSample.stress
-        } else {
-            minVal = 20
-            maxVal = 75
-            avgVal = 48
-        }
-
-        val score = latestSample?.stress ?: avgVal
-        val level = latestSample?.stressLevel ?: StressLevel.fromScore(score)
-
-        return VitalSummaryCardModel(
-            metricType = VitalMetricType.STRESS,
-            primaryValue = "$score",
-            primaryUnit = "/ 99",
-            secondaryText = "Autonomic Stress",
-            badgeText = level.title.uppercase(),
-            badgeColor = level.color,
-            badgeBgColor = level.backgroundColor,
-            stressLevel = level,
-            template = BentoCardTemplate.TEMPLATE_B,
-            recessedWellLeftLabel = "Day Range",
-            recessedWellLeftValue = "$minVal - $maxVal",
-            recessedWellRightLabel = "Avg Score",
-            recessedWellRightValue = "$avgVal • ${level.title}",
-            recessedWellRightColor = level.color
         )
     }
 
@@ -879,7 +786,6 @@ class VitalsRepositoryImpl @Inject constructor(
     }
 
     private suspend fun fetchBodyMetricsCard(): VitalSummaryCardModel {
-        val meta = gadgetbridgeDataSource.getMetadata()
         var weightKg: Double? = null
         var heightMeters: Double? = null
 
@@ -912,8 +818,8 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val w = weightKg ?: meta.weightKg
-        val h = heightMeters ?: (meta.heightCm?.toDouble()?.div(100.0))
+        val w = weightKg
+        val h = heightMeters
 
         if (w == null) {
             return VitalSummaryCardModel(
@@ -964,7 +870,6 @@ class VitalsRepositoryImpl @Inject constructor(
         range: MetricTimeRange
     ): VitalDetailUiState = withContext(Dispatchers.IO) {
         when (metricType) {
-            VitalMetricType.STRESS -> getStressDetailData(range)
             VitalMetricType.HEART_RATE -> getHeartRateDetailData(range)
             VitalMetricType.RESTING_HEART_RATE -> getRestingHrDetailData(range)
             VitalMetricType.SPO2 -> getSpo2DetailData(range)
@@ -974,162 +879,6 @@ class VitalsRepositoryImpl @Inject constructor(
             VitalMetricType.VO2_MAX_WORKOUTS -> getVo2WorkoutsDetailData(range)
             VitalMetricType.BODY_METRICS -> getBodyMetricsDetailData(range)
         }
-    }
-
-    private suspend fun getStressDetailData(range: MetricTimeRange): VitalDetailUiState {
-        val zoneId = ZoneId.systemDefault()
-        val totalCount = stressDao.getStressSampleCount()
-        if (totalCount == 0) {
-            return VitalDetailUiState(
-                metricType = VitalMetricType.STRESS,
-                selectedRange = range,
-                headlineValue = "--",
-                subtitle = "No stress samples in database",
-                calloutInsight = "Please link your Gadgetbridge SQLite database file to import real HUAWEI TruRelax stress readings.",
-                alertBanner = AlertBannerData(
-                    headline = "Gadgetbridge Database Not Linked",
-                    subtitle = "Tap the folder icon above to import HUAWEI_STRESS_SAMPLE records from your watch export."
-                ),
-                dataSourceLabel = "Gadgetbridge SQLite"
-            )
-        }
-
-        val now = Instant.now()
-        val latestEntity = stressDao.getLatestStressSample()
-        var anchorNotice: String? = null
-        var isHistoricalAnchor = false
-
-        val (windowStart, windowEnd) = if (range == MetricTimeRange.DAY) {
-            val todayStart = LocalDate.now(zoneId).atStartOfDay(zoneId).toInstant()
-            val todayEnd = LocalDate.now(zoneId).plusDays(1).atStartOfDay(zoneId).toInstant()
-            val todaySamples = stressDao.getStressSamplesBetween(todayStart.toEpochMilli(), todayEnd.toEpochMilli())
-
-            if (todaySamples.isNotEmpty()) {
-                todayStart to todayEnd
-            } else if (latestEntity != null) {
-                isHistoricalAnchor = true
-                val date = Instant.ofEpochMilli(latestEntity.timestampMillis).atZone(zoneId).toLocalDate()
-                val anchorStart = date.atStartOfDay(zoneId).toInstant()
-                val anchorEnd = date.plusDays(1).atStartOfDay(zoneId).toInstant()
-                anchorNotice = "Displaying records from ${dateFormatter.format(anchorStart.atZone(zoneId))}"
-                anchorStart to anchorEnd
-            } else {
-                todayStart to todayEnd
-            }
-        } else {
-            val days = range.days.toLong()
-            val refEnd = if (latestEntity != null && latestEntity.timestampMillis > now.toEpochMilli()) {
-                Instant.ofEpochMilli(latestEntity.timestampMillis)
-            } else {
-                now
-            }
-            refEnd.minus(Duration.ofDays(days)) to refEnd
-        }
-
-        val samples = stressDao.getStressSamplesBetween(windowStart.toEpochMilli(), windowEnd.toEpochMilli())
-
-        var relaxed = 0
-        var normal = 0
-        var medium = 0
-        var high = 0
-        samples.forEach {
-            when (it.stressLevel) {
-                StressLevel.RELAXED -> relaxed++
-                StressLevel.NORMAL -> normal++
-                StressLevel.MEDIUM -> medium++
-                StressLevel.HIGH -> high++
-            }
-        }
-        val distribution = StressZoneDistribution(relaxed, normal, medium, high, samples.size)
-
-        val minStress = stressDao.getMinStress(windowStart.toEpochMilli(), windowEnd.toEpochMilli()) ?: 0
-        val maxStress = stressDao.getMaxStress(windowStart.toEpochMilli(), windowEnd.toEpochMilli()) ?: 0
-        val avgStress = stressDao.getAvgStress(windowStart.toEpochMilli(), windowEnd.toEpochMilli()) ?: 0.0
-
-        val headline = if (samples.isNotEmpty()) "${avgStress.roundToInt()}" else "--"
-        val currentLevel = StressLevel.fromScore(avgStress.roundToInt())
-
-        val stats = listOf(
-            StatItem("Minimum", "$minStress", "/ 99"),
-            StatItem("Average", "${avgStress.roundToInt()}", "/ 99"),
-            StatItem("Maximum", "$maxStress", "/ 99")
-        )
-
-        val points = if (range == MetricTimeRange.DAY) {
-            samples.map { s ->
-                val instant = Instant.ofEpochMilli(s.timestampMillis)
-                ChartPoint(
-                    timestamp = instant,
-                    xLabel = timeFormatter.format(instant.atZone(zoneId)),
-                    value = s.stress.toFloat(),
-                    color = s.stressLevel.color,
-                    note = s.stressLevel.title
-                )
-            }
-        } else {
-            emptyList()
-        }
-
-        val rangeBars = if (range != MetricTimeRange.DAY && samples.isNotEmpty()) {
-            val groupedByDay = samples.groupBy {
-                Instant.ofEpochMilli(it.timestampMillis).atZone(zoneId).toLocalDate()
-            }
-            groupedByDay.map { (date, daySamples) ->
-                val dMin = daySamples.minOf { it.stress }.toFloat()
-                val dMax = daySamples.maxOf { it.stress }.toFloat()
-                val dAvg = daySamples.map { it.stress }.average().toFloat()
-                val dInstant = date.atStartOfDay(zoneId).toInstant()
-                RangeBarItem(
-                    label = dateFormatter.format(dInstant.atZone(zoneId)),
-                    date = dInstant,
-                    min = dMin,
-                    avg = dAvg,
-                    max = dMax,
-                    color = StressLevel.fromScore(dAvg.roundToInt()).color
-                )
-            }.sortedBy { it.date }
-        } else {
-            emptyList()
-        }
-
-        val historyItems = samples.reversed().map { s ->
-            val instant = Instant.ofEpochMilli(s.timestampMillis)
-            val durationSec = s.durationSeconds
-            val dev = s.deviceName ?: "HONOR MagicWatch 2-38D"
-            VitalHistoryItem(
-                id = "${s.timestampMillis}_${s.deviceId}",
-                timestamp = instant,
-                formattedTime = fullDateTimeFormatter.format(instant.atZone(zoneId)),
-                primaryValue = "${s.stress}",
-                primaryUnit = "/ 99",
-                secondaryDetail = "Measured for ${durationSec}s • Optical PPG",
-                badge = StatusBadge(s.stressLevel.title, s.stressLevel.color, s.stressLevel.backgroundColor),
-                deviceSource = "$dev • Gadgetbridge"
-            )
-        }
-
-        val normalAndRelaxedPct = ((distribution.relaxedPct + distribution.normalPct) * 100).roundToInt()
-        val insight = "Average stress score is ${avgStress.roundToInt()} (${currentLevel.title}). $normalAndRelaxedPct% of readings were in Normal or Relaxed zones."
-
-        return VitalDetailUiState(
-            metricType = VitalMetricType.STRESS,
-            selectedRange = range,
-            headlineValue = headline,
-            headlineUnit = "/ 99",
-            headlineDateLabel = if (range == MetricTimeRange.DAY) "Intraday Average" else "${range.label} Average",
-            subtitle = "Autonomic nervous system recovery index",
-            statusBadge = StatusBadge(currentLevel.title, currentLevel.color, currentLevel.backgroundColor),
-            calloutInsight = insight,
-            summaryStats = stats,
-            points = points,
-            rangeBars = rangeBars,
-            stressDistribution = distribution,
-            historyRecords = historyItems,
-            referenceLineValue = 60f,
-            isHistoricalAnchor = isHistoricalAnchor,
-            anchorNotice = anchorNotice,
-            dataSourceLabel = "HONOR MagicWatch 2-38D • Gadgetbridge SQLite"
-        )
     }
 
     private suspend fun getHeartRateDetailData(range: MetricTimeRange): VitalDetailUiState {
@@ -1207,7 +956,7 @@ class VitalsRepositoryImpl @Inject constructor(
                             primaryValue = "${s.beatsPerMinute}",
                             primaryUnit = "bpm",
                             secondaryDetail = "Optical PPG • Sinus Rhythm",
-                            deviceSource = "HONOR MagicWatch 2 • Health Connect"
+                            deviceSource = "Health Connect"
                         )
                     )
                 }
@@ -1242,7 +991,7 @@ class VitalsRepositoryImpl @Inject constructor(
             points = points,
             rangeBars = rangeBars,
             historyRecords = historyItems,
-            dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+            dataSourceLabel = "Health Connect"
         )
     }
 
@@ -1293,7 +1042,7 @@ class VitalsRepositoryImpl @Inject constructor(
                                 primaryUnit = "bpm",
                                 secondaryDetail = "Overnight 5th-percentile sleeping HR",
                                 badge = StatusBadge("SLEEP 5TH%", BioOrangePrimary, BioOrangeSoftTint),
-                                deviceSource = "HONOR MagicWatch 2 • Fallback"
+                                deviceSource = "Health Connect • Derived"
                             )
                         )
                     }
@@ -1313,7 +1062,7 @@ class VitalsRepositoryImpl @Inject constructor(
                 summaryStats = emptyList(),
                 points = emptyList(),
                 historyRecords = emptyList(),
-                dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect Fallback"
+                dataSourceLabel = "Health Connect • Derived"
             )
         }
 
@@ -1341,7 +1090,7 @@ class VitalsRepositoryImpl @Inject constructor(
             points = points,
             historyRecords = historyItems.reversed(),
             referenceLineValue = 65f,
-            dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect Fallback"
+            dataSourceLabel = "Health Connect • Derived"
         )
     }
 
@@ -1401,7 +1150,7 @@ class VitalsRepositoryImpl @Inject constructor(
                                 if (isOptimal) CobaltBluePrimary else SolarAmberPrimary,
                                 if (isOptimal) CobaltBlueSoftTint else SolarAmberSoftTint
                             ),
-                            deviceSource = "HONOR MagicWatch 2 • SpO2"
+                            deviceSource = "Health Connect"
                         )
                     )
                 }
@@ -1418,7 +1167,7 @@ class VitalsRepositoryImpl @Inject constructor(
                         summaryStats = emptyList(),
                         points = emptyList(),
                         historyRecords = emptyList(),
-                        dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+                        dataSourceLabel = "Health Connect"
                     )
                 }
 
@@ -1447,7 +1196,7 @@ class VitalsRepositoryImpl @Inject constructor(
                     historyRecords = historyItems.reversed(),
                     referenceLineValue = 95f,
                     isHistoricalAnchor = isHistorical,
-                    dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+                    dataSourceLabel = "Health Connect"
                 )
             }
         } catch (_: Exception) {}
@@ -1462,7 +1211,7 @@ class VitalsRepositoryImpl @Inject constructor(
             summaryStats = emptyList(),
             points = emptyList(),
             historyRecords = emptyList(),
-            dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+            dataSourceLabel = "Health Connect"
         )
     }
 
@@ -1530,8 +1279,8 @@ class VitalsRepositoryImpl @Inject constructor(
                             primaryValue = "${hrs}h ${m}m",
                             primaryUnit = "",
                             secondaryDetail = "Deep: ${deep}m • REM: ${rem}m • Light: ${light}m",
-                            badge = StatusBadge("TRUSLEEP", IndigoSleepPrimary, IndigoSleepSoftTint),
-                            deviceSource = "HONOR MagicWatch 2 • Sleep"
+                            badge = StatusBadge("SLEEP STAGES", IndigoSleepPrimary, IndigoSleepSoftTint),
+                            deviceSource = "Health Connect"
                         )
                     )
                 }
@@ -1544,12 +1293,12 @@ class VitalsRepositoryImpl @Inject constructor(
                 selectedRange = range,
                 headlineValue = "--",
                 headlineDateLabel = "${range.label} Average Sleep",
-                subtitle = "HUAWEI TruSleep architecture",
+                subtitle = "Sleep stages recorded in Health Connect",
                 calloutInsight = "No sleep sessions recorded for this range. Wear your watch to bed to track sleep architecture.",
                 summaryStats = emptyList(),
                 sleepBars = emptyList(),
                 historyRecords = emptyList(),
-                dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+                dataSourceLabel = "Health Connect"
             )
         }
 
@@ -1571,14 +1320,14 @@ class VitalsRepositoryImpl @Inject constructor(
             selectedRange = range,
             headlineValue = "${avgHrs}h ${avgM}m",
             headlineDateLabel = "${range.label} Average Sleep",
-            subtitle = "HUAWEI TruSleep architecture",
+            subtitle = "Sleep stages recorded in Health Connect",
             calloutInsight = insight,
             summaryStats = stats,
             sleepBars = sleepBars,
             sleepBreakdown = latestBreakdown,
             historyRecords = historyItems.reversed(),
             referenceLineValue = 420f,
-            dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+            dataSourceLabel = "Health Connect"
         )
     }
 
@@ -1648,7 +1397,7 @@ class VitalsRepositoryImpl @Inject constructor(
                 rangeBars = emptyList(),
                 historyRecords = emptyList(),
                 referenceLineValue = 8000f,
-                dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+                dataSourceLabel = "Health Connect"
             )
         }
 
@@ -1675,7 +1424,7 @@ class VitalsRepositoryImpl @Inject constructor(
             rangeBars = rangeBars,
             historyRecords = historyItems.reversed(),
             referenceLineValue = 8000f,
-            dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+            dataSourceLabel = "Health Connect"
         )
     }
 
@@ -1739,7 +1488,7 @@ class VitalsRepositoryImpl @Inject constructor(
                             primaryValue = "${dayKcal.roundToInt()} kcal",
                             primaryUnit = "",
                             secondaryDetail = String.format(Locale.US, "Distance: %.2f km", dayDist / 1000.0),
-                            deviceSource = "HONOR MagicWatch 2 • Health Connect"
+                            deviceSource = "Health Connect"
                         )
                     )
                 }
@@ -1759,7 +1508,7 @@ class VitalsRepositoryImpl @Inject constructor(
                 rangeBars = emptyList(),
                 historyRecords = emptyList(),
                 referenceLineValue = 500f,
-                dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+                dataSourceLabel = "Health Connect"
             )
         }
 
@@ -1786,7 +1535,7 @@ class VitalsRepositoryImpl @Inject constructor(
             rangeBars = rangeBars,
             historyRecords = historyItems.reversed(),
             referenceLineValue = 500f,
-            dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+            dataSourceLabel = "Health Connect"
         )
     }
 
@@ -1855,7 +1604,7 @@ class VitalsRepositoryImpl @Inject constructor(
                             primaryUnit = "workout",
                             secondaryDetail = "Dist: ${String.format(Locale.US, "%.2f km", distKm)} • HR: ${avgHr ?: "--"}/${maxHr ?: "--"} bpm",
                             badge = StatusBadge(ex.title ?: "Workout", BioOrangePrimary, BioOrangeSoftTint),
-                            deviceSource = "HONOR MagicWatch 2 • Workout"
+                            deviceSource = "Health Connect"
                         )
                     )
                 }
@@ -1875,7 +1624,7 @@ class VitalsRepositoryImpl @Inject constructor(
                 points = emptyList(),
                 historyRecords = emptyList(),
                 referenceLineValue = 40f,
-                dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+                dataSourceLabel = "Health Connect"
             )
         }
 
@@ -1906,7 +1655,7 @@ class VitalsRepositoryImpl @Inject constructor(
             points = points,
             historyRecords = historyItems,
             referenceLineValue = 40f,
-            dataSourceLabel = "HONOR MagicWatch 2-38D • Health Connect"
+            dataSourceLabel = "Health Connect"
         )
     }
 
@@ -1918,7 +1667,6 @@ class VitalsRepositoryImpl @Inject constructor(
 
         val points = mutableListOf<ChartPoint>()
         val historyItems = mutableListOf<VitalHistoryItem>()
-        val gbMeta = gadgetbridgeDataSource.getMetadata()
         var latestHeightMeters: Double? = null
 
         try {
@@ -1937,10 +1685,6 @@ class VitalsRepositoryImpl @Inject constructor(
                 }
             }
         } catch (_: Exception) {}
-
-        if (latestHeightMeters == null && gbMeta.heightCm != null) {
-            latestHeightMeters = gbMeta.heightCm / 100.0
-        }
 
         try {
             val c = client
@@ -1980,7 +1724,7 @@ class VitalsRepositoryImpl @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        val latestWeight = points.lastOrNull()?.value ?: gbMeta.weightKg?.toFloat()
+        val latestWeight = points.lastOrNull()?.value
 
         if (latestWeight == null) {
             return VitalDetailUiState(
@@ -1990,11 +1734,11 @@ class VitalsRepositoryImpl @Inject constructor(
                 headlineUnit = "kg",
                 headlineDateLabel = "Latest Measurement",
                 subtitle = "Weight & Body Mass Index trend",
-                calloutInsight = "No weight or body metrics recorded. Record body metrics in Health Connect or link Gadgetbridge profile.",
+                calloutInsight = "No weight or body metrics recorded. Record body metrics in Health Connect.",
                 summaryStats = emptyList(),
                 points = emptyList(),
                 historyRecords = emptyList(),
-                dataSourceLabel = "Health Connect & Profile Attributes"
+                dataSourceLabel = "Health Connect"
             )
         }
 
@@ -2007,8 +1751,8 @@ class VitalsRepositoryImpl @Inject constructor(
             latestHeightMeters?.let { StatItem("Height", "${(it * 100).roundToInt()}", "cm") }
         )
 
-        val insight = if (latestBmi != null && latestHeightMeters != null) {
-            "Current BMI of $latestBmi kg/m² falls in the $category category for your profile height of ${(latestHeightMeters * 100).roundToInt()} cm."
+        val insight = if (latestBmi != null) {
+            "Current BMI of $latestBmi kg/m² falls in the $category category for your profile height of ${((latestHeightMeters ?: 1.70) * 100).roundToInt()} cm."
         } else {
             "Weight recorded at ${String.format(Locale.US, "%.1f", latestWeight)} kg. Add height in profile to calculate Body Mass Index."
         }
@@ -2024,7 +1768,7 @@ class VitalsRepositoryImpl @Inject constructor(
             summaryStats = stats,
             points = points,
             historyRecords = historyItems.reversed(),
-            dataSourceLabel = "Health Connect & Profile Attributes"
+            dataSourceLabel = "Health Connect"
         )
     }
 }

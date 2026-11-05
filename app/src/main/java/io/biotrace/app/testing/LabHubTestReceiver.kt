@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
-import io.biotrace.app.data.gadgetbridge.GadgetbridgeStressDataSource
 import io.biotrace.app.data.llm.GeminiClient
 import io.biotrace.app.data.local.dao.LabBiomarkerDao
 import io.biotrace.app.data.local.entity.LabBiomarkerEntity
@@ -32,7 +31,6 @@ class LabHubTestReceiver : BroadcastReceiver() {
     @Inject lateinit var geminiClient: GeminiClient
     @Inject lateinit var clinicalSchemaNormalizer: ClinicalSchemaNormalizer
     @Inject lateinit var labBiomarkerDao: LabBiomarkerDao
-    @Inject lateinit var gadgetbridgeDataSource: GadgetbridgeStressDataSource
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -40,10 +38,8 @@ class LabHubTestReceiver : BroadcastReceiver() {
         private const val TAG = "LabHubTestReceiver"
         const val ACTION_PROVISION_KEY = "io.biotrace.app.TEST_PROVISION_KEY"
         const val ACTION_PROCESS_PDF = "io.biotrace.app.TEST_PROCESS_PDF"
-        const val ACTION_IMPORT_GADGETBRIDGE = "io.biotrace.app.TEST_IMPORT_GADGETBRIDGE"
         const val EXTRA_API_KEY = "api_key"
         const val EXTRA_PDF_PATH = "pdf_path"
-        const val EXTRA_DB_PATH = "db_path"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -174,41 +170,6 @@ class LabHubTestReceiver : BroadcastReceiver() {
                             put("stackTrace", Log.getStackTraceString(e))
                         }
                         resultFile.writeText(err.toString(2))
-                    } finally {
-                        try {
-                            pendingResult.finish()
-                        } catch (_: Exception) {}
-                    }
-                }
-            }
-
-            ACTION_IMPORT_GADGETBRIDGE -> {
-                val dbPath = intent.getStringExtra(EXTRA_DB_PATH) ?: "/sdcard/Download/Gadgetbridge.db"
-                val resultFile = File(context.filesDir, "test_gadgetbridge_result.json")
-
-                scope.launch {
-                    try {
-                        val file = File(dbPath)
-                        Log.i(TAG, "Importing Gadgetbridge DB from: ${file.absolutePath} (exists=${file.exists()}, size=${file.length()})")
-                        val result = gadgetbridgeDataSource.importFromDbFile(file)
-                        result.fold(
-                            onSuccess = { count ->
-                                Log.i(TAG, "Successfully imported $count stress records via broadcast")
-                                resultFile.writeText(JSONObject().apply {
-                                    put("status", "SUCCESS")
-                                    put("importedCount", count)
-                                }.toString(2))
-                            },
-                            onFailure = { err ->
-                                Log.e(TAG, "Gadgetbridge import failed", err)
-                                resultFile.writeText(JSONObject().apply {
-                                    put("status", "ERROR")
-                                    put("error", err.message)
-                                }.toString(2))
-                            }
-                        )
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error handling Gadgetbridge broadcast", e)
                     } finally {
                         try {
                             pendingResult.finish()
