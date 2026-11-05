@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "deny": [
+      "command(rm -rf)",
+      "command(sudo)",
+      "command(git push)",
+      "command(git reset)",
+      "command(git checkout)",
+      "write_file(.env)",
+      "read_file(.env)",
+      "write_file(.git/)"
+    ]
+  }
+}

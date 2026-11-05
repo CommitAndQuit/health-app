@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "status": { "type": "string", "enum": ["DONE", "BLOCKED"] },
+    "summary": { "type": "string" },
+    "filesChanged": { "type": "array", "items": { "type": "string" } },
+    "commandsRun": { "type": "array", "items": { "type": "string" } },
+    "testsPassed": { "type": "boolean" },
+    "blockers": { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["status", "summary", "filesChanged", "commandsRun", "testsPassed", "blockers"]
+}
