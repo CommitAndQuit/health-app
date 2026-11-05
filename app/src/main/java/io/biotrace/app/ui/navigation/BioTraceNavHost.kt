@@ -38,10 +38,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import io.biotrace.app.R
 import io.biotrace.app.ui.chat.ChatScreen
 import io.biotrace.app.ui.dashboard.DashboardScreen
@@ -50,6 +52,8 @@ import io.biotrace.app.ui.nutrition.FoodScanScreen
 import io.biotrace.app.ui.onboarding.OnboardingScreen
 import io.biotrace.app.ui.permissions.HealthConnectPermissionScreen
 import io.biotrace.app.ui.settings.SettingsScreen
+import io.biotrace.app.ui.vitals.VitalDetailScreen
+import io.biotrace.app.ui.vitals.VitalsScreen
 import io.biotrace.app.ui.theme.BioOrange
 import io.biotrace.app.ui.theme.CardBorder
 import io.biotrace.app.ui.theme.LightBackground
@@ -219,18 +223,19 @@ fun BioTraceNavHost() {
                 )
             }
             composable(Screen.Vitals.route) {
-                DashboardScreen(
-                    onNavigateToPermissions = { navController.navigate(Screen.Permissions.route) },
-                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                    onNavigateToCopilot = {
-                        navController.navigate(Screen.Copilot.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
+                VitalsScreen(
+                    onNavigateToDetail = { metricType ->
+                        navController.navigate(Screen.VitalDetail.createRoute(metricType.name))
+                    },
+                    onNavigateToPermissions = { navController.navigate(Screen.Permissions.route) }
+                )
+            }
+            composable(
+                route = Screen.VitalDetail.route,
+                arguments = listOf(navArgument("metricType") { type = NavType.StringType })
+            ) {
+                VitalDetailScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.Labs.route) {

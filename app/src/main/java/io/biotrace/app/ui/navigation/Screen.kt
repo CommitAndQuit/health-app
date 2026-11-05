@@ -9,6 +9,9 @@ sealed class Screen(val route: String) {
     data object Nutrition : Screen("nutrition")
     data object Copilot : Screen("copilot")
     data object Settings : Screen("settings")
+    data object VitalDetail : Screen("vitals_detail/{metricType}") {
+        fun createRoute(metricType: String): String = "vitals_detail/$metricType"
+    }
 
     // Aliases for compatibility
     data object Dashboard : Screen("vitals")
