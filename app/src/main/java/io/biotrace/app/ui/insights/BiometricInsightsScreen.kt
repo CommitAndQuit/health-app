@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.biotrace.app.domain.model.ProfileTriptychSummary
 import io.biotrace.app.ui.common.BioTraceTopBar
+import io.biotrace.app.ui.insights.AiReportState
 import io.biotrace.app.ui.theme.AppCanvasBackground
 import io.biotrace.app.ui.theme.BioOrangePrimary
 import io.biotrace.app.ui.theme.BioOrangeSoftTint
@@ -149,6 +151,16 @@ fun BiometricInsightsScreen(
                 // 2. Profile & 3-Metric Triptych Hero Card
                 item {
                     ProfileTriptychHeroCard(profile = uiState.profile)
+                }
+
+                // AI Health Report Card
+                item {
+                    AiReportCard(
+                        reportState = uiState.reportState,
+                        isApiKeyConfigured = uiState.isApiKeyConfigured,
+                        onGenerateClick = { viewModel.generateReport() },
+                        onNavigateToSettings = onNavigateToSettings,
+                    )
                 }
 
                 // 3. Cross-Correlation Section Header
@@ -705,6 +717,185 @@ fun LabTriangulationInviteCard(
                 tint = TextSecondary,
                 modifier = Modifier.size(18.dp)
             )
+        }
+    }
+}
+
+// =============================================================================
+// AI Health Report Card
+// =============================================================================
+
+@Composable
+fun AiReportCard(
+    reportState: AiReportState,
+    isApiKeyConfigured: Boolean,
+    onGenerateClick: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = CardSurface,
+        shape = BioTraceTokens.BentoCardShape,
+        border = BioTraceTokens.CardHairlineBorder,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+        ) {
+            // Header row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(BioOrangeSoftTint),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = BioOrangePrimary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "AI Health Report",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                        )
+                        Text(
+                            text = "Powered by Gemini · gemini-2.5-flash",
+                            fontSize = 10.sp,
+                            color = TextMuted,
+                        )
+                    }
+                }
+                if (reportState is AiReportState.Loading || reportState is AiReportState.Streaming) {
+                    CircularProgressIndicator(
+                        color = BioOrangePrimary,
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Report content area
+            Surface(
+                color = InnerWellSurface,
+                shape = BioTraceTokens.InnerWellSmallShape,
+                border = BioTraceTokens.WellHairlineBorder,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                when (reportState) {
+                    is AiReportState.Idle -> {
+                        Text(
+                            text = "Tap \u201cGenerate Report\u201d to get a personalised AI health summary based on your Health Connect data.",
+                            fontSize = 12.sp,
+                            color = TextSecondary,
+                            lineHeight = 18.sp,
+                            modifier = Modifier.padding(14.dp),
+                        )
+                    }
+                    is AiReportState.Loading -> {
+                        Text(
+                            text = "Analysing your health data…",
+                            fontSize = 12.sp,
+                            color = TextMuted,
+                            modifier = Modifier.padding(14.dp),
+                        )
+                    }
+                    is AiReportState.Streaming -> {
+                        Text(
+                            text = reportState.text,
+                            fontSize = 12.sp,
+                            color = TextPrimary,
+                            lineHeight = 18.sp,
+                            modifier = Modifier.padding(14.dp),
+                        )
+                    }
+                    is AiReportState.Complete -> {
+                        Text(
+                            text = reportState.text,
+                            fontSize = 12.sp,
+                            color = TextPrimary,
+                            lineHeight = 18.sp,
+                            modifier = Modifier.padding(14.dp),
+                        )
+                    }
+                    is AiReportState.Error -> {
+                        Text(
+                            text = "⚠ ${reportState.message}",
+                            fontSize = 12.sp,
+                            color = androidx.compose.ui.graphics.Color(0xFFF59E0B),
+                            lineHeight = 18.sp,
+                            modifier = Modifier.padding(14.dp),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // CTA row
+            if (!isApiKeyConfigured) {
+                Surface(
+                    onClick = onNavigateToSettings,
+                    color = BioOrangeSoftTint,
+                    shape = BioTraceTokens.PillShape,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Key,
+                            contentDescription = null,
+                            tint = BioOrangePrimary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Set up Gemini API key in Settings →",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BioOrangePrimary,
+                        )
+                    }
+                }
+            } else {
+                val isGenerating = reportState is AiReportState.Loading || reportState is AiReportState.Streaming
+                androidx.compose.material3.Button(
+                    onClick = onGenerateClick,
+                    enabled = !isGenerating,
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = BioOrangePrimary,
+                        disabledContainerColor = BioOrangeSoftTint,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = if (isGenerating) "Generating…" else "Generate Report",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                    )
+                }
+            }
         }
     }
 }

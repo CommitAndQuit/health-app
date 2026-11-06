@@ -5,9 +5,12 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.biotrace.app.data.local.dao.LabBiomarkerDao
 import io.biotrace.app.data.local.entity.LabBiomarkerEntity
+import io.biotrace.app.domain.llm.LlmClient
 import io.biotrace.app.domain.model.ProfileTriptychSummary
 import io.biotrace.app.domain.model.VitalMetricType
 import io.biotrace.app.domain.repository.VitalsRepository
+import io.biotrace.app.domain.usecase.GenerateHealthReportUseCase
+import io.biotrace.app.domain.usecase.ReportChunk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,24 +30,70 @@ data class CorrelationCardData(
     val statusTag: String
 )
 
+sealed class AiReportState {
+    data object Idle      : AiReportState()
+    data object Loading   : AiReportState()
+    data class  Streaming(val text: String) : AiReportState()
+    data class  Complete(val text: String)  : AiReportState()
+    data class  Error(val message: String)  : AiReportState()
+}
+
 data class BiometricInsightsUiState(
     val profile: ProfileTriptychSummary = ProfileTriptychSummary(),
     val correlations: List<CorrelationCardData> = emptyList(),
     val labBiomarkers: List<LabBiomarkerEntity> = emptyList(),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val isApiKeyConfigured: Boolean = false,
+    val reportState: AiReportState = AiReportState.Idle
 )
 
 @HiltViewModel
 class BiometricInsightsViewModel @Inject constructor(
     private val vitalsRepository: VitalsRepository,
-    private val labBiomarkerDao: LabBiomarkerDao
+    private val labBiomarkerDao: LabBiomarkerDao,
+    private val generateHealthReportUseCase: GenerateHealthReportUseCase,
+    private val llmClient: LlmClient
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BiometricInsightsUiState())
     val uiState: StateFlow<BiometricInsightsUiState> = _uiState.asStateFlow()
 
+    private var lastReportDate: java.time.LocalDate? = null
+
     init {
         loadInsights()
+        checkApiKeyAndMaybeGenerate()
+    }
+
+    private fun checkApiKeyAndMaybeGenerate() {
+        viewModelScope.launch {
+            val configured = llmClient.isConfigured()
+            _uiState.update { it.copy(isApiKeyConfigured = configured) }
+            val today = java.time.LocalDate.now()
+            if (configured && lastReportDate != today) {
+                generateReport()
+            }
+        }
+    }
+
+    fun generateReport() {
+        viewModelScope.launch {
+            var buffer = ""
+            generateHealthReportUseCase.execute().collect { chunk ->
+                when (chunk) {
+                    is ReportChunk.Started -> _uiState.update { it.copy(reportState = AiReportState.Loading) }
+                    is ReportChunk.Text    -> {
+                        buffer += chunk.text
+                        _uiState.update { it.copy(reportState = AiReportState.Streaming(buffer)) }
+                    }
+                    is ReportChunk.Done    -> {
+                        lastReportDate = java.time.LocalDate.now()
+                        _uiState.update { it.copy(reportState = AiReportState.Complete(buffer)) }
+                    }
+                    is ReportChunk.Error   -> _uiState.update { it.copy(reportState = AiReportState.Error(chunk.message)) }
+                }
+            }
+        }
     }
 
     fun loadInsights() {
@@ -64,7 +113,7 @@ class BiometricInsightsViewModel @Inject constructor(
             val sleepDuration = sleepCard?.primaryValue ?: profile.sleepScore
             val calVal = calCard?.primaryValue ?: "--"
 
-            if (sleepDuration != "--" && sleepDuration != "--%" && calVal != "--" && calVal != "0" && calVal != "0 kcal") {
+            if (sleepDuration != "--" && sleepDuration != "--%"  && calVal != "--" && calVal != "0" && calVal != "0 kcal") {
                 correlationsList.add(
                     CorrelationCardData(
                         title = "Sleep & Glycemic Energy Expenditure",
