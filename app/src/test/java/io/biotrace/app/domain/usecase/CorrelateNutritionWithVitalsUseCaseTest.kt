@@ -17,18 +17,12 @@ class CorrelateNutritionWithVitalsUseCaseTest {
     private val useCase = CorrelateNutritionWithVitalsUseCase(mealDao, vitalsRepository)
 
     @Test
-    fun `calculates correlation delta accurately`() = runTest {
+    fun `returns empty correlation when no meals or vitals exist`() = runTest {
         whenever(vitalsRepository.getVitalsBetween(any(), any(), any())).thenReturn(emptyList())
         whenever(mealDao.getMealsBetween(any(), any())).thenReturn(emptyList())
 
         val result = useCase.execute()
 
-        assertEquals("Before 7:30 PM", result.earlyDinnerTiming)
-        assertEquals(76.0, result.earlyDinnerHrv, 0.01)
-        assertEquals("After 8:30 PM", result.lateDinnerTiming)
-        assertEquals(62.0, result.lateDinnerHrv, 0.01)
-        assertEquals(14, result.hrvDeltaMs)
-        assertEquals(28, result.deepSleepBonusMinutes)
-        assertTrue(result.summaryNarrative.contains("+22% higher"))
+        assertEquals(NutritionWearableCorrelationResult.EMPTY, result)
     }
 }

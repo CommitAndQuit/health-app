@@ -73,7 +73,6 @@ import io.biotrace.app.ui.theme.TextGray
 import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextWhite
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -419,25 +418,25 @@ fun EcgStreamScreen(
                 letterSpacing = 1.sp
             )
 
-            val prValue = if (heartRate != null) "158 ms" else "--"
-            val qrsValue = if (heartRate != null) "88 ms" else "--"
-            val qtValue = if (heartRate != null) "${(390 * sqrt(60.0 / heartRate)).toInt()} ms" else "--"
-            val qtcValue = if (heartRate != null) "${(415 * sqrt(60.0 / heartRate)).toInt()} ms" else "--"
+            val prValue = "--"
+            val qrsValue = "--"
+            val qtValue = "--"
+            val qtcValue = "--"
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                MetricPill("PR INTERVAL", prValue, if (heartRate != null) "Normal (120-200)" else "No Data")
-                MetricPill("QRS DURATION", qrsValue, if (heartRate != null) "Normal (<120)" else "No Data")
+                MetricPill("PR INTERVAL", prValue, "--")
+                MetricPill("QRS DURATION", qrsValue, "--")
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                MetricPill("QT INTERVAL", qtValue, if (heartRate != null) "Rate-Corrected" else "No Data")
-                MetricPill("QTc (BAZETT)", qtcValue, if (heartRate != null) "Normal (<440)" else "No Data")
+                MetricPill("QT INTERVAL", qtValue, "--")
+                MetricPill("QTc (BAZETT)", qtcValue, "--")
             }
 
             Spacer(modifier = Modifier.height(20.dp))

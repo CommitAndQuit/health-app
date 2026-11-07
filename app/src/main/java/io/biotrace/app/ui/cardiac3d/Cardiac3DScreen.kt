@@ -365,7 +365,7 @@ fun Cardiac3DScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = if (heartRate != null) "64%" else "--",
+                            text = "--",
                             fontSize = 24.sp,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             color = TextWhite
@@ -383,7 +383,7 @@ fun Cardiac3DScreen(
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = if (heartRate != null) "Normal (>55%)" else "No Data",
+                                text = "No Echocardiogram in Health Connect",
                                 fontSize = 10.5.sp,
                                 color = StatusOptimalText
                             )
@@ -409,7 +409,7 @@ fun Cardiac3DScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = if (heartRate != null) "72 mL" else "--",
+                            text = "--",
                             fontSize = 24.sp,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             color = TextWhite
@@ -427,7 +427,7 @@ fun Cardiac3DScreen(
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = if (heartRate != null) "Optimal Flow" else "No Data",
+                                text = "--",
                                 fontSize = 10.5.sp,
                                 color = StatusOptimalText
                             )
@@ -459,7 +459,7 @@ fun Cardiac3DScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = if (heartRate != null) "%.1f L/min".format(72.0 * heartRate / 1000.0) else "--",
+                            text = "--",
                             fontSize = 22.sp,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             color = TextWhite
@@ -490,7 +490,7 @@ fun Cardiac3DScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = if (heartRate != null) "6.2 m/s" else "--",
+                            text = "--",
                             fontSize = 22.sp,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             color = TextWhite

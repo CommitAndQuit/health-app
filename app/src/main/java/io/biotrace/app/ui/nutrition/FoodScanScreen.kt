@@ -105,6 +105,7 @@ import io.biotrace.app.ui.theme.PureWhite
 import io.biotrace.app.ui.theme.TextDark
 import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextSecondary
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -281,7 +282,7 @@ fun FoodScanScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Today, Oct 24",
+                                        text = DateTimeFormatter.ofPattern("'Today, 'MMM d", Locale.getDefault()).format(LocalDate.now()),
                                         fontSize = 11.5.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = TextDark
@@ -504,17 +505,19 @@ fun FoodScanScreen(
                                 }
                             }
 
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = MintBadgeBg
-                            ) {
-                                Text(
-                                    text = "CONFIDENCE ${uiState.scanConfidence}%",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MintBadgeText,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
+                            if (uiState.scanConfidence != null && uiState.capturedPhotoBitmap != null) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MintBadgeBg
+                                ) {
+                                    Text(
+                                        text = "CONFIDENCE ${uiState.scanConfidence}%",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MintBadgeText,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
                             }
                         }
 
@@ -940,6 +943,7 @@ fun FoodScanScreen(
 
             // CARD 3: "Wearable Correlation Insight" (BIO-CORRELATION PILLAR 5)
             item {
+                val correlation = uiState.correlationData
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = CorrelationPeachBg),
@@ -961,192 +965,253 @@ fun FoodScanScreen(
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(BioOrange),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.SwapHoriz,
-                                        contentDescription = null,
-                                        tint = PureWhite,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = "Wearable Correlation\nInsight",
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark,
-                                    lineHeight = 21.sp
-                                )
-                            }
-
-                            Icon(
-                                imageVector = Icons.Default.ShowChart,
-                                contentDescription = null,
-                                tint = BioOrange,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Narrative Text with bold highlighting
-                        val annotatedText = buildAnnotatedString {
-                            append("Dinner logged ")
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = BioOrange)) {
-                                append("before 7:30 PM")
-                            }
-                            append(" correlates with ")
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = ClinicalEmeraldDark)) {
-                                append("+14% higher")
-                            }
-                            append(" overnight HRV (")
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append("76 ms")
-                            }
-                            append(" vs 62 ms avg) and ")
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = TextDark)) {
-                                append("28 min additional Deep Sleep")
-                            }
-                            append(".")
-                        }
-
-                        Text(
-                            text = annotatedText,
-                            fontSize = 13.5.sp,
-                            lineHeight = 20.sp,
-                            color = TextDark
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Inner Comparison Card
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = PureWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp)
+                        if (correlation != null && correlation.earlyHrv > 0) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Overnight HRV Recovery by Meal Timing",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = TextDark
-                                    )
-
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = MintBadgeBg
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(BioOrange),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            text = "+14 ms Delta",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MintBadgeText,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        Icon(
+                                            imageVector = Icons.Default.SwapHoriz,
+                                            contentDescription = null,
+                                            tint = PureWhite,
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
-                                }
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                // Row 1: Before 7:30 PM
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Nightlight,
-                                        contentDescription = null,
-                                        tint = ClinicalEmerald,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = "Before 7:30 PM",
-                                        fontSize = 11.sp,
-                                        color = TextDark,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    Text(
-                                        text = "76 ms (Restorative)",
-                                        fontSize = 10.5.sp,
+                                        text = "Wearable Correlation\nInsight",
+                                        fontSize = 17.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = ClinicalEmeraldDark
+                                        color = TextDark,
+                                        lineHeight = 21.sp
                                     )
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                LinearProgressIndicator(
-                                    progress = { 0.76f },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(3.dp)),
-                                    color = ClinicalEmerald,
-                                    trackColor = Color(0xFFF1F5F9),
-                                )
 
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                // Row 2: After 8:30 PM
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Nightlight,
-                                        contentDescription = null,
-                                        tint = TextMuted,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "After 8:30 PM",
-                                        fontSize = 11.sp,
-                                        color = TextSecondary,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    Text(
-                                        text = "62 ms (Sub-baseline)",
-                                        fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = TextSecondary
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                LinearProgressIndicator(
-                                    progress = { 0.62f },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(3.dp)),
-                                    color = Color(0xFFCBD5E1),
-                                    trackColor = Color(0xFFF1F5F9),
+                                Icon(
+                                    imageVector = Icons.Default.ShowChart,
+                                    contentDescription = null,
+                                    tint = BioOrange,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            val percentStr = if (correlation.lateHrv > 0) {
+                                val pct = ((correlation.earlyHrv - correlation.lateHrv) * 100 / correlation.lateHrv)
+                                if (pct >= 0) "+$pct%" else "$pct%"
+                            } else {
+                                "+${correlation.deltaMs} ms"
+                            }
+
+                            val annotatedText = buildAnnotatedString {
+                                append("Dinner logged ")
+                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = BioOrange)) {
+                                    append(correlation.earlyTiming)
+                                }
+                                append(" correlates with ")
+                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = ClinicalEmeraldDark)) {
+                                    append("$percentStr higher")
+                                }
+                                append(" overnight HRV (")
+                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("${correlation.earlyHrv} ms")
+                                }
+                                append(" vs ${correlation.lateHrv} ms avg)")
+                                if (correlation.deepSleepBonusMin > 0) {
+                                    append(" and ")
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = TextDark)) {
+                                        append("${correlation.deepSleepBonusMin} min additional Deep Sleep")
+                                    }
+                                }
+                                append(".")
+                            }
+
+                            Text(
+                                text = annotatedText,
+                                fontSize = 13.5.sp,
+                                lineHeight = 20.sp,
+                                color = TextDark
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Inner Comparison Card
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = PureWhite),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF1F5F9)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Overnight HRV Recovery by Meal Timing",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = TextDark
+                                        )
+
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MintBadgeBg
+                                        ) {
+                                            val deltaText = if (correlation.deltaMs >= 0) "+${correlation.deltaMs} ms Delta" else "${correlation.deltaMs} ms Delta"
+                                            Text(
+                                                text = deltaText,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MintBadgeText,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // Row 1: Early timing
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Nightlight,
+                                            contentDescription = null,
+                                            tint = ClinicalEmerald,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = correlation.earlyTiming,
+                                            fontSize = 11.sp,
+                                            color = TextDark,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Spacer(modifier = Modifier.weight(1f))
+                                        val earlyLabelText = if (correlation.earlyLabel.isNotBlank()) " (${correlation.earlyLabel})" else ""
+                                        Text(
+                                            text = "${correlation.earlyHrv} ms$earlyLabelText",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ClinicalEmeraldDark
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    LinearProgressIndicator(
+                                        progress = { (correlation.earlyHrv / 100f).coerceIn(0f, 1f) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(6.dp)
+                                            .clip(RoundedCornerShape(3.dp)),
+                                        color = ClinicalEmerald,
+                                        trackColor = Color(0xFFF1F5F9),
+                                    )
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // Row 2: Late timing
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Nightlight,
+                                            contentDescription = null,
+                                            tint = TextMuted,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = correlation.lateTiming,
+                                            fontSize = 11.sp,
+                                            color = TextSecondary,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Spacer(modifier = Modifier.weight(1f))
+                                        val lateLabelText = if (correlation.lateLabel.isNotBlank()) " (${correlation.lateLabel})" else ""
+                                        Text(
+                                            text = "${correlation.lateHrv} ms$lateLabelText",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = TextSecondary
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    LinearProgressIndicator(
+                                        progress = { (correlation.lateHrv / 100f).coerceIn(0f, 1f) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(6.dp)
+                                            .clip(RoundedCornerShape(3.dp)),
+                                        color = Color(0xFFCBD5E1),
+                                        trackColor = Color(0xFFF1F5F9),
+                                    )
+                                }
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(BioOrange),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.SwapHoriz,
+                                            contentDescription = null,
+                                            tint = PureWhite,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Dinner Timing &\nOvernight Recovery",
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDark,
+                                        lineHeight = 21.sp
+                                    )
+                                }
+
+                                Icon(
+                                    imageVector = Icons.Default.ShowChart,
+                                    contentDescription = null,
+                                    tint = BioOrange,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "Log your dinner and track overnight sleep with Health Connect to compute your personalized circadian meal timing correlation.",
+                                fontSize = 13.sp,
+                                lineHeight = 19.sp,
+                                color = TextSecondary
+                            )
                         }
                     }
                 }
@@ -1483,47 +1548,6 @@ fun MealIntakeRowItem(meal: MealEntity) {
                 modifier = Modifier.size(18.dp)
             )
         }
-    }
-}
-
-@Composable
-fun PlateGraphicBackground() {
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val centerX = size.width * 0.5f
-        val centerY = size.height * 0.48f
-        val radius = size.height * 0.42f
-
-        // Outer plate rim
-        drawCircle(
-            color = Color(0xFF3B4048),
-            radius = radius,
-            center = androidx.compose.ui.geometry.Offset(centerX, centerY)
-        )
-        // Inner plate dish
-        drawCircle(
-            color = Color(0xFFE2D9CC),
-            radius = radius * 0.88f,
-            center = androidx.compose.ui.geometry.Offset(centerX, centerY)
-        )
-        // Salmon fillet shape
-        drawRoundRect(
-            color = Color(0xFFE76F51),
-            topLeft = androidx.compose.ui.geometry.Offset(centerX - radius * 0.55f, centerY - radius * 0.2f),
-            size = androidx.compose.ui.geometry.Size(radius * 0.55f, radius * 0.45f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(14f, 14f)
-        )
-        // Asparagus & Veggies green tint
-        drawCircle(
-            color = Color(0xFF2A9D8F),
-            radius = radius * 0.35f,
-            center = androidx.compose.ui.geometry.Offset(centerX + radius * 0.25f, centerY - radius * 0.1f)
-        )
-        // Quinoa / Grains warm base
-        drawCircle(
-            color = Color(0xFFE9C46A),
-            radius = radius * 0.3f,
-            center = androidx.compose.ui.geometry.Offset(centerX, centerY + radius * 0.35f)
-        )
     }
 }
 

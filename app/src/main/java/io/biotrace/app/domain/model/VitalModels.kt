@@ -133,8 +133,26 @@ data class ContinuousHeartRateHeroData(
     val dailyMinBpm: Int? = null,
     val dailyMaxBpm: Int? = null,
     val samples: List<ChartPoint> = emptyList(),
-    val timeLabels: List<String> = listOf("06:00", "09:00", "12:00", "15:00", "18:00", "Now")
-)
+    val timeLabels: List<String> = defaultTimeLabels(samples)
+) {
+    companion object {
+        fun defaultTimeLabels(samples: List<ChartPoint>): List<String> {
+            if (samples.isEmpty()) return emptyList()
+            val distinctLabels = samples.map { it.xLabel }.filter { it.isNotBlank() }.distinct()
+            return when {
+                distinctLabels.isEmpty() -> emptyList()
+                distinctLabels.size <= 6 -> distinctLabels
+                else -> {
+                    val count = 6
+                    val step = (distinctLabels.size - 1).toDouble() / (count - 1)
+                    (0 until count).map { i ->
+                        distinctLabels[(i * step).toInt().coerceIn(0, distinctLabels.size - 1)]
+                    }.distinct()
+                }
+            }
+        }
+    }
+}
 
 data class ProfileTriptychSummary(
     val userName: String = "BioTrace User",

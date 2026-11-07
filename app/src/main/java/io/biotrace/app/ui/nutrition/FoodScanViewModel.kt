@@ -31,13 +31,13 @@ data class ScannedFoodTag(
 
 data class WearableCorrelationData(
     val earlyTiming: String = "Before 7:30 PM",
-    val earlyHrv: Int = 76,
-    val earlyLabel: String = "76 ms (Restorative)",
+    val earlyHrv: Int = 0,
+    val earlyLabel: String = "",
     val lateTiming: String = "After 8:30 PM",
-    val lateHrv: Int = 62,
-    val lateLabel: String = "62 ms (Sub-baseline)",
-    val deltaMs: Int = 14,
-    val deepSleepBonusMin: Int = 28
+    val lateHrv: Int = 0,
+    val lateLabel: String = "",
+    val deltaMs: Int = 0,
+    val deepSleepBonusMin: Int = 0
 )
 
 @HiltViewModel
@@ -67,29 +67,38 @@ class FoodScanViewModel @Inject constructor(
 
             try {
                 mealDao.getMealsBetweenFlow(startOfDay, endOfDay).collect { meals ->
-                    val mealsCals = meals.sumOf { it.calories }
-                    val mealsProtein = meals.sumOf { it.proteinGrams }
-                    val mealsCarbs = meals.sumOf { it.carbsGrams }
-                    val mealsFats = meals.sumOf { it.fatsGrams }
+                    if (meals.isEmpty()) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                todayMeals = emptyList(),
+                                totalCalories = 0,
+                                burntPercentage = 0,
+                                totalProtein = 0.0,
+                                totalCarbs = 0.0,
+                                totalFats = 0.0
+                            )
+                        }
+                    } else {
+                        val mealsCals = meals.sumOf { it.calories }
+                        val mealsProtein = meals.sumOf { it.proteinGrams }
+                        val mealsCarbs = meals.sumOf { it.carbsGrams }
+                        val mealsFats = meals.sumOf { it.fatsGrams }
 
-                    val cals = mealsCals
-                    val protein = mealsProtein
-                    val carbs = mealsCarbs
-                    val fats = mealsFats
+                        val target = _uiState.value.dailyTargetCalories
+                        val pct = if (target > 0) ((mealsCals.toDouble() / target.toDouble()) * 100).toInt().coerceIn(0, 100) else 0
 
-                    val target = _uiState.value.dailyTargetCalories
-                    val pct = if (target > 0) ((cals.toDouble() / target.toDouble()) * 100).toInt().coerceIn(0, 100) else 0
-
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            todayMeals = meals,
-                            totalCalories = cals,
-                            burntPercentage = pct,
-                            totalProtein = (protein * 10).toInt() / 10.0,
-                            totalCarbs = (carbs * 10).toInt() / 10.0,
-                            totalFats = (fats * 10).toInt() / 10.0
-                        )
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                todayMeals = meals,
+                                totalCalories = mealsCals,
+                                burntPercentage = pct,
+                                totalProtein = (mealsProtein * 10).toInt() / 10.0,
+                                totalCarbs = (mealsCarbs * 10).toInt() / 10.0,
+                                totalFats = (mealsFats * 10).toInt() / 10.0
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -156,17 +165,28 @@ class FoodScanViewModel @Inject constructor(
                 """.trimIndent()
 
                 val response = llmClient.generateContentWithImage(prompt, base64Image, mimeType)
-                val cleanedJson = response.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+                val cleanedJson = Regex("""\{[\s\S]*\}""").find(response)?.value
+                    ?: response.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
                 val json = JSONObject(cleanedJson)
 
-                val name = json.optString("name", "Scanned Meal")
-                val calories = json.optInt("calories", 640)
-                val protein = json.optDouble("protein", 42.0)
-                val carbs = json.optDouble("carbs", 58.0)
-                val fats = json.optDouble("fats", 22.0)
+                val calories = if (json.has("calories")) json.optInt("calories", 0) else 0
+                if (calories <= 0) {
+                    _uiState.update {
+                        it.copy(
+                            isScanning = false,
+                            error = "Could not estimate calories for this item. Please retake photo or enter manually."
+                        )
+                    }
+                    return@launch
+                }
+
+                val name = json.optString("name", "Scanned Meal").ifBlank { "Scanned Meal" }
+                val protein = json.optDouble("protein", 0.0)
+                val carbs = json.optDouble("carbs", 0.0)
+                val fats = json.optDouble("fats", 0.0)
                 val fiber = if (json.has("fiber")) json.optDouble("fiber", 0.0) else null
                 val glycemic = json.optString("glycemic", "LOW")
-                val confidence = json.optInt("confidence", 98)
+                val confidence = if (json.has("confidence")) json.optInt("confidence", 0) else 0
 
                 val mealEntity = MealEntity(
                     id = "meal_${UUID.randomUUID()}",
@@ -185,7 +205,7 @@ class FoodScanViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isScanning = false,
-                        scanConfidence = confidence,
+                        scanConfidence = if (confidence > 0) confidence else null,
                         latestScannedTags = listOf(
                             ScannedFoodTag(label = "Est", value = "$calories kcal"),
                             ScannedFoodTag(label = "Protein", value = "${protein.toInt()}g"),
@@ -250,14 +270,25 @@ class FoodScanViewModel @Inject constructor(
                     ?: response.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
                 val json = JSONObject(cleanedJson)
 
-                val name = json.optString("name", "Scanned Meal")
-                val calories = json.optInt("calories", 640)
-                val protein = json.optDouble("protein", 42.0)
-                val carbs = json.optDouble("carbs", 58.0)
-                val fats = json.optDouble("fats", 22.0)
+                val calories = if (json.has("calories")) json.optInt("calories", 0) else 0
+                if (calories <= 0) {
+                    _uiState.update {
+                        it.copy(
+                            isScanning = false,
+                            pendingScanResult = null,
+                            error = "Could not estimate calories for this item. Please retake photo or enter manually."
+                        )
+                    }
+                    return@launch
+                }
+
+                val name = json.optString("name", "Scanned Meal").ifBlank { "Scanned Meal" }
+                val protein = json.optDouble("protein", 0.0)
+                val carbs = json.optDouble("carbs", 0.0)
+                val fats = json.optDouble("fats", 0.0)
                 val fiber = if (json.has("fiber")) json.optDouble("fiber", 0.0) else null
                 val glycemic = json.optString("glycemic", "LOW")
-                val confidence = json.optInt("confidence", 98)
+                val confidence = if (json.has("confidence")) json.optInt("confidence", 0) else 0
 
                 val scanResult = MealScanResult(name, calories, protein, carbs, fats, fiber, glycemic, confidence)
 
@@ -265,7 +296,7 @@ class FoodScanViewModel @Inject constructor(
                     it.copy(
                         isScanning = false,
                         pendingScanResult = scanResult,
-                        scanConfidence = confidence,
+                        scanConfidence = if (confidence > 0) confidence else null,
                         scanMessage = "Estimated $calories kcal for $name"
                     )
                 }

@@ -236,7 +236,7 @@ fun LabsScreen(
                                     color = TextDark
                                 )
                                 Text(
-                                    text = "Clinical PDF detected (3.4 MB) • Tap to Scan with AI",
+                                    text = if (testPdf.exists()) String.format(Locale.US, "Clinical PDF detected (%.1f MB) • Tap to Scan with AI", testPdf.length() / (1024.0 * 1024.0)) else "Clinical PDF detected • Tap to Scan with AI",
                                     fontSize = 11.sp,
                                     color = TextSecondary
                                 )

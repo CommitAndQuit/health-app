@@ -454,7 +454,7 @@ fun HeartRateHeroCanvasChart(
     fallbackMaxBpm: Int?,
     modifier: Modifier = Modifier
 ) {
-    if (points.isEmpty() && fallbackLatestBpm == null) {
+    if (points.isEmpty()) {
         Canvas(modifier = modifier) {
             val width = size.width
             val height = size.height
@@ -475,20 +475,24 @@ fun HeartRateHeroCanvasChart(
         val width = size.width
         val height = size.height
 
-        // Prepare points: use real samples or synthesize an accurate smooth intraday spline from min/max/latest
+        // Prepare points: use real samples or return empty
         val effectivePoints: List<Float> = when {
             points.size >= 2 -> points.map { it.value }
             points.size == 1 -> listOf(points.first().value, points.first().value)
-            fallbackLatestBpm != null -> {
-                val minVal = (fallbackMinBpm ?: (fallbackLatestBpm - 15)).toFloat()
-                val maxVal = (fallbackMaxBpm ?: (fallbackLatestBpm + 25)).toFloat()
-                val midVal = fallbackLatestBpm.toFloat()
-                listOf(minVal + 4f, minVal + 10f, minVal + 2f, maxVal - 8f, midVal + 5f, midVal)
-            }
             else -> emptyList()
         }
 
-        if (effectivePoints.isEmpty()) return@Canvas
+        if (effectivePoints.isEmpty()) {
+            val midY = height / 2f
+            drawLine(
+                color = DividerSubtle,
+                start = Offset(0f, midY),
+                end = Offset(width, midY),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+            )
+            return@Canvas
+        }
 
         val minVal = (effectivePoints.minOrNull() ?: 50f) - 6f
         val maxVal = (effectivePoints.maxOrNull() ?: 120f) + 8f
@@ -683,7 +687,7 @@ fun BioTraceTemplateACard(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = card.goalText ?: "${(card.progress * 100).toInt()}% of 8,000 goal",
+                            text = card.goalText ?: card.secondaryText.ifBlank { "${(card.progress * 100).toInt()}% of daily goal" },
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,
                             color = TextSecondary,
