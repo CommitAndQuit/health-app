@@ -175,4 +175,136 @@ class BiometricInsightsViewModelTest {
         verify(userProfileStore).setChronologicalAge(40)
         assertEquals(40, viewModel.uiState.value.biologicalAge?.chronologicalAge)
     }
+
+    @Test
+    fun `selectTab updates selectedTab state`() = runTest {
+        stubDefaultDependencies()
+        whenever(llmClient.isConfigured()).thenReturn(false)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(InsightsTab.OVERVIEW, viewModel.uiState.value.selectedTab)
+
+        viewModel.selectTab(InsightsTab.CLINICAL_RISKS)
+        assertEquals(InsightsTab.CLINICAL_RISKS, viewModel.uiState.value.selectedTab)
+
+        viewModel.selectTab(InsightsTab.CORRELATIONS)
+        assertEquals(InsightsTab.CORRELATIONS, viewModel.uiState.value.selectedTab)
+
+        viewModel.selectTab(InsightsTab.AI_DEEP_DIVE)
+        assertEquals(InsightsTab.AI_DEEP_DIVE, viewModel.uiState.value.selectedTab)
+    }
+
+    @Test
+    fun `loadInsights evaluates atherogenic risk and metabolic risk from lab biomarkers`() = runTest {
+        stubDefaultDependencies()
+        whenever(llmClient.isConfigured()).thenReturn(false)
+
+        val now = java.time.Instant.now()
+        val labs = listOf(
+            io.biotrace.app.data.local.entity.LabBiomarkerEntity(
+                id = "chol_1",
+                rawName = "Total Cholesterol",
+                biomarkerName = "CHOLESTEROL",
+                value = 220.0,
+                unit = "mg/dL",
+                referenceMin = 120.0,
+                referenceMax = 200.0,
+                flag = "HIGH",
+                recordedAt = now,
+                source = "MANUAL"
+            ),
+            io.biotrace.app.data.local.entity.LabBiomarkerEntity(
+                id = "hdl_1",
+                rawName = "HDL",
+                biomarkerName = "HDL",
+                value = 40.0,
+                unit = "mg/dL",
+                referenceMin = 40.0,
+                referenceMax = 60.0,
+                flag = "NORMAL",
+                recordedAt = now,
+                source = "MANUAL"
+            ),
+            io.biotrace.app.data.local.entity.LabBiomarkerEntity(
+                id = "tg_1",
+                rawName = "Triglycerides",
+                biomarkerName = "TRIGLYCERIDES",
+                value = 160.0,
+                unit = "mg/dL",
+                referenceMin = 0.0,
+                referenceMax = 150.0,
+                flag = "HIGH",
+                recordedAt = now,
+                source = "MANUAL"
+            ),
+            io.biotrace.app.data.local.entity.LabBiomarkerEntity(
+                id = "glu_1",
+                rawName = "Fasting Glucose",
+                biomarkerName = "FASTING_GLUCOSE",
+                value = 110.0,
+                unit = "mg/dL",
+                referenceMin = 70.0,
+                referenceMax = 99.0,
+                flag = "HIGH",
+                recordedAt = now,
+                source = "MANUAL"
+            )
+        )
+        whenever(labBiomarkerDao.getAll()).thenReturn(labs)
+        whenever(userProfileStore.getBiologicalSex()).thenReturn("male")
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        org.junit.Assert.assertNotNull(state.atherogenicRisk)
+        assertEquals(4.0, state.atherogenicRisk?.tgHdlRatio ?: 0.0, 0.01)
+        org.junit.Assert.assertNotNull(state.metabolicRisk)
+        assertTrue(state.metabolicRisk?.criteriaMetCount ?: 0 >= 1)
+        assertTrue(state.clinicalEvaluations.isNotEmpty())
+    }
+
+    @Test
+    fun `generateReport arbitrates with clinical safety notice when elevated biomarker exists`() = runTest {
+        stubDefaultDependencies()
+        whenever(llmClient.isConfigured()).thenReturn(false)
+
+        val now = java.time.Instant.now()
+        val criticalLab = listOf(
+            io.biotrace.app.data.local.entity.LabBiomarkerEntity(
+                id = "glu_crit",
+                rawName = "Fasting Glucose",
+                biomarkerName = "FASTING_GLUCOSE",
+                value = 140.0,
+                unit = "mg/dL",
+                referenceMin = 70.0,
+                referenceMax = 99.0,
+                flag = "HIGH",
+                recordedAt = now,
+                source = "MANUAL"
+            )
+        )
+        whenever(labBiomarkerDao.getAll()).thenReturn(criticalLab)
+        whenever(generateHealthReportUseCase.execute()).thenReturn(
+            flowOf(
+                ReportChunk.Started,
+                ReportChunk.Text("General wellness plan: stay active."),
+                ReportChunk.Done
+            )
+        )
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.generateReport()
+        advanceUntilIdle()
+
+        val arbitrated = viewModel.uiState.value.arbitratedInsight
+        org.junit.Assert.assertNotNull(arbitrated)
+        assertTrue(arbitrated?.hasClinicalSafetyNotice == true)
+        assertTrue(arbitrated?.finalContent?.contains("CLINICAL SAFETY NOTICE") == true)
+        assertTrue(arbitrated?.finalContent?.contains("General wellness plan") == true)
+    }
 }

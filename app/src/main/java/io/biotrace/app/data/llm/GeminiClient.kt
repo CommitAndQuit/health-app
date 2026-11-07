@@ -28,7 +28,7 @@ class GeminiClient @Inject constructor(
 
     companion object {
         const val PROVIDER_NAME = "gemini"
-        private const val MODEL_NAME = "gemini-2.5-flash"
+        private const val MODEL_NAME = "gemini-3.5-flash"
         private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
         private const val SYSTEM_INSTRUCTION =
             "You are BioTrace, an intelligent, private, local-first health & biomarker intelligence assistant. " +

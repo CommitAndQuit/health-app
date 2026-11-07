@@ -846,25 +846,127 @@ Users need a privacy-first Android application that consolidates health data fro
 11. Adjust settings, verify persistence
 12. Restart app, verify data persists
 
-**Status:** 🔲 NOT STARTED
+**Status:** ✅ COMPLETE
+
+---
+
+## Phase 5: Deterministic Statistical Intelligence & Clinical Rule Engine
+
+### Task 13: Clinical Safety & Threshold Evaluation Engine
+**Objective:** Provide pure on-device deterministic clinical boundary evaluation against validated medical guidelines (AHA/ACC, ADA, WHO, National Sleep Foundation).
+- Implemented `ClinicalRule.kt`, `MedicalGuidelinesCatalog.kt`, and `ClinicalSafetyRuleEngine.kt`.
+- Evaluates resting heart rate, oxygen saturation ($SpO_2$), fasting glucose, HbA1c, triglycerides, LDL-C, HDL-C, and hemoglobin.
+- Boundary test suite: `ClinicalSafetyRuleEngineTest.kt` (20/20 passing).
+**Status:** ✅ COMPLETE
+
+### Task 14: Longitudinal Moving Averages & Percentile Ranking Engine
+**Objective:** Provide mathematical rolling windows, rate-of-change with statistical variance, and age/sex-stratified population percentile rankings.
+- Implemented `RollingStatsCalculator.kt` (SMA, EWMA, sample stdDev with Bessel's correction, median, MAD).
+- Implemented `LongitudinalShiftEvaluator.kt` (z-score shifts, direction classification, clinical threshold alerts).
+- Implemented `DemographicPercentileEngine.kt` (Cooper Institute RHR curves, population HRV RMSSD curves).
+- Test suites: `RollingStatsCalculatorTest.kt`, `LongitudinalShiftEvaluatorTest.kt`, `DemographicPercentileEngineTest.kt`.
+**Status:** ✅ COMPLETE
+
+### Task 15: External Medical Benchmark Normalizer & Population Reference Curves
+**Objective:** Normalize activity and sleep architecture against WHO and National Sleep Foundation benchmarks.
+- Implemented `WhoActivityBenchmark.kt` (daily steps and weekly aerobic compliance).
+- Implemented `SleepArchitectureBenchmark.kt` (REM 20-25%, Deep 15-20%, Light 50-60%).
+- Test suite: `BenchmarksTest.kt`.
+**Status:** ✅ COMPLETE
+
+---
+
+## Phase 6: Multi-Metric Biometric Correlation & Time-Series Decomposition
+
+### Task 16: Automated On-Device Pearson/Spearman Cross-Metric Correlation Matrix
+**Objective:** Replace single hardcoded correlations with automated pairwise matrix calculations across all ingested metric streams.
+- Implemented `CorrelationMatrixCalculator.kt` (Pearson $r$, Spearman $\rho$, Student's t-statistic, regularized incomplete beta p-values).
+- Implemented `MetricPairwiseCorrelator.kt` with day-lag time-series alignment and narrative generation.
+- Test suites: `CorrelationMatrixCalculatorTest.kt`, `MetricPairwiseCorrelatorTest.kt`.
+**Status:** ✅ COMPLETE
+
+### Task 17: Circadian & Diurnal Time-Series Decomposition Engine
+**Objective:** Decompose 24-hour continuous biometric time series into baseline trend, diurnal sinusoidal pattern, and residual noise spikes.
+- Implemented `CircadianModels.kt`, `DiurnalDipCalculator.kt`, and `CircadianDecompositionService.kt`.
+- Categorizes dipping patterns (`EXTREME_DIPPER`, `NORMAL_DIPPER`, `NON_DIPPER`, `REVERSE_DIPPER`) and detects nocturnal nadir.
+- Test suites: `DiurnalDipCalculatorTest.kt`, `CircadianDecompositionServiceTest.kt`.
+**Status:** ✅ COMPLETE
+
+### Task 18: Dynamic Biometric Correlation Visualizations & UI Components
+**Objective:** Render discovered correlations and circadian curves natively in Jetpack Compose.
+- Implemented `CorrelationScatterPlot.kt` (dynamic scaling, linear regression trendline $y = mx + b$).
+- Implemented `CircadianRhythmCard.kt` (Material 3 Bento card with chronobiology daytime/nighttime curve).
+**Status:** ✅ COMPLETE
+
+---
+
+## Phase 7: Predictive Health Risk Calculators & Lifestyle Pattern Clustering
+
+### Task 19: Available-Data Clinical Risk Calculators
+**Objective:** Implement clinical scoring equations on-device strictly using available Health Connect vitals, blood biomarkers, and demographics (zero blood pressure dependencies).
+- Implemented `AtherogenicRiskCalculator.kt` (TG/HDL, Non-HDL, TC/HDL).
+- Implemented `HarmonizedMetabolicRiskCalculator.kt` (4-criteria harmonized metabolic risk: Glucose, Triglycerides, HDL, BMI).
+- Implemented `SleepDebtCalculator.kt` (rolling 14-day cumulative sleep deficit balanced against autonomic strain from HRV RMSSD depression).
+- Test suites: `AtherogenicRiskCalculatorTest.kt`, `HarmonizedMetabolicRiskCalculatorTest.kt`, `SleepDebtCalculatorTest.kt`.
+**Status:** ✅ COMPLETE
+
+### Task 20: Unsupervised Daily Lifestyle Vectorization & Clustering
+**Objective:** Discover recurring lifestyle archetypes from multi-dimensional daily feature vectors.
+- Implemented `DailyFeatureVector.kt`, `LifestyleArchetype.kt`, and `LifestyleKMeansClusterer.kt` (K-Means++ initialization, Lloyd's convergence, archetype centroid mapping).
+- Test suite: `LifestyleKMeansClustererTest.kt`.
+**Status:** ✅ COMPLETE
+
+### Task 21: In-App Multivariate Anomaly Detection Engine
+**Objective:** Extend baseline anomaly engine to detect compound autonomic strain across synchronous biometric streams.
+- Updated `AnomalyDetectionEngine.kt` with `evaluateCompoundStrain` (simultaneous HRV depression >1.8σ, RHR elevation >1.5σ, sleep <6h).
+- Marked strictly as in-app badges with zero system tray or push notification dependencies.
+- Test suite: `MultivariateAnomalyTest.kt`.
+**Status:** ✅ COMPLETE
+
+---
+
+## Phase 8: Hybrid Grounded AI Intelligence, ReAct Tool Expansion & UI Hub Overhaul
+
+### Task 22: Expansion of ReAct Agent Read-Only Query Tools
+**Objective:** Equip `HealthAgent.kt` with read-only tools to access newly computed analytics engines.
+- Implemented `QueryCorrelationMatrixTool.kt`, `QueryClinicalRiskTool.kt`, `QueryCircadianDecompositionTool.kt`, and `QueryLifestyleClustersTool.kt`.
+- Updated `HealthAgent.kt` with backward-compatible optional constructor injection.
+- Test suites: `ExpandedAgentToolsTest.kt`, `HealthAgentTest.kt`.
+**Status:** ✅ COMPLETE
+
+### Task 23: Hybrid Safety Arbitration Engine & Citation Grounding
+**Objective:** Enforce safety-critical priority where deterministic clinical alerts always take visual precedence over LLM generative responses.
+- Implemented `ArbitratedInsight.kt` and `InsightArbitrator.kt`.
+- Test suite: `InsightArbitratorTest.kt`.
+**Status:** ✅ COMPLETE
+
+### Task 24: Comprehensive Biometric Insights Screen & ViewModel Overhaul
+**Objective:** Redesign `BiometricInsightsScreen` and ViewModel into a comprehensive multi-tab health intelligence hub.
+- Updated `BiometricInsightsViewModel.kt` to coordinate risk calculators, diurnal service, and safety arbitration.
+- Overhauled `BiometricInsightsScreen.kt` with a 4-tab filter bar (`Overview & Longevity`, `Correlations & Diurnal`, `Clinical Risks & Safety`, `AI Deep Dive`).
+- Implemented `RiskScoreGaugeCard.kt` and `LifestyleArchetypeCard.kt`.
+- Implemented Hilt provider `InsightsModule.kt`.
+- Test suite: `BiometricInsightsViewModelTest.kt`.
+**Status:** ✅ COMPLETE
 
 ---
 
 ## Progress Tracking
 
-| Task | Status | Completion |
-|------|--------|------------|
-| Task 1: Project Scaffolding | ✅ COMPLETE | 100% |
-| Task 2: Keystore Security | ✅ COMPLETE | 100% |
-| Task 3: Room Database | ✅ COMPLETE | 100% |
-| Task 4: Health Connect Permissions | ✅ COMPLETE | 100% |
-| Task 5: Health Connect Sync | ✅ COMPLETE | 100% |
-| Task 6: Dashboard UI | ✅ COMPLETE | 100% |
-| Task 7: Gemini API Client | ✅ COMPLETE | 100% |
-| Task 8: ReAct Agent | ✅ COMPLETE | 100% |
-| Task 9: Chat UI | ✅ COMPLETE | 100% |
-| Task 10: Settings Screen | ✅ COMPLETE | 100% |
-| Task 11: Navigation | ✅ COMPLETE | 100% |
-| Task 12: Final Polish | ✅ COMPLETE | 100% |
+| Task | Phase | Status | Completion |
+|------|-------|--------|------------|
+| Tasks 1–12: BioTrace MVP Core | Phases 1–2 | ✅ COMPLETE | 100% |
+| Task 13: Clinical Safety & Threshold Engine | Phase 5 | ✅ COMPLETE | 100% |
+| Task 14: Longitudinal Stats & Percentiles | Phase 5 | ✅ COMPLETE | 100% |
+| Task 15: External Medical Benchmarks | Phase 5 | ✅ COMPLETE | 100% |
+| Task 16: Pearson/Spearman Correlation Matrix | Phase 6 | ✅ COMPLETE | 100% |
+| Task 17: Circadian Diurnal Decomposition | Phase 6 | ✅ COMPLETE | 100% |
+| Task 18: Correlation Scatter Plot & Rhythm UI | Phase 6 | ✅ COMPLETE | 100% |
+| Task 19: Available-Data Clinical Risk Calculators | Phase 7 | ✅ COMPLETE | 100% |
+| Task 20: Unsupervised Lifestyle Clustering | Phase 7 | ✅ COMPLETE | 100% |
+| Task 21: In-App Multivariate Anomaly Engine | Phase 7 | ✅ COMPLETE | 100% |
+| Task 22: ReAct Agent Query Tool Expansion | Phase 8 | ✅ COMPLETE | 100% |
+| Task 23: Hybrid Safety Arbitration Engine | Phase 8 | ✅ COMPLETE | 100% |
+| Task 24: Biometric Insights Hub Overhaul | Phase 8 | ✅ COMPLETE | 100% |
 
-**Overall Progress: 12/12 tasks (100%)**
+**Overall Progress: 24/24 tasks (100% - 185 tests passing)**

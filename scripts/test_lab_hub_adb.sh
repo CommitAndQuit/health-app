@@ -94,7 +94,7 @@ adb -s "$DEVICE" shell am broadcast \
     -a io.biotrace.app.TEST_PROCESS_PDF \
     --es pdf_path "/data/data/$PACKAGE_NAME/files/report.pdf" >/dev/null 2>&1
 
-echo "⏳ Waiting for Gemini 2.5 Flash to analyze document and normalize schema..."
+echo "⏳ Waiting for Gemini 3.5 Flash to analyze document and normalize schema..."
 MAX_WAIT_SECONDS=150
 ELAPSED=0
 RESULT=""

@@ -21,6 +21,15 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        val envFile = rootProject.file(".env")
+        val geminiApiKey = if (envFile.exists()) {
+            val keyLine = envFile.readLines().firstOrNull { it.trim().startsWith("GEMINI_API_KEY=") }
+            keyLine?.substringAfter("=")?.trim()?.removeSurrounding("\"")?.removeSurrounding("'") ?: ""
+        } else {
+            ""
+        }
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     buildTypes {

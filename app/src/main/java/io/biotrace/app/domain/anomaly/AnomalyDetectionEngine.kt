@@ -11,7 +11,8 @@ import kotlin.math.abs
 enum class AnomalyRuleType {
     OUT_OF_RANGE_CLINICAL,
     LONGITUDINAL_TREND_SHIFT,
-    PERSONAL_BASELINE_DEVIATION
+    PERSONAL_BASELINE_DEVIATION,
+    MULTIVARIATE_COMPOUND_STRAIN
 }
 
 data class AnomalyAlert(
@@ -130,5 +131,52 @@ class AnomalyDetectionEngine @Inject constructor() {
         }
 
         return alerts
+    }
+
+    /**
+     * Rule 4: Multivariate Compound Autonomic Strain.
+     *
+     * Evaluates compound strain across resting heart rate, heart rate variability, and sleep duration.
+     * Flags when:
+     * - HRV is depressed by > 1.8 * stdDev below baseline mean
+     * - RHR is elevated by > 1.5 * stdDev above baseline mean
+     * - Sleep is curtailed (< 6.0 hours)
+     *
+     * Anomaly alerts are strictly in-app only, with no external push or system tray dependencies.
+     */
+    fun evaluateCompoundStrain(
+        currentRhr: Double,
+        baselineRhrMean: Double,
+        baselineRhrStdDev: Double,
+        currentHrv: Double,
+        baselineHrvMean: Double,
+        baselineHrvStdDev: Double,
+        recentSleepHours: Double
+    ): AnomalyAlert? {
+        if (baselineRhrStdDev <= 0.0 || baselineHrvStdDev <= 0.0) {
+            return null
+        }
+
+        val hrvDepressed = (baselineHrvMean - currentHrv) > (1.8 * baselineHrvStdDev)
+        val rhrElevated = (currentRhr - baselineRhrMean) > (1.5 * baselineRhrStdDev)
+        val sleepShort = recentSleepHours < 6.0
+
+        if (hrvDepressed && rhrElevated && sleepShort) {
+            val rhrZScore = (currentRhr - baselineRhrMean) / baselineRhrStdDev
+            val hrvZScore = (baselineHrvMean - currentHrv) / baselineHrvStdDev
+
+            return AnomalyAlert(
+                id = "rule4_compound_${System.currentTimeMillis()}",
+                ruleType = AnomalyRuleType.MULTIVARIATE_COMPOUND_STRAIN,
+                metricName = "COMPOUND_AUTONOMIC_STRAIN",
+                currentValue = currentRhr,
+                baselineValue = baselineRhrMean,
+                unit = "bpm",
+                severity = "ALERT",
+                narrative = "Multivariate autonomic strain detected: Resting HR is elevated (+${"%.1f".format(rhrZScore)}σ), HRV RMSSD is depressed (-${"%.1f".format(hrvZScore)}σ), and recent sleep was insufficient (${recentSleepHours}h < 6.0h). In-app recovery protocol advised."
+            )
+        }
+
+        return null
     }
 }

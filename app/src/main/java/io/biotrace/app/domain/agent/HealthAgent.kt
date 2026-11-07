@@ -3,7 +3,11 @@ package io.biotrace.app.domain.agent
 import io.biotrace.app.data.local.entity.ChatMessageEntity
 import io.biotrace.app.domain.agent.tools.GetActiveAnomaliesTool
 import io.biotrace.app.domain.agent.tools.GetNutritionIntakeTool
+import io.biotrace.app.domain.agent.tools.QueryCircadianDecompositionTool
+import io.biotrace.app.domain.agent.tools.QueryClinicalRiskTool
+import io.biotrace.app.domain.agent.tools.QueryCorrelationMatrixTool
 import io.biotrace.app.domain.agent.tools.QueryLabBiomarkersTool
+import io.biotrace.app.domain.agent.tools.QueryLifestyleClustersTool
 import io.biotrace.app.domain.agent.tools.QueryVitalsTool
 import io.biotrace.app.domain.llm.LlmClient
 import kotlinx.coroutines.Dispatchers
@@ -20,14 +24,22 @@ class HealthAgent @Inject constructor(
     queryVitalsTool: QueryVitalsTool,
     queryLabBiomarkersTool: QueryLabBiomarkersTool,
     getActiveAnomaliesTool: GetActiveAnomaliesTool,
-    getNutritionIntakeTool: GetNutritionIntakeTool
+    getNutritionIntakeTool: GetNutritionIntakeTool,
+    queryCorrelationMatrixTool: QueryCorrelationMatrixTool? = null,
+    queryClinicalRiskTool: QueryClinicalRiskTool? = null,
+    queryCircadianDecompositionTool: QueryCircadianDecompositionTool? = null,
+    queryLifestyleClustersTool: QueryLifestyleClustersTool? = null
 ) {
 
-    private val tools: Map<String, AgentTool> = listOf(
+    private val tools: Map<String, AgentTool> = listOfNotNull(
         queryVitalsTool,
         queryLabBiomarkersTool,
         getActiveAnomaliesTool,
-        getNutritionIntakeTool
+        getNutritionIntakeTool,
+        queryCorrelationMatrixTool,
+        queryClinicalRiskTool,
+        queryCircadianDecompositionTool,
+        queryLifestyleClustersTool
     ).associateBy { it.name }
 
     companion object {

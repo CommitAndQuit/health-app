@@ -1,7 +1,6 @@
 # BioTrace 🛡️
-### *Local-First, Zero-Server AI Health & Biomarker Intelligence for Android*
 
-BioTrace is a private, zero-backend Android application that unifies wearable data from **Google Health Connect** (data comes from apps that write to Health Connect) with **blood/lab report parsing** and **meal photo logging**. It delivers deep biometric visualization and conversational health insights powered by client-side Large Language Models (LLMs) using your own API key (BYOK) or on-device AI.
+BioTrace is a private application that unifies wearable data from **Google Health Connect** (data comes from apps that write to Health Connect) with **blood/lab report parsing** and **meal photo logging**. It delivers deep biometric visualization and conversational health insights powered by client-side Large Language Models (LLMs) using your own API key (BYOK) or on-device AI.
 
 All health data, raw time-series metrics, and Q&A histories remain strictly on your physical device in an encrypted SQLite/Room database. No personal cloud servers, Docker containers, or third-party relays are required.
 
@@ -17,13 +16,19 @@ All health data, raw time-series metrics, and Q&A histories remain strictly on y
 │  ├── Vitals & Wearable Dashboard (Time-Series Charts, Day/Week/Month)   │
 │  ├── Lab & Biomarker Hub (Reference Range Gauges, Normalized Trends)   │
 │  ├── Nutritional Log (Meal Scans, Macro Distribution)                  │
-│  └── AI Chatbot & Insights (Streaming SSE, Source Citations, ReAct)   │
+│  ├── Biometric Insights Hub (Overview, Correlations, Risks, AI Dive)   │
+│  └── AI Chatbot & Assistant (Streaming SSE, Source Citations, ReAct)   │
 ├────────────────────────────────────────────────────────────────────────┤
 │ Domain Layer                                                           │
 │  ├── Health Connect Ingestion Service (Aggregation, Time Windows)      │
 │  ├── Clinical Schema Normalizer (110+ Aliases, Unit Conversions)       │
-│  ├── Three-Rule Anomaly Engine (Out-of-Range, Trends, Personal Base)   │
-│  └── Health Agent Orchestrator (Tool Calling, Prompt Injection Guard)  │
+│  ├── Clinical Safety Rule Engine (AHA/ACC, ADA, WHO, NSF Guidelines)   │
+│  ├── Statistical & Time-Series Engine (SMA/EWMA, Circadian Dip, Corr)  │
+│  ├── Predictive Risk Calculators (Atherogenic, Metabolic, Sleep Debt)  │
+│  ├── Unsupervised Lifestyle Clusterer (K-Means Behavioral Archetypes)  │
+│  ├── Multivariate Anomaly Engine (Compound Autonomic Strain Badges)    │
+│  ├── Hybrid Safety Arbitration Engine (Medical Precedence & Citations) │
+│  └── Health Agent Orchestrator (8 Read-Only Tools, Guardrails)         │
 ├────────────────────────────────────────────────────────────────────────┤
 │ Data Layer (100% Local-First Storage & Secure Networking)              │
 │  ├── Room Database (Vitals, Lab Records, Meals, Chat History)          │
@@ -69,13 +74,43 @@ All health data, raw time-series metrics, and Q&A histories remain strictly on y
 * **Correlation with Vitals**: Correlate high-sodium or late dinners with overnight resting HR and HRV fluctuations.
 
 ### 4. Record-Grounded AI Health Intelligence
-* **ReAct Agent**: A local deterministic agent equipped with 4 read-only internal query tools:
+* **ReAct Agent**: A local deterministic agent equipped with 8 read-only internal query tools:
   * `query_vitals_summary(metric, startDate, endDate)`
   * `query_lab_biomarkers(biomarkerName, count)`
   * `get_active_anomalies(memberId)`
   * `get_nutrition_intake(date)`
+  * `query_correlation_matrix(metrics, windowDays)`
+  * `query_clinical_risk_scores()`
+  * `query_circadian_decomposition(metricType)`
+  * `query_lifestyle_clusters(lookbackDays)`
 * **Streaming SSE Chat**: First-token streaming display via Server-Sent Events.
 * **Data Basis Citations**: Before emitting conclusions, the assistant previews the exact database records and timestamp ranges backing the recommendation.
+
+### 5. Deterministic Statistical Intelligence & Clinical Rule Engine
+* **Clinical Safety Rules**: Real-time evaluation of vitals (Resting HR, SpO2) and clinical blood biomarkers (glycemic, lipid panels, hematology) against AHA/ACC, ADA, WHO, and National Sleep Foundation thresholds.
+* **Longitudinal Trends & Demographic Percentiles**: Exponential moving averages (EWMA), median absolute deviation (MAD), week-over-week z-score shifts, and Cooper Institute / population HRV percentiles.
+* **External Medical Benchmarking**: Automated compliance tracking against WHO physical activity guidelines (steps, active burn) and National Sleep Foundation sleep stage architecture (REM 20-25%, Deep 15-20%).
+
+### 6. Multi-Metric Correlation & Circadian Time-Series Decomposition
+* **Automated Correlation Matrix**: Pairwise Pearson ($r$) and Spearman rank ($\rho$) correlation engine with Student's t-test p-value significance testing across vitals, meals, and lab markers with day-lag alignment.
+* **Circadian Diurnal Decomposition**: 24-hour diurnal profiling, nocturnal heart rate dipping percentage ($\frac{\text{Day Mean} - \text{Night Min}}{\text{Day Mean}} \times 100\%$), and autonomic dipping pattern classification (`EXTREME_DIPPER`, `NORMAL_DIPPER`, `NON_DIPPER`, `REVERSE_DIPPER`).
+* **Dynamic Visualizations**: Jetpack Compose Canvas scatter plots with linear regression trendlines ($y = mx + b$) and chronobiology diurnal curve cards.
+
+### 7. Predictive Clinical Risk Calculators & Lifestyle Clustering
+* **Available-Data Clinical Risk Models** (strictly zero blood pressure dependencies):
+  * **Atherogenic Dyslipidemia Triad**: TG/HDL ratio, Non-HDL cholesterol, and TC/HDL ratios.
+  * **Harmonized Metabolic Syndrome Index**: 4-criteria metabolic syndrome assessment (Fasting Glucose, Triglycerides, HDL, BMI).
+  * **Sleep Debt & Allostatic Strain**: Rolling 14-day cumulative sleep deficit balanced against autonomic strain from HRV RMSSD depression.
+* **Lifestyle Pattern Clustering**: On-device K-Means algorithm vectorizing daily habits into behavioral archetypes (`PEAK_PERFORMANCE`, `DEEP_RECOVERY`, `STRAIN_DEPLETED`, `SEDENTARY_MAINTENANCE`).
+* **In-App Compound Anomaly Engine**: Synchronous detection of acute multi-system strain (concurrent HRV drop >1.8σ, RHR spike >1.5σ, and curtailed sleep <6h) surfaced strictly as in-app badges.
+
+### 8. Biometric Insights Hub & Hybrid Safety Arbitration
+* **4-Tab Bento Navigation**:
+  * *Overview & Longevity*: Biological Age, Profile Triptych, Daily Readiness.
+  * *Correlations & Diurnal*: Scatter plot, discovered correlations, Circadian Dipping curves, Lifestyle Archetype cards.
+  * *Clinical Risks & Safety*: Radial lipid triad gauges, metabolic checklist, sleep debt strain, in-app anomaly badges.
+  * *AI Deep Dive*: Streaming health report with evidence citations.
+* **Hybrid Safety Arbitration**: Injects clinical safety priority, ensuring validated medical alerts take visual precedence over LLM generative responses.
 
 ---
 
@@ -116,16 +151,44 @@ All health data, raw time-series metrics, and Q&A histories remain strictly on y
 - [x] Implement food identification and macro estimation pipeline (calories, protein, carbs, fats, fiber).
 - [x] Build daily macro tracker UI with target progress rings.
 - [x] Add cross-domain correlation: AI prompt injection comparing meal timing/macros against wearable sleep/HRV metrics.
----
+
+### Phase 5: Deterministic Statistical Intelligence & Clinical Rule Engine
+- [x] Implement deterministic `ClinicalSafetyRuleEngine` evaluating vitals and blood biomarkers against validated medical guidelines (AHA/ACC, ADA, WHO, National Sleep Foundation).
+- [x] Build `RollingStatsCalculator` computing SMA, EWMA, sample standard deviation, median, and median absolute deviation (MAD).
+- [x] Build `LongitudinalShiftEvaluator` measuring week-over-week rate-of-change and statistical z-scores.
+- [x] Implement `DemographicPercentileEngine` mapping RHR and HRV against age- and sex-stratified population cohorts.
+- [x] Implement external medical benchmarks: `WhoActivityBenchmark` and `SleepArchitectureBenchmark`.
+
+### Phase 6: Multi-Metric Biometric Correlation & Time-Series Decomposition
+- [x] Build automated on-device `CorrelationMatrixCalculator` computing Pearson $r$ and Spearman rank $\rho$ with Student's t-test p-values.
+- [x] Build `MetricPairwiseCorrelator` for time-series alignment with configurable day lags (e.g., night sleep vs next-day activity).
+- [x] Implement 24-hour `CircadianDecompositionService` and `DiurnalDipCalculator` classifying autonomic dipping patterns (`EXTREME_DIPPER`, `NORMAL_DIPPER`, `NON_DIPPER`, `REVERSE_DIPPER`).
+- [x] Create Jetpack Compose Canvas components: `CorrelationScatterPlot` (linear regression best-fit line) and `CircadianRhythmCard`.
+
+### Phase 7: Predictive Health Risk Calculators & Lifestyle Pattern Clustering
+- [x] Implement available-data clinical risk models (strictly zero blood pressure dependencies):
+  - `AtherogenicRiskCalculator`: Lipid triad indices (TG/HDL, Non-HDL, TC/HDL).
+  - `HarmonizedMetabolicRiskCalculator`: 4-criteria harmonized metabolic syndrome index.
+  - `SleepDebtCalculator`: 14-day cumulative sleep deficit balanced against autonomic strain from HRV depression.
+- [x] Develop on-device unsupervised `LifestyleKMeansClusterer` vectorizing daily habits into behavioral archetypes (`PEAK_PERFORMANCE`, `DEEP_RECOVERY`, `STRAIN_DEPLETED`, `SEDENTARY_MAINTENANCE`).
+- [x] Implement in-app `evaluateCompoundStrain` in `AnomalyDetectionEngine` for simultaneous HRV depression, RHR elevation, and sleep fragmentation.
+
+### Phase 8: Hybrid Grounded AI Intelligence, ReAct Tool Expansion & UI Hub Overhaul
+- [x] Expand ReAct agent toolset (`HealthAgent`) with 4 read-only analytical query tools:
+  - `query_correlation_matrix`
+  - `query_clinical_risk_scores`
+  - `query_circadian_decomposition`
+  - `query_lifestyle_clusters`
+- [x] Implement `InsightArbitrator` enforcing medical priority banners and grounded citations over LLM generative responses.
+- [x] Overhaul `BiometricInsightsScreen` and `BiometricInsightsViewModel` with a 4-tab Bento interface (`Overview & Longevity`, `Correlations & Diurnal`, `Clinical Risks & Safety`, `AI Deep Dive`).
+- [x] Build `RiskScoreGaugeCard` and `LifestyleArchetypeCard` UI widgets.
 
 ## 🔒 Privacy & Threat Model
 
-* **No Middleman Server**: There is no backend service, telemetry daemon, or cloud syncing proxy. The source code contains zero analytics SDKs.
-* **Encrypted Secrets**: API keys never sit in plaintext in `SharedPreferences`; they are encrypted in hardware-backed Android Keystore storage.
+* **No Middleman Server**: There is no backend service, telemetry daemon, and cloud syncing proxy. The source code contains zero analytics SDKs.
+* **Encrypted Secrets**: API keys never sit in plaintext in `SharedPreferences`; they are encrypted in hardware‑backed Android Keystore storage.
 * **Backup Immunity**: `android:allowBackup="false"` is enforced to prevent unencrypted health record extraction via ADB or cloud device backups.
-* **Granular Data Transmission**: Network access is restricted exclusively to user-configured LLM provider endpoints. Health data is only sent in transient payloads when the user clicks "Analyze" or sends a chat query.
-
----
+* **Granular Data Transmission**: Network access is restricted exclusively to user‑configured LLM provider endpoints. Health data is only sent in transient payloads when the user clicks "Analyze" or sends a chat query.
 
 ## 🛠️ Tech Stack & Requirements
 
@@ -138,50 +201,23 @@ All health data, raw time-series metrics, and Q&A histories remain strictly on y
 | **Local Persistence** | Android Room v7 (SQLite) |
 | **Wearable Pipeline** | Android Health Connect SDK (androidx.health.connect) |
 | **Networking** | OkHttp 4 (raw SSE streaming, JSON mode validation) |
-| **Security** | Android Keystore (AES-256-GCM cipher) |
+| **Security** | Android Keystore (AES‑256‑GCM cipher) |
 | **Min SDK** | Android 8.0 (API 26) — *Recommended Android 14+ for system Health Connect* |
 
----
+## 🔮 Future Roadmap (Backlog)
+
+* **100% Air‑Gapped Edge AI**: Integrate `LiteRT` / MediaPipe LLM Inference API to run quantized local models (Gemma 3 / Qwen) on‑device alongside local PDF/ML Kit OCR pre‑processing for zero‑network lab parsing.
+* **Fast Nutrition & Barcode Logging**: OpenFoodFacts barcode scanner, "Saved Meal" templates for recurring daily staples, and bidirectional write‑back (`NutritionRecord`) to Android Health Connect.
+* **Zero‑Knowledge Vault & Clinical Exports**: Passphrase‑encrypted (Argon2id + AES‑256‑GCM) database export/import via Android Storage Access Framework, one‑tap Physician PDF summary generation, and Jetpack Glance home‑screen widgets.
+
+## 📊 Supported Data Schema
+
+| Source | Supported Metrics & Records | Ingestion Method |
+| :--- | :--- | :--- |
+| **Health Connect** | Heart Rate (`HeartRateRecord`), HRV (`HeartRateVariabilityRmssdRecord`), Sleep Stages (`SleepSessionRecord`), Steps (`StepsRecord`), Active Calories (`ActiveCaloriesBurnedRecord`), SpO2 (`OxygenSaturationRecord`), Weight (`WeightRecord`) | Automated Background `WorkManager` Sync |
+| **Blood & Lab Panels** | Complete Blood Count (CBC), Comprehensive Metabolic Panel (CMP), Lipid Panel, Thyroid (TSH, Free T3/T4), Vitamins (D, B12, Folate), Iron/Ferritin, Hormones & Inflammation (`hs‑CRP`, `HbA1c`) | Camera / Document Picker → Vision LLM → `ClinicalSchemaNormalizer` |
+| **Nutrition & Meals** | Calories, Protein, Carbohydrates, Dietary Fats, Fiber, Meal Timing, Multi‑Item Dish Breakdown | In‑App Meal Vision Scan & Manual Entry |
+| **Computed & Intelligence** | Daily Readiness Score, Biological Age (PhenoAge), Rolling 30-Day Baselines (SMA/EWMA/MAD), Atherogenic Lipid Triad (TG/HDL, Non-HDL), Harmonized Metabolic Risk Score, Circadian Diurnal Dip %, Cumulative Sleep Debt & Autonomic Strain, Lifestyle Archetypes (K-Means), Pearson/Spearman Cross-Correlations | Local Domain Calculators & Room Entities |
 
 ## 📄 License
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)** or **MIT License**.
-
-## Future RoadMap
-
-### Insights
-
-**Possible ways to generate health insights**
-
-- **Rule‑based thresholds** – simple if/else checks against medically‑validated cut‑offs.
-- **Statistical trends & percentiles** – moving averages, week‑over‑week change, age‑group percentile comparisons.
-- **Correlation & regression analysis** – Pearson/Spearman correlation or linear regression between metrics.
-- **Time‑series decomposition** – isolate trend, seasonality, residual (e.g., circadian HRV patterns).
-- **Predictive / risk models** – lightweight on‑device models (logistic regression, gradient‑boosted trees) to produce risk scores.
-- **Clustering / pattern discovery** – unsupervised grouping of daily feature vectors.
-- **Anomaly detection** – statistical z‑score or Isolation Forest to flag outliers.
-- **Large Language Model (LLM) narrative** – LLM‑driven health report (already implemented as the “AI Health Report” card).
-- **Hybrid rule + ML** – combine safety‑critical alerts with ML‑driven personalization.
-- **External reference integration** – compare against public benchmarks (WHO step recommendation, etc.).
-
-**Implemented in the current codebase**
-
-- LLM‑generated health report (`AiReportCard` & `GenerateHealthReportUseCase`).
-- Simple correlation example (Sleep & Glycemic Energy Expenditure) in `BiometricInsightsViewModel`.
-- Rule‑based alerts are not yet present but can be added in future phases.
-
-## Available Data
-
-### Health Connect
-- **Heart Rate** – `HeartRateRecord`
-- **Heart Rate Variability (HRV)** – `HeartRateVariabilityRmssdRecord`
-- **Steps** – `StepsRecord`
-- **Sleep** – `SleepSessionRecord`
-- **Active Calories Burned** – `ActiveCaloriesBurnedRecord`
-- **Oxygen Saturation** – `OxygenSaturationRecord`
-- **Weight** – `WeightRecord`
-
-### Blood Report (Lab Results)
-- Parsed via Vision LLM and normalized by `ClinicalSchemaNormalizer`. Includes CBC, metabolic panel, lipid panel, thyroid, vitamins, etc. (see `domain/clinical` package).
-
-### Manual Reports
-- User‑entered entries such as **Weight** and **Height** entered directly in the app UI (stored in local Room tables).
+This project is licensed under the **GNU General Public License v3.0 (GPL‑3.0)** or **MIT License**.

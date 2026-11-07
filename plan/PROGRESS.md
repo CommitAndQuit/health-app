@@ -18,6 +18,18 @@ Last Updated: 2026-11-03 13:05 IST
 | Task 10: Settings Screen | ✅ COMPLETE | 4 files | Passed | Keystore encryption, test connection, local data wipe |
 | Task 11: Navigation | ✅ COMPLETE | 3 files | Passed | BottomNavigation, `BioTraceNavHost`, edge-to-edge |
 | Task 12: Final Polish & Build | ✅ COMPLETE | 5 test suites | Passed | `./gradlew test` (100% pass), `app-debug.apk` built |
+| Task 13: Clinical Safety Rules | ✅ COMPLETE | 3 files | Passed | Boundary rules for AHA, ADA, WHO; 20/20 tests passing |
+| Task 14: Longitudinal Stats | ✅ COMPLETE | 3 files | Passed | SMA, EWMA, MAD, shifts, Cooper/HRV percentiles |
+| Task 15: Medical Benchmarks | ✅ COMPLETE | 2 files | Passed | WHO Activity, NSF Sleep distributions |
+| Task 16: Correlation Matrix | ✅ COMPLETE | 5 files | Passed | Pearson $r$, Spearman $\rho$, Student's t, p-values |
+| Task 17: Circadian Decomposition | ✅ COMPLETE | 3 files | Passed | 24-hr profile, nocturnal dip %, dipping patterns |
+| Task 18: Correlation UI | ✅ COMPLETE | 2 files | Passed | `CorrelationScatterPlot`, `CircadianRhythmCard` |
+| Task 19: Clinical Risk Models | ✅ COMPLETE | 3 files | Passed | Atherogenic Triad, Harmonized Metabolic, Sleep Debt |
+| Task 20: Lifestyle Clustering | ✅ COMPLETE | 3 files | Passed | 5D Daily vector, K-Means++, archetype mapping |
+| Task 21: In-App Multivariate Anomaly | ✅ COMPLETE | 2 files | Passed | Compound autonomic strain (HRV, RHR, Sleep) |
+| Task 22: ReAct Query Tools | ✅ COMPLETE | 5 files | Passed | 4 new analytical tools registered in `HealthAgent` |
+| Task 23: Safety Arbitration | ✅ COMPLETE | 2 files | Passed | Clinical priority over generative narrative, citations |
+| Task 24: Insights Hub Overhaul | ✅ COMPLETE | 4 files | Passed | 4-tab filter bar, radial gauges, Bento cards |
 
 ---
 
@@ -114,3 +126,29 @@ Last Updated: 2026-11-03 13:05 IST
   - `./gradlew testDebugUnitTest`: **BUILD SUCCESSFUL (100% tests passing)**.
   - `./gradlew assembleDebug`: **BUILD SUCCESSFUL**.
   - Generated APK: `app/build/outputs/apk/debug/app-debug.apk` (63 MB).
+
+---
+
+## Phases 5–8: Advanced Health Insights & Predictive Analytics
+
+### Phase 5: Deterministic Statistical Intelligence & Clinical Rule Engine
+- **Status:** ✅ COMPLETE
+- Implemented: `ClinicalRule.kt`, `MedicalGuidelinesCatalog.kt`, `ClinicalSafetyRuleEngine.kt`, `RollingStatsCalculator.kt`, `LongitudinalShiftEvaluator.kt`, `DemographicPercentileEngine.kt`, `WhoActivityBenchmark.kt`, `SleepArchitectureBenchmark.kt`.
+- Tests: `ClinicalSafetyRuleEngineTest`, `RollingStatsCalculatorTest`, `LongitudinalShiftEvaluatorTest`, `DemographicPercentileEngineTest`, `BenchmarksTest`.
+
+### Phase 6: Multi-Metric Biometric Correlation & Time-Series Decomposition
+- **Status:** ✅ COMPLETE
+- Implemented: `CorrelationStrength.kt`, `CorrelationMatrixCalculator.kt`, `MetricPairwiseCorrelator.kt`, `CircadianModels.kt`, `DiurnalDipCalculator.kt`, `CircadianDecompositionService.kt`, `CorrelationScatterPlot.kt`, `CircadianRhythmCard.kt`.
+- Tests: `CorrelationMatrixCalculatorTest`, `MetricPairwiseCorrelatorTest`, `DiurnalDipCalculatorTest`, `CircadianDecompositionServiceTest`.
+
+### Phase 7: Predictive Health Risk Calculators & Lifestyle Pattern Clustering
+- **Status:** ✅ COMPLETE
+- Implemented: `AtherogenicRiskCalculator.kt`, `HarmonizedMetabolicRiskCalculator.kt` (zero blood pressure dependency), `SleepDebtCalculator.kt`, `DailyFeatureVector.kt`, `LifestyleArchetype.kt`, `LifestyleKMeansClusterer.kt`, and `evaluateCompoundStrain` in `AnomalyDetectionEngine.kt`.
+- Tests: `AtherogenicRiskCalculatorTest`, `HarmonizedMetabolicRiskCalculatorTest`, `SleepDebtCalculatorTest`, `LifestyleKMeansClustererTest`, `MultivariateAnomalyTest`.
+
+### Phase 8: Hybrid Grounded AI Intelligence, ReAct Tool Expansion & UI Hub Overhaul
+- **Status:** ✅ COMPLETE
+- Implemented: `QueryCorrelationMatrixTool.kt`, `QueryClinicalRiskTool.kt`, `QueryCircadianDecompositionTool.kt`, `QueryLifestyleClustersTool.kt`, `ArbitratedInsight.kt`, `InsightArbitrator.kt`, `RiskScoreGaugeCard.kt`, `LifestyleArchetypeCard.kt`, `InsightsModule.kt`.
+- Overhauled `BiometricInsightsViewModel.kt` and `BiometricInsightsScreen.kt` with a 4-tab Bento interface.
+- Tests: `ExpandedAgentToolsTest`, `InsightArbitratorTest`, updated `BiometricInsightsViewModelTest`.
+- Final full suite verification: **185 tests executed across 33 test suites, 100% passing**.

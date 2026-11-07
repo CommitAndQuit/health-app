@@ -96,6 +96,11 @@ class KeystoreManagerImpl @Inject constructor(
                     return@withContext key
                 }
             }
+            if (provider == "gemini" && io.biotrace.app.BuildConfig.GEMINI_API_KEY.isNotBlank()) {
+                val key = io.biotrace.app.BuildConfig.GEMINI_API_KEY.trim()
+                storeApiKey(provider, key)
+                return@withContext key
+            }
             return@withContext null
         }
 
@@ -130,7 +135,9 @@ class KeystoreManagerImpl @Inject constructor(
 
     override suspend fun hasApiKey(provider: String): Boolean = withContext(Dispatchers.IO) {
         val alias = getAlias(provider)
-        prefs.contains(alias) || java.io.File(context.filesDir, "gemini_api_key.txt").exists()
+        prefs.contains(alias) || 
+            java.io.File(context.filesDir, "gemini_api_key.txt").exists() ||
+            (provider == "gemini" && io.biotrace.app.BuildConfig.GEMINI_API_KEY.isNotBlank())
     }
 
     override suspend fun deleteApiKey(provider: String): Unit = withContext(Dispatchers.IO) {
