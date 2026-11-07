@@ -1,5 +1,6 @@
 package io.biotrace.app.ui.labs
 
+import android.graphics.Bitmap
 import io.biotrace.app.data.local.dao.LabBiomarkerDao
 import io.biotrace.app.data.local.entity.LabBiomarkerEntity
 import io.biotrace.app.domain.clinical.ClinicalSchemaNormalizer
@@ -238,5 +239,41 @@ class LabsViewModelTest {
         // Delta: 14.4 - 28.5 = -14.1
         assertEquals(-14.1, card.deltaValue ?: 0.0, 0.01)
         assertEquals(2, card.history.size)
+    }
+
+    @Test
+    fun `processAndScanBitmap compresses and triggers blood report scan`() = runTest {
+        whenever(labBiomarkerDao.getAll()).thenReturn(emptyList())
+        whenever(labBiomarkerDao.getAllFlow()).thenReturn(flowOf(emptyList()))
+
+        val jsonResponse = """
+            [
+              {
+                "rawName": "Serum Ferritin",
+                "value": "75.0",
+                "unit": "ng/mL",
+                "referenceMin": 30.0,
+                "referenceMax": 300.0
+              }
+            ]
+        """.trimIndent()
+        whenever(llmClient.generateContentWithDocument(any(), any(), any())).thenReturn(jsonResponse)
+
+        val viewModel = LabsViewModel(labBiomarkerDao, llmClient, normalizer, pdfReportProcessor)
+        advanceUntilIdle()
+
+        val mockBitmap: Bitmap = mock()
+        whenever(mockBitmap.width).thenReturn(800)
+        whenever(mockBitmap.height).thenReturn(600)
+
+        viewModel.processAndScanBitmap(mockBitmap)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals("Paper Lab Report (Camera)", state.scanningFileName)
+        assertEquals(mockBitmap, state.scanningPreviewBitmap)
+        assertTrue(state.isReviewDialogOpen)
+        assertEquals(1, state.pendingReviewBiomarkers.size)
+        assertEquals("FERRITIN", state.pendingReviewBiomarkers[0].biomarkerName)
     }
 }

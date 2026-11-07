@@ -7,17 +7,6 @@ All health data, raw time-series metrics, and Q&A histories remain strictly on y
 
 ---
 
-## 🌟 Key Pillars
-
-1. **Zero-Server Simplicity**: No self-hosted servers, Docker containers, or database instances to manage. Install the APK, grant permissions, and run everything locally.
-2. **Direct Health Connect Sync**: Native ingestion of health data from apps that write to Health Connect (heart rate, HRV, sleep stages, steps, active calories, and SpO2).
-3. **Clinical Lab & Blood Report Parsing**: Camera/gallery capture of paper or digital lab results. A multimodal Vision LLM extracts 50+ structured blood markers (CBC, metabolic panel, lipid panel, thyroid, vitamins) into normalized clinical units.
-4. **Conversational AI Health Agent**: A streaming, record-grounded ReAct agent capable of correlating wearable sleep/HRV trends with blood markers (e.g., ferritin levels vs. resting HR trends) while citing verified local data.
-5. **Photo Meal Logging (Smart Macro Scan)**: Snap a photo of a meal to estimate macronutrients, calories, and glycemic impact via Vision LLM.
-6. **Air-Gapped Privacy & Keystore Security**: All metrics live in an on-device Room database. API keys are encrypted via Android Keystore (AES-256-GCM). Data only leaves the device when you explicitly invoke an LLM action.
-
----
-
 ## 🏗️ Architecture Overview
 
 ```text
@@ -93,47 +82,40 @@ All health data, raw time-series metrics, and Q&A histories remain strictly on y
 ## 🛣️ Phased Development Roadmap
 
 ### Phase 1: Foundation, Local Storage & Health Connect Ingestion
-- [ ] Scaffold Kotlin project with Jetpack Compose, Material 3, Hilt DI, and Coroutines/Flow.
-- [ ] Implement `Room` local database (tables: `vitals_records`, `lab_biomarkers`, `meals`, `chat_history`).
-- [ ] Implement `Android Keystore` security manager for AES-256-GCM encryption of user API keys.
-- [ ] Integrate `HealthConnectClient` SDK:
+- [x] Scaffold Kotlin project with Jetpack Compose, Material 3, Hilt DI, and Coroutines/Flow.
+- [x] Implement `Room` local database (tables: `vitals_records`, `lab_biomarkers`, `meals`, `chat_history`).
+- [x] Implement `Android Keystore` security manager for AES-256-GCM encryption of user API keys.
+- [x] Integrate `HealthConnectClient` SDK (permission flow & background worker).
   - Permission negotiation flow for Steps, Heart Rate, HRV, Sleep, and Activity.
   - Background synchronization worker via `WorkManager`.
-- [ ] Build core Compose charting widgets (time-series line charts, sleep stage bars, daily step heatmaps).
+- [x] Build core Compose charting widgets (time-series line charts, sleep stage bars, daily step heatmaps).
 
 ### Phase 2: BYOK LLM Engine & Health Reasoning Agent
-- [ ] Build unified client-side `LlmClient` supporting:
+- [x] Build unified client-side `LlmClient` supporting:
   - OpenAI-compatible API protocol (OpenAI, DeepSeek, Local Ollama).
   - Anthropic Messages API (Claude).
   - Google Gemini API.
-- [ ] Implement Server-Sent Events (SSE) streaming consumer for real-time token rendering.
-- [ ] Build the ReAct reasoning agent loop with strict guardrails:
+- [x] Implement Server-Sent Events (SSE) streaming consumer for real-time token rendering.
+- [x] Build the ReAct reasoning agent loop with strict guardrails:
   - Tool budget caps (maximum 5 turns, 6 tool calls).
   - Read-only tools for local Room queries.
   - Mandatory source citation blocks (`[Record #ID: Date, Value, Baseline]`).
 
 ### Phase 3: Vision LLM Lab & Blood Report Ingestion
-- [ ] Build camera capture & document picker with edge detection and downsampling.
-- [ ] Implement Vision LLM extraction prompt enforcing JSON-schema outputs for medical reports.
-- [ ] Develop the `ClinicalSchemaNormalizer`:
+- [x] Build camera capture & document picker with edge detection and downsampling.
+- [x] Implement Vision LLM extraction prompt enforcing JSON-schema outputs for medical reports.
+- [x] Develop the `ClinicalSchemaNormalizer`:
   - 110+ clinical alias dictionaries.
   - 25+ certified medical unit conversions.
   - Interval parsing logic (`<` and `>` boundaries).
-- [ ] Build interactive "Verification & Edit" UI for user confirmation before database write.
-- [ ] Add biomarker trend charts showing historical lab results over time alongside healthy ranges.
+- [x] Build interactive "Verification & Edit" UI for user confirmation before database write.
+- [x] Add biomarker trend charts showing historical lab results over time alongside healthy ranges.
 
 ### Phase 4: Food Vision & Nutritional Logging
-- [ ] Create photo meal capture screen with multi-item dish segmentation prompt.
-- [ ] Implement food identification and macro estimation pipeline (calories, protein, carbs, fats, fiber).
-- [ ] Build daily macro tracker UI with target progress rings.
-- [ ] Add cross-domain correlation: AI prompt injection comparing meal timing/macros against wearable sleep/HRV metrics.
-
-### Phase 5: On-Device AI, Anomaly Alerts & Open Source Release
-- [ ] Integrate on-device LLM inference via Google AICore / Gemini Nano Prompt API (Android 14+) and LiteRT for 100% offline summaries.
-- [ ] Implement Three-Rule Anomaly Detection Engine (Out-of-range clinical flags, 180-day trend shifts, personal baseline median deviations).
-- [ ] Add system calendar integration for medication and follow-up lab test reminders.
-- [ ] Prepare reproducible F-Droid build pipeline, verify zero third-party telemetry, and publish initial v1.0.0 release.
-
+- [x] Create photo meal capture screen with multi-item dish segmentation prompt.
+- [x] Implement food identification and macro estimation pipeline (calories, protein, carbs, fats, fiber).
+- [x] Build daily macro tracker UI with target progress rings.
+- [x] Add cross-domain correlation: AI prompt injection comparing meal timing/macros against wearable sleep/HRV metrics.
 ---
 
 ## 🔒 Privacy & Threat Model
@@ -163,3 +145,43 @@ All health data, raw time-series metrics, and Q&A histories remain strictly on y
 
 ## 📄 License
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)** or **MIT License**.
+
+## Future RoadMap
+
+### Insights
+
+**Possible ways to generate health insights**
+
+- **Rule‑based thresholds** – simple if/else checks against medically‑validated cut‑offs.
+- **Statistical trends & percentiles** – moving averages, week‑over‑week change, age‑group percentile comparisons.
+- **Correlation & regression analysis** – Pearson/Spearman correlation or linear regression between metrics.
+- **Time‑series decomposition** – isolate trend, seasonality, residual (e.g., circadian HRV patterns).
+- **Predictive / risk models** – lightweight on‑device models (logistic regression, gradient‑boosted trees) to produce risk scores.
+- **Clustering / pattern discovery** – unsupervised grouping of daily feature vectors.
+- **Anomaly detection** – statistical z‑score or Isolation Forest to flag outliers.
+- **Large Language Model (LLM) narrative** – LLM‑driven health report (already implemented as the “AI Health Report” card).
+- **Hybrid rule + ML** – combine safety‑critical alerts with ML‑driven personalization.
+- **External reference integration** – compare against public benchmarks (WHO step recommendation, etc.).
+
+**Implemented in the current codebase**
+
+- LLM‑generated health report (`AiReportCard` & `GenerateHealthReportUseCase`).
+- Simple correlation example (Sleep & Glycemic Energy Expenditure) in `BiometricInsightsViewModel`.
+- Rule‑based alerts are not yet present but can be added in future phases.
+
+## Available Data
+
+### Health Connect
+- **Heart Rate** – `HeartRateRecord`
+- **Heart Rate Variability (HRV)** – `HeartRateVariabilityRmssdRecord`
+- **Steps** – `StepsRecord`
+- **Sleep** – `SleepSessionRecord`
+- **Active Calories Burned** – `ActiveCaloriesBurnedRecord`
+- **Oxygen Saturation** – `OxygenSaturationRecord`
+- **Weight** – `WeightRecord`
+
+### Blood Report (Lab Results)
+- Parsed via Vision LLM and normalized by `ClinicalSchemaNormalizer`. Includes CBC, metabolic panel, lipid panel, thyroid, vitamins, etc. (see `domain/clinical` package).
+
+### Manual Reports
+- User‑entered entries such as **Weight** and **Height** entered directly in the app UI (stored in local Room tables).

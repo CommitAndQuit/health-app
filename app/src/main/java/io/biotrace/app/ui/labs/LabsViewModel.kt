@@ -271,6 +271,56 @@ class LabsViewModel @Inject constructor(
         }
     }
 
+    fun processAndScanBitmap(bitmap: Bitmap) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isScanning = true,
+                    scanningPreviewBitmap = bitmap,
+                    scanningFileName = "Paper Lab Report (Camera)",
+                    scanMessage = "Optimizing photo and analyzing with Multimodal Vision LLM...",
+                    error = null
+                )
+            }
+            try {
+                // Downsample bitmap so max edge is 1600px (OOM-safe)
+                val maxEdge = 1600
+                val width = bitmap.width
+                val height = bitmap.height
+                val scaledBitmap = if (width > maxEdge || height > maxEdge) {
+                    val ratio = if (width > height) maxEdge.toFloat() / width else maxEdge.toFloat() / height
+                    val targetW = (width * ratio).roundToInt().coerceAtLeast(1)
+                    val targetH = (height * ratio).roundToInt().coerceAtLeast(1)
+                    Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
+                } else {
+                    bitmap
+                }
+
+                // Compress to JPEG (85% quality) and encode to Base64 (NO_WRAP)
+                val outputStream = java.io.ByteArrayOutputStream()
+                val format: Bitmap.CompressFormat? = Bitmap.CompressFormat.JPEG
+                if (format != null) {
+                    scaledBitmap.compress(format, 85, outputStream)
+                }
+                val bytes = outputStream.toByteArray()
+                val base64Data = (try {
+                    android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                } catch (t: Throwable) {
+                    null
+                }) ?: java.util.Base64.getEncoder().encodeToString(bytes)
+
+                scanBloodReport(base64Data, "image/jpeg", "paper_report.jpg")
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isScanning = false,
+                        error = e.message ?: "Failed to process photo"
+                    )
+                }
+            }
+        }
+    }
+
     fun processAndScanDocument(uri: Uri) {
         viewModelScope.launch {
             _uiState.update {

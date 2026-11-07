@@ -1,8 +1,11 @@
 package io.biotrace.app.ui.labs
 
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,11 +30,14 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -57,9 +63,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -105,6 +121,12 @@ fun LabsScreen(
         }
     }
 
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        bitmap?.let { viewModel.processAndScanBitmap(it) }
+    }
+
     if (uiState.isManualEntryOpen) {
         ManualBiomarkerEntryDialog(
             onDismiss = { viewModel.openManualEntry(false) },
@@ -141,56 +163,84 @@ fun LabsScreen(
             contentPadding = PaddingValues(top = 4.dp, bottom = 80.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Action Buttons: Scan Blood Report & Manual Add
+            // Action Buttons: Snap Report (Camera), Upload Document/PDF, and Manual Add
             item {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Button(
-                        onClick = { launcher.launch(arrayOf("application/pdf", "image/jpeg", "image/png", "image/*")) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = BioOrange,
-                            contentColor = PureWhite
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier
-                            .weight(1.3f)
-                            .height(50.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Description,
-                            contentDescription = null,
-                            modifier = Modifier.size(19.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Scan Lab Report",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
+                        Button(
+                            onClick = { cameraLauncher.launch(null) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BioOrange,
+                                contentColor = PureWhite
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(19.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Snap Report (Camera)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.5.sp
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = { launcher.launch(arrayOf("application/pdf", "image/*")) },
+                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextDark),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.UploadFile,
+                                contentDescription = null,
+                                tint = BioOrange,
+                                modifier = Modifier.size(19.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Upload Document / PDF",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
 
                     OutlinedButton(
                         onClick = { viewModel.openManualEntry(true) },
                         border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = TextDark),
                         modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp)
+                            .fillMaxWidth()
+                            .height(42.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
                             tint = BioOrange,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Add Test",
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.SemiBold
+                            text = "Add Test Manually",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -671,6 +721,19 @@ fun LongitudinalBiomarkerCard(model: LongitudinalBiomarkerCardModel) {
                 }
             }
 
+            // Biomarker Longitudinal Trend Chart
+            if (model.history.size > 1) {
+                Spacer(modifier = Modifier.height(12.dp))
+                BiomarkerTrendChart(
+                    history = model.history,
+                    refMin = biomarker.referenceMin,
+                    refMax = biomarker.referenceMax,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                )
+            }
+
             // Expandable Multi-Report History Panel
             if (isHistoryExpanded && model.history.size > 1) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -711,6 +774,216 @@ fun LongitudinalBiomarkerCard(model: LongitudinalBiomarkerCardModel) {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+private val EmeraldSoftTint = Color(0x1810B981)
+
+@Composable
+fun BiomarkerTrendChart(
+    history: List<BiomarkerReadingHistory>,
+    refMin: Double?,
+    refMax: Double?,
+    modifier: Modifier = Modifier
+) {
+    if (history.size <= 1) return
+
+    val chronological = remember(history) { history.sortedBy { it.date } }
+    val density = LocalDensity.current
+
+    val valueTextSize = with(density) { 10.5.sp.toPx() }
+    val dateTextSize = with(density) { 9.sp.toPx() }
+
+    val textPaintValue = remember(density) {
+        Paint().apply {
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+            textSize = valueTextSize
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            color = android.graphics.Color.rgb(0x0F, 0x17, 0x2A)
+        }
+    }
+    val textPaintDate = remember(density) {
+        Paint().apply {
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+            textSize = dateTextSize
+            typeface = Typeface.DEFAULT
+            color = android.graphics.Color.rgb(0x64, 0x74, 0x8B)
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xFFFAFBFD),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E9F0)),
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 6.dp, vertical = 6.dp)
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val chartWidth = size.width
+                val chartHeight = size.height
+                if (chartWidth <= 0 || chartHeight <= 0) return@Canvas
+
+                val paddingLeft = 32.dp.toPx()
+                val paddingRight = 32.dp.toPx()
+                val paddingTop = 22.dp.toPx()
+                val paddingBottom = 20.dp.toPx()
+                val plotWidth = chartWidth - paddingLeft - paddingRight
+                val plotHeight = chartHeight - paddingTop - paddingBottom
+                if (plotWidth <= 0 || plotHeight <= 0) return@Canvas
+
+                val values = chronological.map { it.value }
+                val allY = values + listOfNotNull(refMin, refMax)
+                val minY = allY.minOrNull() ?: 0.0
+                val maxY = allY.maxOrNull() ?: 100.0
+                val rawSpread = maxY - minY
+                val spread = if (rawSpread <= 0.001) 10.0 else rawSpread
+
+                val yMin = minY - spread * 0.18
+                val yMax = maxY + spread * 0.18
+                val yRange = (yMax - yMin).coerceAtLeast(0.001)
+
+                fun getY(v: Double): Float {
+                    val normalized = ((yMax - v) / yRange).toFloat()
+                    return (paddingTop + normalized * plotHeight).coerceIn(paddingTop, paddingTop + plotHeight)
+                }
+
+                val n = chronological.size
+                val stepX = plotWidth / (n - 1).coerceAtLeast(1)
+                fun getX(index: Int): Float = paddingLeft + index * stepX
+
+                // 1. Shaded background band for healthy reference range
+                if (refMin != null || refMax != null) {
+                    val rMin = refMin ?: yMin
+                    val rMax = refMax ?: yMax
+                    val topY = getY(rMax)
+                    val bottomY = getY(rMin)
+                    val bandTop = minOf(topY, bottomY)
+                    val bandBottom = maxOf(topY, bottomY)
+                    val bandHeight = (bandBottom - bandTop).coerceAtLeast(0f)
+
+                    drawRect(
+                        color = EmeraldSoftTint,
+                        topLeft = Offset(paddingLeft - 8.dp.toPx(), bandTop),
+                        size = Size(plotWidth + 16.dp.toPx(), bandHeight)
+                    )
+
+                    // Reference bounds subtle dash line
+                    if (refMax != null) {
+                        drawLine(
+                            color = ClinicalEmerald.copy(alpha = 0.35f),
+                            start = Offset(paddingLeft - 8.dp.toPx(), bandTop),
+                            end = Offset(paddingLeft + plotWidth + 8.dp.toPx(), bandTop),
+                            strokeWidth = 1.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
+                        )
+                    }
+                    if (refMin != null) {
+                        drawLine(
+                            color = ClinicalEmerald.copy(alpha = 0.35f),
+                            start = Offset(paddingLeft - 8.dp.toPx(), bandBottom),
+                            end = Offset(paddingLeft + plotWidth + 8.dp.toPx(), bandBottom),
+                            strokeWidth = 1.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
+                        )
+                    }
+                }
+
+                // 2. Connected line curve connecting historical readings chronologically (left to right)
+                val points = chronological.indices.map { i ->
+                    Offset(getX(i), getY(chronological[i].value))
+                }
+
+                val linePath = Path()
+                val fillPath = Path()
+
+                linePath.moveTo(points.first().x, points.first().y)
+                fillPath.moveTo(points.first().x, paddingTop + plotHeight)
+                fillPath.lineTo(points.first().x, points.first().y)
+
+                for (i in 0 until points.size - 1) {
+                    val p0 = points[i]
+                    val p1 = points[i + 1]
+                    val cx1 = (p0.x + p1.x) / 2f
+                    val cy1 = p0.y
+                    val cx2 = (p0.x + p1.x) / 2f
+                    val cy2 = p1.y
+                    linePath.cubicTo(cx1, cy1, cx2, cy2, p1.x, p1.y)
+                    fillPath.cubicTo(cx1, cy1, cx2, cy2, p1.x, p1.y)
+                }
+
+                fillPath.lineTo(points.last().x, paddingTop + plotHeight)
+                fillPath.close()
+
+                drawPath(
+                    path = fillPath,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(BioOrange.copy(alpha = 0.16f), BioOrange.copy(alpha = 0.01f)),
+                        startY = paddingTop,
+                        endY = paddingTop + plotHeight
+                    )
+                )
+
+                drawPath(
+                    path = linePath,
+                    color = BioOrange,
+                    style = Stroke(
+                        width = 2.5.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round
+                    )
+                )
+
+                // 3. Data point dots, value labels, and short date labels
+                points.forEachIndexed { i, pt ->
+                    val item = chronological[i]
+                    val isNormal = item.flag == "NORMAL" || item.flag == null
+                    val dotColor = if (isNormal) ClinicalEmerald else AlertRed
+
+                    // Dot outer white ring
+                    drawCircle(
+                        color = PureWhite,
+                        radius = 5.dp.toPx(),
+                        center = pt
+                    )
+                    // Data point dot
+                    drawCircle(
+                        color = dotColor,
+                        radius = 3.8.dp.toPx(),
+                        center = pt
+                    )
+
+                    // Value label along the points
+                    val valueStr = if (item.value % 1.0 == 0.0) item.value.toInt().toString() else item.value.toString()
+                    val valueY = (pt.y - 7.dp.toPx()).coerceAtLeast(13.dp.toPx())
+                    drawContext.canvas.nativeCanvas.drawText(
+                        valueStr,
+                        pt.x,
+                        valueY,
+                        textPaintValue
+                    )
+
+                    // Short date label along the points
+                    val shortDate = try {
+                        val formatter = DateTimeFormatter.ofPattern("MMM d", Locale.US).withZone(ZoneId.systemDefault())
+                        formatter.format(item.date)
+                    } catch (e: Exception) {
+                        item.displayDate.substringBefore(",")
+                    }
+                    drawContext.canvas.nativeCanvas.drawText(
+                        shortDate,
+                        pt.x,
+                        chartHeight - 4.dp.toPx(),
+                        textPaintDate
+                    )
                 }
             }
         }
@@ -835,6 +1108,20 @@ fun BiomarkerReviewDialog(
     onConfirm: (List<LabBiomarkerEntity>) -> Unit
 ) {
     val editableList = remember { mutableStateListOf<LabBiomarkerEntity>().apply { addAll(biomarkers) } }
+    var editingIndex by remember { mutableStateOf<Int?>(null) }
+
+    editingIndex?.let { index ->
+        if (index in editableList.indices) {
+            EditBiomarkerDialog(
+                biomarker = editableList[index],
+                onDismiss = { editingIndex = null },
+                onSave = { updated ->
+                    editableList[index] = updated
+                    editingIndex = null
+                }
+            )
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -871,7 +1158,7 @@ fun BiomarkerReviewDialog(
                             )
                         }
                         Text(
-                            text = "${editableList.size} tests extracted • Confirm to save",
+                            text = "${editableList.size} tests extracted • Tap to edit, confirm to save",
                             fontSize = 11.5.sp,
                             color = TextSecondary
                         )
@@ -895,7 +1182,9 @@ fun BiomarkerReviewDialog(
                             shape = RoundedCornerShape(12.dp),
                             color = Color(0xFFF8FAFC),
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEEF2F6)),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { editingIndex = editableList.indexOf(item) }
                         ) {
                             Row(
                                 modifier = Modifier
@@ -905,12 +1194,21 @@ fun BiomarkerReviewDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = item.rawName,
-                                        fontSize = 13.5.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = TextDark
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = item.rawName,
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = TextDark
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Edit test",
+                                            tint = BioOrange,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    }
                                     Text(
                                         text = "Ref: ${item.referenceMin ?: 0.0} – ${item.referenceMax ?: "∞"} ${item.unit}",
                                         fontSize = 11.sp,
@@ -969,6 +1267,151 @@ fun BiomarkerReviewDialog(
                     Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Save to Health Vault", fontWeight = FontWeight.Bold, color = PureWhite)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EditBiomarkerDialog(
+    biomarker: LabBiomarkerEntity,
+    onDismiss: () -> Unit,
+    onSave: (LabBiomarkerEntity) -> Unit
+) {
+    var name by remember { mutableStateOf(biomarker.rawName) }
+    var valueText by remember {
+        mutableStateOf(if (biomarker.value % 1.0 == 0.0) biomarker.value.toInt().toString() else biomarker.value.toString())
+    }
+    var unitText by remember { mutableStateOf(biomarker.unit) }
+    var minText by remember { mutableStateOf(biomarker.referenceMin?.toString() ?: "") }
+    var maxText by remember { mutableStateOf(biomarker.referenceMax?.toString() ?: "") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = PureWhite,
+            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Edit Extracted Biomarker",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
+                    }
+                }
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Biomarker Name") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = BioOrange,
+                        unfocusedBorderColor = CardBorder
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = valueText,
+                        onValueChange = { valueText = it },
+                        label = { Text("Value") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = BioOrange,
+                            unfocusedBorderColor = CardBorder
+                        ),
+                        modifier = Modifier.weight(1.2f)
+                    )
+                    OutlinedTextField(
+                        value = unitText,
+                        onValueChange = { unitText = it },
+                        label = { Text("Unit") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = BioOrange,
+                            unfocusedBorderColor = CardBorder
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = minText,
+                        onValueChange = { minText = it },
+                        label = { Text("Ref Min") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = BioOrange,
+                            unfocusedBorderColor = CardBorder
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = maxText,
+                        onValueChange = { maxText = it },
+                        label = { Text("Ref Max") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = BioOrange,
+                            unfocusedBorderColor = CardBorder
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Button(
+                    onClick = {
+                        val parsedVal = valueText.toDoubleOrNull() ?: biomarker.value
+                        val parsedMin = minText.toDoubleOrNull()
+                        val parsedMax = maxText.toDoubleOrNull()
+
+                        val flag = when {
+                            parsedMin != null && parsedVal < parsedMin -> "LOW"
+                            parsedMax != null && parsedVal > parsedMax -> "HIGH"
+                            else -> "NORMAL"
+                        }
+
+                        val updated = biomarker.copy(
+                            rawName = name.trim().ifBlank { biomarker.rawName },
+                            value = parsedVal,
+                            unit = unitText.trim(),
+                            referenceMin = parsedMin,
+                            referenceMax = parsedMax,
+                            flag = flag
+                        )
+                        onSave(updated)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BioOrange),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Apply Changes", fontWeight = FontWeight.Bold, color = PureWhite)
                 }
             }
         }
