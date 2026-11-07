@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Nightlight
@@ -37,7 +36,6 @@ enum class VitalMetricType(
     SLEEP("Sleep Recovery", "score", "7h 00m Goal", 420.0, IndigoSleepPrimary, IndigoSleepSoftTint),
     STEPS("Daily Steps", "steps", "8,000 Goal", 8000.0, SolarAmberPrimary, SolarAmberSoftTint),
     CALORIES_DISTANCE("Active Calories", "kcal", "500 kcal Goal", 500.0, BioOrangePrimary, BioOrangeSoftTint),
-    VO2_MAX_WORKOUTS("Cardio VO2 Max", "mL/kg", "VO2 Max & Workouts", 40.0, BioOrangePrimary, BioOrangeSoftTint),
     BODY_METRICS("Body Mass & Height", "kg", "BMI 18.5–24.9", 22.0, CobaltBluePrimary, CobaltBlueSoftTint);
 
     val icon: ImageVector
@@ -48,7 +46,6 @@ enum class VitalMetricType(
             SLEEP -> Icons.Default.Nightlight
             STEPS -> Icons.AutoMirrored.Filled.DirectionsWalk
             CALORIES_DISTANCE -> Icons.Default.LocalFireDepartment
-            VO2_MAX_WORKOUTS -> Icons.Default.FitnessCenter
             BODY_METRICS -> Icons.Default.Scale
         }
 }
@@ -146,9 +143,7 @@ data class ProfileTriptychSummary(
     val restingHr: String = "-- bpm",
     val restingHrDelta: String = "No Data",
     val sleepScore: String = "--%",
-    val sleepStatus: String = "No Data",
-    val vo2Max: String = "--",
-    val vo2MaxTier: String = "No Data"
+    val sleepStatus: String = "No Data"
 )
 
 data class VitalSummaryCardModel(

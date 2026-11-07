@@ -14,7 +14,6 @@ import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.records.Vo2MaxRecord
 import androidx.health.connect.client.records.WeightRecord
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -42,7 +41,6 @@ class HealthConnectManager @Inject constructor(
         HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
         HealthPermission.getReadPermission(DistanceRecord::class),
         HealthPermission.getReadPermission(ExerciseSessionRecord::class),
-        HealthPermission.getReadPermission(Vo2MaxRecord::class),
         HealthPermission.getReadPermission(OxygenSaturationRecord::class),
         HealthPermission.getReadPermission(WeightRecord::class),
         HealthPermission.getReadPermission(HeightRecord::class),

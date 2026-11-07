@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -354,18 +353,6 @@ fun ProfileTriptychHeroCard(
                     value = profile.sleepScore,
                     subtext = profile.sleepStatus,
                     subtextColor = IndigoSleepPrimary,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Triptych Capsule 3: VO2 Max
-                TriptychCapsule(
-                    icon = Icons.Default.Speed,
-                    iconTint = EmeraldPrimary,
-                    iconBg = EmeraldSoftTint,
-                    title = "Cardio Fitness",
-                    value = profile.vo2Max,
-                    subtext = profile.vo2MaxTier,
-                    subtextColor = TextSecondary,
                     modifier = Modifier.weight(1f)
                 )
             }

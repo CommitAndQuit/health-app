@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -762,7 +761,6 @@ fun BioTraceTemplateBCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     val (icon, iconTint, iconBg) = when (card.metricType) {
-                        VitalMetricType.VO2_MAX_WORKOUTS -> Triple(Icons.Default.Speed, EmeraldPrimary, EmeraldSoftTint)
                         VitalMetricType.RESTING_HEART_RATE -> Triple(Icons.Default.Favorite, BioOrangePrimary, BioOrangeSoftTint)
                         else -> Triple(card.metricType.icon, card.metricType.accentColor, card.metricType.accentColor.copy(alpha = 0.12f))
                     }

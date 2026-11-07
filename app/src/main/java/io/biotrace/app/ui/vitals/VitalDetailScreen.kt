@@ -1026,7 +1026,6 @@ fun MetricInfoDialog(
         VitalMetricType.SLEEP -> "Health Connect tracks sleep sessions across 4 distinct stages: Deep, Light, REM, and Awake. The clinical target is set to 7 hours (420 minutes) per night."
         VitalMetricType.STEPS -> "Daily steps are tracked via the onboard 3-axis accelerometer and deduplicated automatically through Health Connect's aggregation pipelines against an 8,000 steps daily goal."
         VitalMetricType.CALORIES_DISTANCE -> "Active calories burned and distance covered during movement and workouts. Distance is calculated from step cadence and GPS tracking when available."
-        VitalMetricType.VO2_MAX_WORKOUTS -> "Cardio Fitness (VO2 Max in mL/kg/min) measures maximum rate of oxygen consumption during strenuous exercise, correlated with heart rate dynamics and workout duration."
         VitalMetricType.BODY_METRICS -> "Body metrics track weight and calculated Body Mass Index (BMI = kg/m²). Standard WHO healthy range is 18.5 to 24.9 kg/m²."
     }
 

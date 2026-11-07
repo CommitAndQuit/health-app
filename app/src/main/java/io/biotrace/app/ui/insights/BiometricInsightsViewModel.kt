@@ -129,28 +129,6 @@ class BiometricInsightsViewModel @Inject constructor(
                 )
             }
 
-            // 2. VO2 Max vs Aerobic Capacity
-            val vo2Card = cards.find { it.metricType == VitalMetricType.VO2_MAX_WORKOUTS }
-            val vo2Score = vo2Card?.primaryValue ?: profile.vo2Max
-            val stepsCard = cards.find { it.metricType == VitalMetricType.STEPS }
-            val stepsVal = stepsCard?.primaryValue ?: "--"
-
-            if (vo2Score != "--" && stepsVal != "--" && stepsVal != "0" && stepsVal != "0 steps") {
-                correlationsList.add(
-                    CorrelationCardData(
-                        title = "Cardio-Respiratory Endurance Index",
-                        category = "AEROBIC FITNESS",
-                        primaryInsight = "Peak oxygen uptake corresponds to sustained stroke volume and efficient daily physical locomotive output.",
-                        metric1Label = "VO2 Max Rating",
-                        metric1Value = "$vo2Score mL/kg",
-                        metric2Label = "Daily Step Volume",
-                        metric2Value = "$stepsVal steps",
-                        couplingScore = "High Endurance",
-                        statusTag = "CARDIOVASCULAR PEAK"
-                    )
-                )
-            }
-
             _uiState.update {
                 it.copy(
                     profile = profile,

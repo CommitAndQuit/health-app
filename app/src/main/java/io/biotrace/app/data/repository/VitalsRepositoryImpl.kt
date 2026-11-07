@@ -5,14 +5,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.DistanceRecord
-import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeightRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.records.Vo2MaxRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
@@ -288,29 +286,12 @@ class VitalsRepositoryImpl @Inject constructor(
     override suspend fun getProfileTriptychSummary(): ProfileTriptychSummary = withContext(Dispatchers.IO) {
         val heroData = getContinuousHeartRateHeroData()
 
-        var vo2Max = "--"
-        var vo2Tier = "No Data"
         var sleepScore = "--%"
         var sleepStatus = "No Data"
 
         try {
             val c = client
             if (c != null) {
-                val vo2 = c.readRecords(
-                    ReadRecordsRequest(
-                        recordType = Vo2MaxRecord::class,
-                        timeRangeFilter = TimeRangeFilter.before(Instant.now()),
-                        ascendingOrder = false,
-                        pageSize = 1
-                    )
-                ).records.firstOrNull()
-
-                if (vo2 != null) {
-                    val v = vo2.vo2MillilitersPerMinuteKilogram
-                    vo2Max = String.format(Locale.US, "%.1f", v)
-                    vo2Tier = if (v >= 40.0) "Optimal" else "Fair"
-                }
-
                 val sleep = c.readRecords(
                     ReadRecordsRequest(
                         recordType = SleepSessionRecord::class,
@@ -338,13 +319,11 @@ class VitalsRepositoryImpl @Inject constructor(
         ProfileTriptychSummary(
             userName = userProfile.userName,
             deviceLabel = "Health Connect",
-            cardioStatus = if (rhrBpm != null || vo2Max != "--") "CARDIO STATUS • OPTIMAL" else "CARDIO • NO DATA",
+            cardioStatus = if (rhrBpm != null) "CARDIO STATUS • OPTIMAL" else "CARDIO • NO DATA",
             restingHr = rhrStr,
             restingHrDelta = rhrDelta,
             sleepScore = sleepScore,
-            sleepStatus = sleepStatus,
-            vo2Max = vo2Max,
-            vo2MaxTier = vo2Tier
+            sleepStatus = sleepStatus
         )
     }
 
@@ -367,7 +346,6 @@ class VitalsRepositoryImpl @Inject constructor(
             val sleepDeferred = async { fetchSleepCard(startOfDay, endOfDay, zoneId) }
 
             // Template B Cards
-            val vo2Deferred = async { fetchVo2MaxCard(startOfDay, endOfDay) }
             val rhrDeferred = async { fetchRestingHeartRateCard(startOfDay, endOfDay, zoneId) }
             val bodyDeferred = async { fetchBodyMetricsCard() }
 
@@ -376,7 +354,6 @@ class VitalsRepositoryImpl @Inject constructor(
                 stepsDeferred.await(),
                 spo2Deferred.await(),
                 sleepDeferred.await(),
-                vo2Deferred.await(),
                 rhrDeferred.await(),
                 bodyDeferred.await()
             )
@@ -600,93 +577,6 @@ class VitalsRepositoryImpl @Inject constructor(
         )
     }
 
-    private suspend fun fetchVo2MaxCard(startOfDay: Instant, endOfDay: Instant): VitalSummaryCardModel {
-        var vo2Max: Double? = null
-        var lastDurationMin: Long? = null
-        var peakHr: Long? = null
-
-        try {
-            val c = client
-            if (c != null) {
-                val vo2Records = c.readRecords(
-                    ReadRecordsRequest(
-                        recordType = Vo2MaxRecord::class,
-                        timeRangeFilter = TimeRangeFilter.before(endOfDay),
-                        ascendingOrder = false,
-                        pageSize = 1
-                    )
-                ).records
-                if (vo2Records.isNotEmpty()) {
-                    vo2Max = vo2Records.first().vo2MillilitersPerMinuteKilogram
-                }
-
-                val workouts = c.readRecords(
-                    ReadRecordsRequest(
-                        recordType = ExerciseSessionRecord::class,
-                        timeRangeFilter = TimeRangeFilter.before(endOfDay),
-                        ascendingOrder = false,
-                        pageSize = 1
-                    )
-                ).records
-
-                val lastWorkout = workouts.firstOrNull()
-                if (lastWorkout != null) {
-                    lastDurationMin = Duration.between(lastWorkout.startTime, lastWorkout.endTime).toMinutes()
-                    val hrAgg = c.aggregate(
-                        AggregateRequest(
-                            metrics = setOf(HeartRateRecord.BPM_MAX),
-                            timeRangeFilter = TimeRangeFilter.between(lastWorkout.startTime, lastWorkout.endTime)
-                        )
-                    )
-                    hrAgg[HeartRateRecord.BPM_MAX]?.let { peakHr = it }
-                }
-            }
-        } catch (_: Exception) {}
-
-        if (vo2Max == null) {
-            val cached = vitalsDao.getLatestRecord("VO2_MAX")
-            if (cached != null) {
-                vo2Max = cached.value
-            }
-        }
-
-        if (vo2Max == null) {
-            return VitalSummaryCardModel(
-                metricType = VitalMetricType.VO2_MAX_WORKOUTS,
-                primaryValue = "--",
-                primaryUnit = "mL/kg",
-                secondaryText = "Cardio VO2 Max",
-                badgeText = "NO DATA",
-                badgeColor = TextSecondary,
-                badgeBgColor = InnerWellSurface,
-                template = BentoCardTemplate.TEMPLATE_B,
-                recessedWellLeftLabel = "Last Workout",
-                recessedWellLeftValue = lastDurationMin?.let { "${it}m" } ?: "--",
-                recessedWellRightLabel = "Peak HR",
-                recessedWellRightValue = peakHr?.let { "$it bpm" } ?: "--",
-                recessedWellRightColor = TextSecondary
-            )
-        }
-
-        val tier = if (vo2Max >= 40.0) "OPTIMAL" else "GOOD"
-
-        return VitalSummaryCardModel(
-            metricType = VitalMetricType.VO2_MAX_WORKOUTS,
-            primaryValue = String.format(Locale.US, "%.1f", vo2Max),
-            primaryUnit = "mL/kg",
-            secondaryText = "Cardio VO2 Max",
-            badgeText = tier,
-            badgeColor = BioOrangePrimary,
-            badgeBgColor = BioOrangeSoftTint,
-            template = BentoCardTemplate.TEMPLATE_B,
-            recessedWellLeftLabel = "Last Workout",
-            recessedWellLeftValue = lastDurationMin?.let { "${it}m" } ?: "--",
-            recessedWellRightLabel = "Peak HR",
-            recessedWellRightValue = peakHr?.let { "$it bpm" } ?: "--",
-            recessedWellRightColor = EmeraldPrimary
-        )
-    }
-
     private suspend fun fetchRestingHeartRateCard(
         startOfDay: Instant,
         endOfDay: Instant,
@@ -876,7 +766,6 @@ class VitalsRepositoryImpl @Inject constructor(
             VitalMetricType.SLEEP -> getSleepDetailData(range)
             VitalMetricType.STEPS -> getStepsDetailData(range)
             VitalMetricType.CALORIES_DISTANCE -> getCaloriesDistanceDetailData(range)
-            VitalMetricType.VO2_MAX_WORKOUTS -> getVo2WorkoutsDetailData(range)
             VitalMetricType.BODY_METRICS -> getBodyMetricsDetailData(range)
         }
     }
@@ -1535,126 +1424,6 @@ class VitalsRepositoryImpl @Inject constructor(
             rangeBars = rangeBars,
             historyRecords = historyItems.reversed(),
             referenceLineValue = 500f,
-            dataSourceLabel = "Health Connect"
-        )
-    }
-
-    private suspend fun getVo2WorkoutsDetailData(range: MetricTimeRange): VitalDetailUiState {
-        val zoneId = ZoneId.systemDefault()
-        val now = Instant.now()
-        val days = range.days.toLong()
-        val startTime = now.minus(Duration.ofDays(days))
-
-        val points = mutableListOf<ChartPoint>()
-        val historyItems = mutableListOf<VitalHistoryItem>()
-
-        try {
-            val c = client
-            if (c != null) {
-                val vo2Records = c.readRecords(
-                    ReadRecordsRequest(
-                        recordType = Vo2MaxRecord::class,
-                        timeRangeFilter = TimeRangeFilter.between(startTime, now),
-                        ascendingOrder = true
-                    )
-                ).records
-
-                vo2Records.forEach { r ->
-                    points.add(
-                        ChartPoint(
-                            timestamp = r.time,
-                            xLabel = dateFormatter.format(r.time.atZone(zoneId)),
-                            value = r.vo2MillilitersPerMinuteKilogram.toFloat()
-                        )
-                    )
-                }
-
-                val exerciseRecords = c.readRecords(
-                    ReadRecordsRequest(
-                        recordType = ExerciseSessionRecord::class,
-                        timeRangeFilter = TimeRangeFilter.between(startTime, now),
-                        ascendingOrder = false
-                    )
-                ).records
-
-                for (ex in exerciseRecords) {
-                    val durationMin = Duration.between(ex.startTime, ex.endTime).toMinutes()
-                    val hrAgg = c.aggregate(
-                        AggregateRequest(
-                            metrics = setOf(HeartRateRecord.BPM_AVG, HeartRateRecord.BPM_MAX),
-                            timeRangeFilter = TimeRangeFilter.between(ex.startTime, ex.endTime)
-                        )
-                    )
-                    val distAgg = c.aggregate(
-                        AggregateRequest(
-                            metrics = setOf(DistanceRecord.DISTANCE_TOTAL),
-                            timeRangeFilter = TimeRangeFilter.between(ex.startTime, ex.endTime)
-                        )
-                    )
-                    val avgHr = hrAgg[HeartRateRecord.BPM_AVG]
-                    val maxHr = hrAgg[HeartRateRecord.BPM_MAX]
-                    val distKm = (distAgg[DistanceRecord.DISTANCE_TOTAL]?.inMeters ?: 0.0) / 1000.0
-
-                    historyItems.add(
-                        VitalHistoryItem(
-                            id = ex.metadata.id,
-                            timestamp = ex.startTime,
-                            formattedTime = fullDateTimeFormatter.format(ex.startTime.atZone(zoneId)),
-                            primaryValue = "${durationMin}m",
-                            primaryUnit = "workout",
-                            secondaryDetail = "Dist: ${String.format(Locale.US, "%.2f km", distKm)} • HR: ${avgHr ?: "--"}/${maxHr ?: "--"} bpm",
-                            badge = StatusBadge(ex.title ?: "Workout", BioOrangePrimary, BioOrangeSoftTint),
-                            deviceSource = "Health Connect"
-                        )
-                    )
-                }
-            }
-        } catch (_: Exception) {}
-
-        if (points.isEmpty() && historyItems.isEmpty()) {
-            return VitalDetailUiState(
-                metricType = VitalMetricType.VO2_MAX_WORKOUTS,
-                selectedRange = range,
-                headlineValue = "--",
-                headlineUnit = "mL/kg",
-                headlineDateLabel = "Cardio Fitness Score",
-                subtitle = "Estimated VO2 Max and logged exercise sessions",
-                calloutInsight = "No VO2 Max or workout sessions recorded for this range.",
-                summaryStats = emptyList(),
-                points = emptyList(),
-                historyRecords = emptyList(),
-                referenceLineValue = 40f,
-                dataSourceLabel = "Health Connect"
-            )
-        }
-
-        val latestVo2 = points.lastOrNull()?.value?.roundToInt()
-        val tier = if (latestVo2 != null) (if (latestVo2 >= 40) "Optimal" else "Good") else "Unrated"
-
-        val stats = listOfNotNull(
-            latestVo2?.let { StatItem("Score", "$it", "mL/kg") },
-            StatItem("Tier", tier, ""),
-            StatItem("Workouts", "${historyItems.size}", "")
-        )
-
-        val insight = if (latestVo2 != null) {
-            "Cardiorespiratory fitness score of $latestVo2 mL/kg/min indicates $tier aerobic capacity relative to age and sex baseline."
-        } else {
-            "${historyItems.size} exercise sessions recorded in this time range."
-        }
-
-        return VitalDetailUiState(
-            metricType = VitalMetricType.VO2_MAX_WORKOUTS,
-            selectedRange = range,
-            headlineValue = latestVo2?.toString() ?: "--",
-            headlineUnit = "mL/kg",
-            headlineDateLabel = "Cardio Fitness Score",
-            subtitle = "Estimated VO2 Max and logged exercise sessions",
-            calloutInsight = insight,
-            summaryStats = stats,
-            points = points,
-            historyRecords = historyItems,
-            referenceLineValue = 40f,
             dataSourceLabel = "Health Connect"
         )
     }

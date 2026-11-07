@@ -1,5 +1,7 @@
 package io.biotrace.app.ui.nutrition
 
+import android.graphics.Bitmap
+import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -35,32 +38,6 @@ data class WearableCorrelationData(
     val lateLabel: String = "62 ms (Sub-baseline)",
     val deltaMs: Int = 14,
     val deepSleepBonusMin: Int = 28
-)
-
-data class FoodScanUiState(
-    val isLoading: Boolean = false,
-    val isScanning: Boolean = false,
-    val isManualEntryOpen: Boolean = false,
-    val todayMeals: List<MealEntity> = emptyList(),
-    val totalCalories: Int = 1840,
-    val dailyTargetCalories: Int = 2200,
-    val burntPercentage: Int = 84,
-    val totalProtein: Double = 135.0,
-    val proteinGoal: Double = 150.0,
-    val totalCarbs: Double = 180.0,
-    val carbsGoal: Double = 220.0,
-    val totalFats: Double = 58.0,
-    val fatsGoal: Double = 70.0,
-    val scanConfidence: Int = 98,
-    val latestScannedTags: List<ScannedFoodTag> = listOf(
-        ScannedFoodTag(label = "Est", value = "640 kcal"),
-        ScannedFoodTag(label = "Protein", value = "42g"),
-        ScannedFoodTag(label = "GLYCEMIC", value = "LOW", isGlycemic = true),
-        ScannedFoodTag(label = "PLATE SEGMENTED", value = "", isSegmentedBadge = true)
-    ),
-    val correlationData: WearableCorrelationData = WearableCorrelationData(),
-    val scanMessage: String? = null,
-    val error: String? = null
 )
 
 @HiltViewModel
@@ -226,6 +203,119 @@ class FoodScanViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun scanCapturedBitmap(bitmap: Bitmap) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    capturedPhotoBitmap = bitmap,
+                    isScanning = true,
+                    scanMessage = "Analyzing meal with Gemini 2.5 Flash...",
+                    error = null,
+                    pendingScanResult = null
+                )
+            }
+
+            try {
+                val outputStream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+                val bytes = outputStream.toByteArray()
+                val base64Image = try {
+                    Base64.encodeToString(bytes, Base64.NO_WRAP)
+                } catch (e: Throwable) {
+                    null
+                } ?: java.util.Base64.getEncoder().encodeToString(bytes)
+
+                val prompt = """
+                    You are a clinical nutrition & macro estimation AI. Analyze this meal photo carefully.
+                    Estimate the meal title, estimated portion calories, macronutrient grams, and glycemic impact (LOW, MEDIUM, HIGH).
+                    Respond ONLY with a valid JSON object in this format:
+                    {
+                      "name": "Grilled Salmon Harvest Bowl",
+                      "calories": 640,
+                      "protein": 42.0,
+                      "carbs": 58.0,
+                      "fats": 22.0,
+                      "fiber": 6.0,
+                      "glycemic": "LOW",
+                      "confidence": 98
+                    }
+                    Return ONLY the raw JSON object, without markdown ticks.
+                """.trimIndent()
+
+                val response = llmClient.generateContentWithImage(prompt, base64Image, "image/jpeg")
+                val cleanedJson = Regex("""\{[\s\S]*\}""").find(response)?.value
+                    ?: response.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+                val json = JSONObject(cleanedJson)
+
+                val name = json.optString("name", "Scanned Meal")
+                val calories = json.optInt("calories", 640)
+                val protein = json.optDouble("protein", 42.0)
+                val carbs = json.optDouble("carbs", 58.0)
+                val fats = json.optDouble("fats", 22.0)
+                val fiber = if (json.has("fiber")) json.optDouble("fiber", 0.0) else null
+                val glycemic = json.optString("glycemic", "LOW")
+                val confidence = json.optInt("confidence", 98)
+
+                val scanResult = MealScanResult(name, calories, protein, carbs, fats, fiber, glycemic, confidence)
+
+                _uiState.update {
+                    it.copy(
+                        isScanning = false,
+                        pendingScanResult = scanResult,
+                        scanConfidence = confidence,
+                        scanMessage = "Estimated $calories kcal for $name"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isScanning = false,
+                        error = e.message ?: "Failed to analyze meal image. Check Gemini API key in Settings."
+                    )
+                }
+            }
+        }
+    }
+
+    fun confirmAndLogScan() {
+        val pending = _uiState.value.pendingScanResult ?: return
+        viewModelScope.launch {
+            val entity = MealEntity(
+                id = "meal_${UUID.randomUUID()}",
+                name = pending.name,
+                calories = pending.calories,
+                proteinGrams = pending.proteinGrams,
+                carbsGrams = pending.carbsGrams,
+                fatsGrams = pending.fatsGrams,
+                fiberGrams = pending.fiberGrams,
+                consumedAt = Instant.now(),
+                photoPath = null
+            )
+            mealDao.insert(entity)
+            _uiState.update {
+                it.copy(
+                    pendingScanResult = null,
+                    latestScannedTags = listOf(
+                        ScannedFoodTag(label = "Est", value = "${pending.calories} kcal"),
+                        ScannedFoodTag(label = "Protein", value = "${pending.proteinGrams.toInt()}g"),
+                        ScannedFoodTag(label = "GLYCEMIC", value = pending.glycemic, isGlycemic = true),
+                        ScannedFoodTag(label = "PLATE SEGMENTED", value = "", isSegmentedBadge = true)
+                    ),
+                    scanMessage = "Logged '${pending.name}' (${pending.calories} kcal)"
+                )
+            }
+        }
+    }
+
+    fun dismissScanResult() {
+        _uiState.update {
+            it.copy(
+                pendingScanResult = null,
+                capturedPhotoBitmap = null
+            )
         }
     }
 }

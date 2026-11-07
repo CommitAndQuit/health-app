@@ -65,7 +65,6 @@ class GenerateHealthReportUseCase @Inject constructor(
         appendLine("Cardio Status: ${profile.cardioStatus}")
         appendLine("Resting HR: ${profile.restingHr} (${profile.restingHrDelta})")
         appendLine("Sleep Score: ${profile.sleepScore} — ${profile.sleepStatus}")
-        appendLine("VO2 Max: ${profile.vo2Max} (${profile.vo2MaxTier})")
         appendLine()
 
         // Vitals snapshot

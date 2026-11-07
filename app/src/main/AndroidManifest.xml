@@ -18,7 +18,6 @@
     <uses-permission android:name="android.permission.health.WRITE_DISTANCE"/>
     <uses-permission android:name="android.permission.health.READ_EXERCISE"/>
     <uses-permission android:name="android.permission.health.WRITE_EXERCISE"/>
-    <uses-permission android:name="android.permission.health.READ_VO2_MAX"/>
     <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION"/>
     <uses-permission android:name="android.permission.health.WRITE_OXYGEN_SATURATION"/>
     <uses-permission android:name="android.permission.health.READ_WEIGHT"/>

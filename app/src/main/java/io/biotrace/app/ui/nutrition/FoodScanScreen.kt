@@ -5,9 +5,14 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -35,6 +40,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Nightlight
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -47,11 +53,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -64,7 +72,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -95,7 +105,6 @@ import io.biotrace.app.ui.theme.PureWhite
 import io.biotrace.app.ui.theme.TextDark
 import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextSecondary
-import java.io.ByteArrayOutputStream
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -109,7 +118,13 @@ fun FoodScanScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    val launcher = rememberLauncherForActivityResult(
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let { viewModel.scanCapturedBitmap(it) }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
@@ -118,15 +133,24 @@ fun FoodScanScreen(
                 MediaStore.Images.Media.getBitmap(context.contentResolver, it)
             } else {
                 val source = ImageDecoder.createSource(context.contentResolver, it)
-                ImageDecoder.decodeBitmap(source)
+                ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                    decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                }
             }
-
-            val outputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
-            val base64 = Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
-            viewModel.scanFoodPhoto(base64)
+            viewModel.scanCapturedBitmap(bitmap)
         }
     }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "scanner")
+    val scanProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scanProgress"
+    )
 
     if (uiState.isManualEntryOpen) {
         ManualMealEntryDialog(
@@ -471,7 +495,7 @@ fun FoodScanScreen(
                                         color = TextDark
                                     )
                                     Text(
-                                        text = "ON-DEVICE VISION LLM v2.4",
+                                        text = "GEMINI 2.5 FLASH VISION",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         letterSpacing = 0.5.sp,
@@ -500,7 +524,7 @@ fun FoodScanScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(210.dp)
+                                .height(220.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(
                                     Brush.verticalGradient(
@@ -511,13 +535,52 @@ fun FoodScanScreen(
                                     )
                                 )
                         ) {
-                            // High fidelity photorealistic food presentation
-                            Image(
-                                painter = painterResource(id = R.drawable.plate_salmon_scan),
-                                contentDescription = "Smart Macro Scan Meal Plate",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                            if (uiState.capturedPhotoBitmap != null) {
+                                Image(
+                                    bitmap = uiState.capturedPhotoBitmap!!.asImageBitmap(),
+                                    contentDescription = "Captured Meal Photo",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(54.dp)
+                                                .clip(CircleShape)
+                                                .background(PureWhite.copy(alpha = 0.12f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.CameraAlt,
+                                                contentDescription = null,
+                                                tint = BioOrange,
+                                                modifier = Modifier.size(28.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Text(
+                                            text = "Macro Cam Viewfinder",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PureWhite
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Tap 'Snap Meal Photo' to click a meal picture",
+                                            fontSize = 11.5.sp,
+                                            color = PureWhite.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                            }
 
                             // Orange Viewfinder Corner Crop Marks
                             CornerBracketMarks(
@@ -527,80 +590,293 @@ fun FoodScanScreen(
                                     .padding(14.dp)
                             )
 
-                            // Floating Semantic Tags directly overlaid on plate
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = PureWhite
-                                    ) {
-                                        Text(
-                                            text = "Est: 640 kcal",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextDark,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                        )
-                                    }
-
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = PureWhite
-                                    ) {
-                                        Text(
-                                            text = "Protein: 42g",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextDark,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                        )
-                                    }
-                                }
-
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                            // While uiState.isScanning == true: show an active glowing scanner radar line sweeping across the viewfinder with caption
+                            if (uiState.isScanning) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.35f))
                                 ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(44.dp)
+                                            .align(Alignment.TopCenter)
+                                            .graphicsLayer {
+                                                translationY = (220.dp.toPx() - 44.dp.toPx()) * scanProgress
+                                            }
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    colors = listOf(
+                                                        BioOrange.copy(alpha = 0f),
+                                                        BioOrange.copy(alpha = 0.4f),
+                                                        BioOrange.copy(alpha = 0.85f),
+                                                        BioOrange.copy(alpha = 0.2f),
+                                                        BioOrange.copy(alpha = 0f)
+                                                    )
+                                                )
+                                            )
+                                    )
+
                                     Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = PureWhite
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = PureWhite.copy(alpha = 0.95f),
+                                        shadowElevation = 4.dp,
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .padding(horizontal = 16.dp)
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(5.dp)
-                                                    .clip(CircleShape)
-                                                    .background(ClinicalEmerald)
+                                            CircularProgressIndicator(
+                                                color = BioOrange,
+                                                strokeWidth = 2.5.dp,
+                                                modifier = Modifier.size(16.dp)
                                             )
-                                            Spacer(modifier = Modifier.width(4.dp))
                                             Text(
-                                                text = "GLYCEMIC: LOW",
-                                                fontSize = 10.sp,
+                                                text = "Gemini 2.5 Flash estimating calories & nutrients...",
+                                                fontSize = 11.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = TextDark
+                                            )
+                                        }
+                                    }
+                                }
+                            } else if (uiState.pendingScanResult == null && uiState.latestScannedTags.isNotEmpty() && uiState.capturedPhotoBitmap != null) {
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        uiState.latestScannedTags.take(2).forEach { tag ->
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = PureWhite
+                                            ) {
+                                                Text(
+                                                    text = if (tag.value.isNotEmpty()) "${tag.label}: ${tag.value}" else tag.label,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = TextDark,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        uiState.latestScannedTags.drop(2).forEach { tag ->
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = PureWhite
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    if (tag.isGlycemic) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(5.dp)
+                                                                .clip(CircleShape)
+                                                                .background(ClinicalEmerald)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = "GLYCEMIC: ${tag.value}",
+                                                            fontSize = 10.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = ClinicalEmeraldDark
+                                                        )
+                                                    } else {
+                                                        Text(
+                                                            text = if (tag.value.isNotEmpty()) "${tag.label}: ${tag.value}" else tag.label,
+                                                            fontSize = 10.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = TextSecondary
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Prominent Calorie Count Result Card
+                        if (uiState.pendingScanResult != null) {
+                            val result = uiState.pendingScanResult!!
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Card(
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7F4)),
+                                border = androidx.compose.foundation.BorderStroke(1.5.dp, BioOrange),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "ESTIMATED CALORIES & MACROS",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.6.sp,
+                                            color = BioOrange
+                                        )
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MintBadgeBg
+                                        ) {
+                                            Text(
+                                                text = "CONFIDENCE ${result.confidence}%",
+                                                fontSize = 9.5.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = ClinicalEmeraldDark
+                                                color = MintBadgeText,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
                                     }
 
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = PureWhite
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Text(
+                                        text = result.name,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDark
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        text = "🔥 ${result.calories} kcal",
+                                        fontSize = 36.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = BioOrange
+                                    )
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = "PLATE SEGMENTED",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextSecondary,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                        )
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = PureWhite,
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                                        ) {
+                                            Text(
+                                                text = "${result.proteinGrams.toInt()}g Protein",
+                                                fontSize = 11.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MacroProteinColor,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = PureWhite,
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                                        ) {
+                                            Text(
+                                                text = "${result.carbsGrams.toInt()}g Carbs",
+                                                fontSize = 11.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MacroCarbsColor,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = PureWhite,
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                                        ) {
+                                            Text(
+                                                text = "${result.fatsGrams.toInt()}g Fats",
+                                                fontSize = 11.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MacroFatsColor,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = PureWhite,
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                                        ) {
+                                            Text(
+                                                text = "GLYCEMIC: ${result.glycemic}",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = ClinicalEmeraldDark,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Button(
+                                            onClick = { viewModel.confirmAndLogScan() },
+                                            colors = ButtonDefaults.buttonColors(containerColor = BioOrange),
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(44.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                                tint = PureWhite
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "Log to Today's Intake",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = PureWhite
+                                            )
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { viewModel.dismissScanResult() },
+                                            shape = RoundedCornerShape(12.dp),
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+                                            modifier = Modifier.height(44.dp)
+                                        ) {
+                                            Text(
+                                                text = "Retake / Discard",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -608,9 +884,9 @@ fun FoodScanScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Full-width Orange Action Button
+                        // Full-width Orange Primary Action Button: Snap Meal Photo
                         Button(
-                            onClick = { launcher.launch("image/*") },
+                            onClick = { cameraLauncher.launch(null) },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = BioOrange,
                                 contentColor = PureWhite
@@ -627,10 +903,36 @@ fun FoodScanScreen(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Log Another Meal (Snap Photo)",
+                                text = "Snap Meal Photo",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.5.sp
                             )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Secondary: Row with subtle button "Upload from Gallery"
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            TextButton(
+                                onClick = { galleryLauncher.launch("image/*") }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PhotoLibrary,
+                                    contentDescription = null,
+                                    tint = TextSecondary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Upload from Gallery",
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextSecondary
+                                )
+                            }
                         }
                     }
                 }
