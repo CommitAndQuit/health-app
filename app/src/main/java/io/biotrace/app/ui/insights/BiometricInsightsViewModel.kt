@@ -5,11 +5,14 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.biotrace.app.data.local.dao.LabBiomarkerDao
 import io.biotrace.app.data.local.entity.LabBiomarkerEntity
+import io.biotrace.app.data.local.store.UserProfileStore
 import io.biotrace.app.domain.llm.LlmClient
+import io.biotrace.app.domain.longevity.BiologicalAgeResult
 import io.biotrace.app.domain.model.ProfileTriptychSummary
 import io.biotrace.app.domain.model.VitalMetricType
 import io.biotrace.app.domain.repository.VitalsRepository
 import io.biotrace.app.domain.usecase.GenerateHealthReportUseCase
+import io.biotrace.app.domain.usecase.GetBiologicalAgeUseCase
 import io.biotrace.app.domain.usecase.ReportChunk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +45,8 @@ data class BiometricInsightsUiState(
     val profile: ProfileTriptychSummary = ProfileTriptychSummary(),
     val correlations: List<CorrelationCardData> = emptyList(),
     val labBiomarkers: List<LabBiomarkerEntity> = emptyList(),
+    val biologicalAge: BiologicalAgeResult? = null,
+    val isAgeDialogOpen: Boolean = false,
     val isLoading: Boolean = false,
     val isApiKeyConfigured: Boolean = false,
     val reportState: AiReportState = AiReportState.Idle
@@ -52,7 +57,9 @@ class BiometricInsightsViewModel @Inject constructor(
     private val vitalsRepository: VitalsRepository,
     private val labBiomarkerDao: LabBiomarkerDao,
     private val generateHealthReportUseCase: GenerateHealthReportUseCase,
-    private val llmClient: LlmClient
+    private val llmClient: LlmClient,
+    private val getBiologicalAgeUseCase: GetBiologicalAgeUseCase,
+    private val userProfileStore: UserProfileStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BiometricInsightsUiState())
@@ -100,6 +107,12 @@ class BiometricInsightsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
+            val bioAge = try {
+                getBiologicalAgeUseCase()
+            } catch (e: Exception) {
+                null
+            }
+
             val profile = vitalsRepository.getProfileTriptychSummary()
             val cards = vitalsRepository.getVitalsDashboardSnapshot()
             val labs = labBiomarkerDao.getAll()
@@ -134,7 +147,29 @@ class BiometricInsightsViewModel @Inject constructor(
                     profile = profile,
                     correlations = correlationsList,
                     labBiomarkers = labs,
+                    biologicalAge = bioAge,
                     isLoading = false
+                )
+            }
+        }
+    }
+
+    fun toggleAgeDialog(open: Boolean) {
+        _uiState.update { it.copy(isAgeDialogOpen = open) }
+    }
+
+    fun updateChronologicalAge(age: Int) {
+        viewModelScope.launch {
+            userProfileStore.setChronologicalAge(age)
+            val bioAge = try {
+                getBiologicalAgeUseCase()
+            } catch (e: Exception) {
+                null
+            }
+            _uiState.update {
+                it.copy(
+                    biologicalAge = bioAge,
+                    isAgeDialogOpen = false
                 )
             }
         }

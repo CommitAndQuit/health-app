@@ -2,6 +2,7 @@ package io.biotrace.app.ui.insights
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,19 +21,29 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +53,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.biotrace.app.domain.longevity.BiologicalAgeResult
+import io.biotrace.app.domain.longevity.LongevityDriver
 import io.biotrace.app.domain.model.ProfileTriptychSummary
 import io.biotrace.app.ui.common.BioTraceTopBar
 import io.biotrace.app.ui.insights.AiReportState
@@ -50,15 +63,20 @@ import io.biotrace.app.ui.theme.BioOrangePrimary
 import io.biotrace.app.ui.theme.BioOrangeSoftTint
 import io.biotrace.app.ui.theme.BioTraceTokens
 import io.biotrace.app.ui.theme.CardSurface
+import io.biotrace.app.ui.theme.CobaltBluePrimary
+import io.biotrace.app.ui.theme.CobaltBlueSoftTint
 import io.biotrace.app.ui.theme.DividerSubtle
 import io.biotrace.app.ui.theme.EmeraldPrimary
 import io.biotrace.app.ui.theme.EmeraldSoftTint
 import io.biotrace.app.ui.theme.IndigoSleepPrimary
 import io.biotrace.app.ui.theme.IndigoSleepSoftTint
 import io.biotrace.app.ui.theme.InnerWellSurface
+import io.biotrace.app.ui.theme.SolarAmberPrimary
+import io.biotrace.app.ui.theme.SolarAmberSoftTint
 import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextPrimary
 import io.biotrace.app.ui.theme.TextSecondary
+import java.util.Locale
 
 @Composable
 fun BiometricInsightsScreen(
@@ -67,6 +85,14 @@ fun BiometricInsightsScreen(
     viewModel: BiometricInsightsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    if (uiState.isAgeDialogOpen) {
+        EditChronologicalAgeDialog(
+            currentAge = uiState.biologicalAge?.chronologicalAge ?: 35,
+            onDismiss = { viewModel.toggleAgeDialog(false) },
+            onSave = { newAge -> viewModel.updateChronologicalAge(newAge) }
+        )
+    }
 
     Scaffold(
         containerColor = AppCanvasBackground,
@@ -150,6 +176,16 @@ fun BiometricInsightsScreen(
                 // 2. Profile & 3-Metric Triptych Hero Card
                 item {
                     ProfileTriptychHeroCard(profile = uiState.profile)
+                }
+
+                // Biological Age & Longevity Hero Card
+                uiState.biologicalAge?.let { bioAge ->
+                    item {
+                        BiologicalAgeHeroCard(
+                            result = bioAge,
+                            onEditAgeClick = { viewModel.toggleAgeDialog(true) }
+                        )
+                    }
                 }
 
                 // AI Health Report Card
@@ -885,4 +921,450 @@ fun AiReportCard(
             }
         }
     }
+}
+
+// =============================================================================
+// Biological Age & Longevity Hero Card
+// =============================================================================
+
+@Composable
+fun BiologicalAgeHeroCard(
+    result: BiologicalAgeResult,
+    onEditAgeClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = CardSurface,
+        shape = BioTraceTokens.BentoCardShape,
+        border = BioTraceTokens.CardHairlineBorder,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            // Header: Title, Subtitle, and Confidence Badge Pill
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text(
+                        text = "Biological Age & Longevity Index",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "PhenoAge & Autonomic Biomarker Pace",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextSecondary
+                    )
+                }
+
+                val confidence = result.confidencePercentage
+                val badgeBg = if (confidence >= 60) EmeraldSoftTint else CobaltBlueSoftTint
+                val badgeColor = if (confidence >= 60) EmeraldPrimary else CobaltBluePrimary
+
+                Surface(
+                    color = badgeBg,
+                    shape = BioTraceTokens.PillShape
+                ) {
+                    Text(
+                        text = "$confidence% Confidence",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = badgeColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Metric Row: Left (Biological Age + Delta Pill) & Right (Chronological Age + Pace)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Left Column: Large Biological Age + Delta pill
+                Column {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = String.format(Locale.ROOT, "%.1f", result.biologicalAge),
+                            fontSize = 38.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = TextPrimary,
+                            letterSpacing = (-1).sp
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "yrs",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    val isYounger = result.ageDelta < 0.0
+                    val isOlder = result.ageDelta > 0.0
+                    val deltaText = when {
+                        isYounger -> "-${String.format(Locale.ROOT, "%.1f", kotlin.math.abs(result.ageDelta))} yrs younger"
+                        isOlder -> "+${String.format(Locale.ROOT, "%.1f", result.ageDelta)} yrs accelerated"
+                        else -> "Baseline pace"
+                    }
+                    val deltaBg = if (!isOlder) EmeraldSoftTint else SolarAmberSoftTint
+                    val deltaColor = if (!isOlder) EmeraldPrimary else SolarAmberPrimary
+
+                    Surface(
+                        color = deltaBg,
+                        shape = BioTraceTokens.PillShape
+                    ) {
+                        Text(
+                            text = deltaText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = deltaColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                // Right Column: Chronological Age with Edit button & Aging Pace
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(BioTraceTokens.PillShape)
+                            .clickable { onEditAgeClick() }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "Chronological: ${result.chronologicalAge} yrs",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextSecondary
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Chronological Age",
+                            tint = BioOrangePrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+
+                    Surface(
+                        color = InnerWellSurface,
+                        shape = BioTraceTokens.PillShape,
+                        border = BioTraceTokens.WellHairlineBorder
+                    ) {
+                        Text(
+                            text = "Pace: ${String.format(Locale.ROOT, "%.2f", result.agingPace)}x",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Status Tier Banner
+            val tierColor = Color(result.longevityTier.colorHex)
+            Surface(
+                color = tierColor.copy(alpha = 0.1f),
+                shape = BioTraceTokens.InnerWellSmallShape,
+                border = androidx.compose.foundation.BorderStroke(1.dp, tierColor.copy(alpha = 0.25f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(tierColor)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = result.longevityTier.title,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            color = tierColor,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = result.longevityTier.subtitle,
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+            }
+
+            // Top Longevity Drivers
+            if (result.drivers.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "Key Longevity Drivers",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextSecondary,
+                    letterSpacing = 0.5.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Surface(
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.InnerWellSmallShape,
+                    border = BioTraceTokens.WellHairlineBorder,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        result.drivers.take(3).forEach { driver ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val isBonus = driver.isBonus
+                                val icon = if (isBonus) Icons.Default.Check else Icons.Default.Warning
+                                val tint = if (isBonus) EmeraldPrimary else SolarAmberPrimary
+                                val bg = if (isBonus) EmeraldSoftTint else SolarAmberSoftTint
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(bg),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = tint,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(10.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    val sign = if (driver.impactYears > 0) "+" else ""
+                                    val impactFormatted = "$sign${String.format(Locale.ROOT, "%.1f", driver.impactYears)} yrs"
+                                    Text(
+                                        text = "${driver.title} ($impactFormatted)",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextPrimary
+                                    )
+                                    Text(
+                                        text = driver.insight,
+                                        fontSize = 10.sp,
+                                        color = TextSecondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                if (driver.biomarkerValue.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = driver.biomarkerValue,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Primary Actionable Recommendation text
+            if (result.primaryRecommendation.isNotBlank()) {
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Surface(
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.InnerWellSmallShape,
+                    border = BioTraceTokens.WellHairlineBorder,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = BioOrangePrimary,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .padding(top = 2.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Longevity Protocol Recommendation",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BioOrangePrimary,
+                                letterSpacing = 0.3.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = result.primaryRecommendation,
+                                fontSize = 11.sp,
+                                lineHeight = 16.sp,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// =============================================================================
+// Edit Chronological Age Dialog
+// =============================================================================
+
+@Composable
+fun EditChronologicalAgeDialog(
+    currentAge: Int,
+    onDismiss: () -> Unit,
+    onSave: (Int) -> Unit
+) {
+    var ageState by remember(currentAge) { mutableIntStateOf(currentAge.coerceIn(18, 100)) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Chronological Age",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Adjust your chronological age baseline (18–100) to calibrate phenotypic pace.",
+                    fontSize = 13.sp,
+                    color = TextSecondary,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    IconButton(
+                        onClick = { if (ageState > 18) ageState-- },
+                        enabled = ageState > 18
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = InnerWellSurface,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "−",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (ageState > 18) TextPrimary else TextMuted
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(20.dp))
+
+                    Text(
+                        text = "$ageState yrs",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = TextPrimary
+                    )
+
+                    Spacer(modifier = Modifier.width(20.dp))
+
+                    IconButton(
+                        onClick = { if (ageState < 100) ageState++ },
+                        enabled = ageState < 100
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = InnerWellSurface,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "+",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (ageState < 100) TextPrimary else TextMuted
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(ageState) },
+                colors = ButtonDefaults.textButtonColors(contentColor = BioOrangePrimary)
+            ) {
+                Text(text = "Save", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(contentColor = TextSecondary)
+            ) {
+                Text(text = "Cancel")
+            }
+        },
+        containerColor = CardSurface,
+        shape = BioTraceTokens.BentoCardShape
+    )
 }
