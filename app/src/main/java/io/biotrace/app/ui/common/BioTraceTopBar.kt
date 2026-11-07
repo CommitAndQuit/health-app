@@ -37,7 +37,7 @@ fun BioTraceTopBar(
             .fillMaxWidth()
             .background(AppCanvasBackground)
             .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (onBackClick != null) {

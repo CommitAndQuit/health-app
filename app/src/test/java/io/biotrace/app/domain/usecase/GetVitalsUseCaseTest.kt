@@ -1,7 +1,13 @@
 package io.biotrace.app.domain.usecase
 
 import io.biotrace.app.data.healthconnect.SyncResult
+import io.biotrace.app.domain.model.ContinuousHeartRateHeroData
+import io.biotrace.app.domain.model.MetricTimeRange
+import io.biotrace.app.domain.model.ProfileTriptychSummary
+import io.biotrace.app.domain.model.VitalDetailUiState
+import io.biotrace.app.domain.model.VitalMetricType
 import io.biotrace.app.domain.model.VitalPoint
+import io.biotrace.app.domain.model.VitalSummaryCardModel
 import io.biotrace.app.domain.repository.VitalsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -51,6 +57,25 @@ class GetVitalsUseCaseTest {
         }
 
         override suspend fun clearAll() {}
+
+        override suspend fun getVitalsDashboardSnapshot(): List<VitalSummaryCardModel> {
+            TODO("Not required for GetVitalsUseCaseTest")
+        }
+
+        override suspend fun getContinuousHeartRateHeroData(): ContinuousHeartRateHeroData {
+            TODO("Not required for GetVitalsUseCaseTest")
+        }
+
+        override suspend fun getProfileTriptychSummary(): ProfileTriptychSummary {
+            TODO("Not required for GetVitalsUseCaseTest")
+        }
+
+        override suspend fun getMetricDetailData(
+            metricType: VitalMetricType,
+            range: MetricTimeRange
+        ): VitalDetailUiState {
+            TODO("Not required for GetVitalsUseCaseTest")
+        }
     }
 
     private val useCase = GetVitalsUseCase(fakeRepo)
