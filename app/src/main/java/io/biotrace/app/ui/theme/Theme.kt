@@ -2,13 +2,13 @@ package io.biotrace.app.ui.theme
 
 import android.app.Activity
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val BioTraceLightColorScheme = lightColorScheme(
+private val BioTraceDarkColorScheme = darkColorScheme(
     primary = Primary,
     onPrimary = OnPrimary,
     primaryContainer = PrimaryContainer,
@@ -21,13 +21,13 @@ private val BioTraceLightColorScheme = lightColorScheme(
     onTertiary = OnTertiary,
     tertiaryContainer = TertiaryContainer,
     onTertiaryContainer = OnTertiaryContainer,
-    background = Background,
-    onBackground = OnBackground,
-    surface = Surface,
-    onSurface = OnSurface,
-    surfaceVariant = SurfaceVariant,
-    onSurfaceVariant = OnSurfaceVariant,
-    outline = Outline,
+    background = AppCanvasBackground,
+    onBackground = TextPrimary,
+    surface = CardSurface,
+    onSurface = TextPrimary,
+    surfaceVariant = CardSurface,
+    onSurfaceVariant = TextSecondary,
+    outline = CardBorder,
     error = Error,
     onError = OnError,
     errorContainer = ErrorContainer,
@@ -36,10 +36,10 @@ private val BioTraceLightColorScheme = lightColorScheme(
 
 @Composable
 fun BioTraceTheme(
-    darkTheme: Boolean = false,
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = BioTraceLightColorScheme
+    val colorScheme = BioTraceDarkColorScheme
     val view = LocalView.current
 
     if (!view.isInEditMode) {
@@ -47,8 +47,8 @@ fun BioTraceTheme(
             val window = (view.context as? Activity)?.window
             if (window != null) {
                 WindowCompat.getInsetsController(window, view).apply {
-                    isAppearanceLightStatusBars = true
-                    isAppearanceLightNavigationBars = true
+                    isAppearanceLightStatusBars = false
+                    isAppearanceLightNavigationBars = false
                 }
             }
         }

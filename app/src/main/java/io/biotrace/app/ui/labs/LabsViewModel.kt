@@ -66,7 +66,13 @@ data class LabsUiState(
     val scanningPreviewBitmap: Bitmap? = null,
     val scannedReportMetadata: String? = null,
     val scanMessage: String? = null,
-    val error: String? = null
+    val error: String? = null,
+    val reviewPanelName: String = "",
+    val reviewOperator: String = "=",
+    val reviewValue: String = "",
+    val reviewUnit: String = "",
+    val unitHarmonizationText: String? = null,
+    val linkedPanelResults: List<LabBiomarkerEntity> = emptyList()
 )
 
 @HiltViewModel
@@ -222,10 +228,6 @@ class LabsViewModel @Inject constructor(
         _uiState.update { it.copy(isManualEntryOpen = open) }
     }
 
-    fun closeReviewDialog() {
-        _uiState.update { it.copy(isReviewDialogOpen = false, pendingReviewBiomarkers = emptyList()) }
-    }
-
     fun addManualBiomarker(
         name: String,
         value: Double,
@@ -256,16 +258,102 @@ class LabsViewModel @Inject constructor(
         }
     }
 
-    fun confirmAndSaveReviewedMarkers(markers: List<LabBiomarkerEntity>) {
+    fun updateReviewOperator(op: String) {
+        _uiState.update { it.copy(reviewOperator = op) }
+    }
+
+    fun updateReviewValue(valueStr: String) {
+        _uiState.update { current ->
+            val biomarker = current.pendingReviewBiomarkers.firstOrNull { it.biomarkerName.equals("HBA1C", ignoreCase = true) }
+                ?: current.pendingReviewBiomarkers.firstOrNull()
+            val bName = biomarker?.biomarkerName ?: current.reviewPanelName
+            val harmonization = computeUnitHarmonization(
+                biomarkerName = bName,
+                valueStr = valueStr,
+                unit = current.reviewUnit
+            )
+            val numVal = valueStr.trim().toDoubleOrNull()
+            val updatedPending = if (numVal != null && biomarker != null) {
+                current.pendingReviewBiomarkers.map {
+                    if (it.id == biomarker.id) it.copy(value = numVal) else it
+                }
+            } else {
+                current.pendingReviewBiomarkers
+            }
+            current.copy(
+                reviewValue = valueStr,
+                unitHarmonizationText = harmonization,
+                pendingReviewBiomarkers = updatedPending
+            )
+        }
+    }
+
+    fun computeUnitHarmonization(biomarkerName: String, valueStr: String, unit: String): String? {
+        if (!biomarkerName.trim().equals("HBA1C", ignoreCase = true)) {
+            return null
+        }
+        val numericVal = valueStr.trim().toDoubleOrNull() ?: return null
+        val cleanVal = valueStr.trim()
+        return when {
+            unit.contains("%") -> {
+                val ifcc = ((numericVal - 2.15) * 10.929).roundToInt()
+                "$cleanVal % ↔ $ifcc mmol/mol"
+            }
+            unit.replace(" ", "").contains("mmol/mol", ignoreCase = true) -> {
+                val dcct = ((numericVal * 0.09148 + 2.152) * 10.0).roundToInt() / 10.0
+                "$cleanVal mmol/mol ↔ $dcct %"
+            }
+            else -> null
+        }
+    }
+
+    fun closeReviewDialog() {
+        _uiState.update {
+            it.copy(
+                isReviewDialogOpen = false,
+                pendingReviewBiomarkers = emptyList(),
+                reviewPanelName = "",
+                reviewOperator = "=",
+                reviewValue = "",
+                reviewUnit = "",
+                unitHarmonizationText = null,
+                linkedPanelResults = emptyList()
+            )
+        }
+    }
+
+    fun confirmAndSaveReviewedMarkers(reviewedList: List<LabBiomarkerEntity> = _uiState.value.pendingReviewBiomarkers) {
         viewModelScope.launch {
-            if (markers.isNotEmpty()) {
-                labBiomarkerDao.insertAll(markers)
+            val reviewOperator = _uiState.value.reviewOperator
+            val reviewValueNum = _uiState.value.reviewValue.toDoubleOrNull()
+            val targetList = reviewedList.ifEmpty { _uiState.value.pendingReviewBiomarkers }
+            val primary = targetList.firstOrNull { it.biomarkerName.equals("HBA1C", ignoreCase = true) }
+                ?: targetList.firstOrNull()
+
+            val finalMarkers = targetList.map { marker ->
+                val finalRawName = if (!reviewOperator.isNullOrBlank() && !marker.rawName.startsWith(reviewOperator)) {
+                    "$reviewOperator ${marker.rawName}"
+                } else {
+                    marker.rawName
+                }
+                val finalVal = if (marker.id == primary?.id && reviewValueNum != null) reviewValueNum else marker.value
+                marker.copy(rawName = finalRawName, value = finalVal)
+            }
+
+            if (finalMarkers.isNotEmpty()) {
+                labBiomarkerDao.insertAll(finalMarkers)
             }
             _uiState.update {
                 it.copy(
                     isReviewDialogOpen = false,
                     pendingReviewBiomarkers = emptyList(),
-                    scanMessage = "Saved ${markers.size} verified blood markers to vault."
+                    reviewPanelName = "",
+                    reviewOperator = "=",
+                    reviewValue = "",
+                    reviewUnit = "",
+                    unitHarmonizationText = null,
+                    linkedPanelResults = emptyList(),
+                    scanMessage = "Saved ${finalMarkers.size} verified blood markers to vault."
                 )
             }
         }
@@ -453,6 +541,7 @@ class LabsViewModel @Inject constructor(
                 val reportInstant = ClinicalDateParser.parseToInstant(extractedReportDate)
                 val dateIso = ClinicalDateParser.toIsoDateString(reportInstant)
                 val normalizedList = mutableListOf<LabBiomarkerEntity>()
+                val operatorMap = mutableMapOf<String, String>()
 
                 for (i in 0 until jsonArray.length()) {
                     val obj = jsonArray.getJSONObject(i)
@@ -463,10 +552,20 @@ class LabsViewModel @Inject constructor(
                     val refMax = if (obj.has("referenceMax") && !obj.isNull("referenceMax")) obj.getDouble("referenceMax") else null
 
                     val norm = clinicalSchemaNormalizer.normalize(rawName, rawValStr, rawUnit, refMin, refMax)
+                    val entityId = "lab_${norm.canonicalName}_${dateIso}"
+
+                    if (norm.operator != null) {
+                        val opStr = when (norm.operator) {
+                            "<=" -> "≤"
+                            ">=" -> "≥"
+                            else -> norm.operator
+                        }
+                        operatorMap[entityId] = opStr
+                    }
 
                     normalizedList.add(
                         LabBiomarkerEntity(
-                            id = "lab_${norm.canonicalName}_${dateIso}",
+                            id = entityId,
                             biomarkerName = norm.canonicalName,
                             rawName = norm.displayName,
                             value = norm.value,
@@ -481,12 +580,40 @@ class LabsViewModel @Inject constructor(
                 }
 
                 if (normalizedList.isNotEmpty()) {
+                    val primaryMarker = normalizedList.firstOrNull { it.biomarkerName.equals("HBA1C", ignoreCase = true) }
+                        ?: normalizedList.first()
+                    val linkedResults = normalizedList.filter { it.id != primaryMarker.id }
+                    val panelName = if (primaryMarker.biomarkerName.equals("HBA1C", ignoreCase = true)) {
+                        "HbA1c Panel"
+                    } else if (primaryMarker.rawName.endsWith("Panel", ignoreCase = true)) {
+                        primaryMarker.rawName
+                    } else {
+                        "${primaryMarker.rawName} Panel"
+                    }
+                    val detectedOp = operatorMap[primaryMarker.id] ?: "="
+                    val formattedValue = if (primaryMarker.value % 1.0 == 0.0) {
+                        primaryMarker.value.toInt().toString()
+                    } else {
+                        primaryMarker.value.toString()
+                    }
+                    val harmonization = computeUnitHarmonization(
+                        primaryMarker.biomarkerName,
+                        formattedValue,
+                        primaryMarker.unit
+                    )
+
                     _uiState.update {
                         it.copy(
                             isScanning = false,
                             isReviewDialogOpen = true,
                             pendingReviewBiomarkers = normalizedList,
-                            scanMessage = null
+                            scanMessage = null,
+                            reviewPanelName = panelName,
+                            reviewOperator = detectedOp,
+                            reviewValue = formattedValue,
+                            reviewUnit = primaryMarker.unit,
+                            unitHarmonizationText = harmonization,
+                            linkedPanelResults = linkedResults
                         )
                     }
                 } else {

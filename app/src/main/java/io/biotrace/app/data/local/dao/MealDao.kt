@@ -35,6 +35,12 @@ interface MealDao {
     )
     suspend fun getMealsBetween(startTime: Instant, endTime: Instant): List<MealEntity>
 
+    @Query("SELECT * FROM meals ORDER BY consumed_at DESC LIMIT 1")
+    suspend fun getLatestMeal(): MealEntity?
+
+    @Query("SELECT * FROM meals ORDER BY consumed_at DESC LIMIT 1")
+    fun getLatestMealFlow(): Flow<MealEntity?>
+
     @Query("DELETE FROM meals")
     suspend fun deleteAll()
 }

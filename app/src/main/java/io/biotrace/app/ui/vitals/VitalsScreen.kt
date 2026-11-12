@@ -3,42 +3,45 @@ package io.biotrace.app.ui.vitals
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,6 +62,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,26 +73,40 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.biotrace.app.data.healthconnect.HealthConnectAvailability
 import io.biotrace.app.data.healthconnect.HealthConnectManager
-import io.biotrace.app.domain.model.BentoCardTemplate
-import io.biotrace.app.domain.model.ChartPoint
-import io.biotrace.app.domain.model.ContinuousHeartRateHeroData
 import io.biotrace.app.domain.model.VitalMetricType
-import io.biotrace.app.domain.model.VitalSummaryCardModel
-import io.biotrace.app.ui.common.BioTraceTopBar
 import io.biotrace.app.ui.theme.AppCanvasBackground
-import io.biotrace.app.ui.theme.BioOrangeGradientBottom
-import io.biotrace.app.ui.theme.BioOrangeGradientTop
 import io.biotrace.app.ui.theme.BioOrangePrimary
 import io.biotrace.app.ui.theme.BioOrangeSoftTint
 import io.biotrace.app.ui.theme.BioTraceTokens
 import io.biotrace.app.ui.theme.CardSurface
 import io.biotrace.app.ui.theme.CobaltBluePrimary
+import io.biotrace.app.ui.theme.CobaltBlueSoftTint
+import io.biotrace.app.ui.theme.CopilotBadgeBg
+import io.biotrace.app.ui.theme.CopilotBadgeText
+import io.biotrace.app.ui.theme.CopilotGlowEnd
+import io.biotrace.app.ui.theme.CopilotGlowStart
+import io.biotrace.app.ui.theme.CoralAlertPrimary
+import io.biotrace.app.ui.theme.CoralAlertSoftTint
+import io.biotrace.app.ui.theme.CorrelationPeachBg
+import io.biotrace.app.ui.theme.CorrelationPeachBorder
 import io.biotrace.app.ui.theme.DividerSubtle
 import io.biotrace.app.ui.theme.EmeraldPrimary
 import io.biotrace.app.ui.theme.EmeraldSoftTint
 import io.biotrace.app.ui.theme.IndigoSleepPrimary
+import io.biotrace.app.ui.theme.IndigoSleepSoftTint
 import io.biotrace.app.ui.theme.InnerWellSurface
+import io.biotrace.app.ui.theme.MacroCarbsColor
+import io.biotrace.app.ui.theme.MacroFatsColor
+import io.biotrace.app.ui.theme.MacroProteinColor
+import io.biotrace.app.ui.theme.ProfileAvatarBg
+import io.biotrace.app.ui.theme.ProfileAvatarIcon
+import io.biotrace.app.ui.theme.SleepDeepColor
+import io.biotrace.app.ui.theme.SleepLightColor
+import io.biotrace.app.ui.theme.SleepRemColor
 import io.biotrace.app.ui.theme.SolarAmberPrimary
+import io.biotrace.app.ui.theme.SolarAmberSoftTint
+import io.biotrace.app.ui.theme.StrainAlertBg
+import io.biotrace.app.ui.theme.StrainAlertBorder
 import io.biotrace.app.ui.theme.TextMuted
 import io.biotrace.app.ui.theme.TextPrimary
 import io.biotrace.app.ui.theme.TextSecondary
@@ -96,13 +114,18 @@ import io.biotrace.app.ui.theme.TextWhite
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VitalsScreen(
-    onNavigateToDetail: (VitalMetricType) -> Unit,
-    onNavigateToPermissions: () -> Unit = {},
+    onNavigateToDetail: (VitalMetricType) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToPermissions: () -> Unit = {},
+    onNavigateToCopilot: () -> Unit = {},
+    onNavigateToInsights: () -> Unit = {},
+    onNavigateToLabs: () -> Unit = {},
+    onNavigateToNutrition: () -> Unit = {},
     viewModel: VitalsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -128,12 +151,7 @@ fun VitalsScreen(
     }
 
     Scaffold(
-        containerColor = AppCanvasBackground,
-        topBar = {
-            BioTraceTopBar(
-                onProfileClick = onNavigateToSettings
-            )
-        }
+        containerColor = AppCanvasBackground
     ) { innerPadding ->
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
@@ -141,16 +159,15 @@ fun VitalsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .statusBarsPadding()
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 90.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxSize()
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. Synced Vitals Title & Live Status Row
-                item(span = { GridItemSpan(2) }) {
+                // 1. Synced Vitals Title & Live Status Row with Profile Avatar
+                item {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -166,33 +183,55 @@ fun VitalsScreen(
                             letterSpacing = (-0.5).sp
                         )
 
-                        // Status Pill Badge (with emerald dot)
-                        Surface(
-                            color = EmeraldSoftTint,
-                            shape = BioTraceTokens.PillShape,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, EmeraldPrimary.copy(alpha = 0.2f))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            // Status Pill Badge (with emerald dot)
+                            Surface(
+                                color = EmeraldSoftTint,
+                                shape = BioTraceTokens.PillShape,
+                                border = BorderStroke(1.dp, EmeraldPrimary.copy(alpha = 0.2f))
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(7.dp)
-                                        .clip(CircleShape)
-                                        .background(EmeraldPrimary)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                val syncText = uiState.lastSyncTime?.let {
-                                    val time = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
-                                        .format(it.atZone(ZoneId.systemDefault()))
-                                    "Synced $time"
-                                } ?: "Health Connect"
-                                Text(
-                                    text = syncText,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = EmeraldPrimary
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .clip(CircleShape)
+                                            .background(EmeraldPrimary)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    val syncText = uiState.lastSyncTime?.let {
+                                        val time = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+                                            .format(it.atZone(ZoneId.systemDefault()))
+                                        "Synced $time"
+                                    } ?: "Health Connect"
+                                    Text(
+                                        text = syncText,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = EmeraldPrimary
+                                    )
+                                }
+                            }
+
+                            // Profile Avatar
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(ProfileAvatarBg)
+                                    .clickable { onNavigateToSettings() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "Profile and settings",
+                                    tint = ProfileAvatarIcon,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -201,10 +240,9 @@ fun VitalsScreen(
 
                 // 2. Health Connect Notice Banner (if permissions missing or not installed)
                 if (uiState.availability != HealthConnectAvailability.AVAILABLE || !uiState.hasHealthConnectPermissions) {
-                    item(span = { GridItemSpan(2) }) {
+                    item {
                         HealthConnectNoticeBanner(
                             availability = uiState.availability,
-                            hasPermissions = uiState.hasHealthConnectPermissions,
                             onRequestPermissions = {
                                 val c = HealthConnectManager(context)
                                 healthConnectPermissionLauncher.launch(c.requiredPermissions)
@@ -220,37 +258,65 @@ fun VitalsScreen(
                     }
                 }
 
-                // 4. Hero Card: Continuous Heart Rate (Spans 2 Columns)
-                item(span = { GridItemSpan(2) }) {
-                    HeartRateHeroCard(
-                        data = uiState.heroHeartRate,
+                // 3. Copilot Summary Card (Cyan-to-Purple gradient border, brain icon, TODAY badge, bullets, Ask Copilot)
+                item {
+                    CopilotSummaryCard(
+                        copilotSummary = uiState.copilotSummary,
+                        onNavigateToCopilot = onNavigateToCopilot
+                    )
+                }
+
+                // 4. Autonomic Strain Alert Banner (Coral warning icon, dynamic strain metrics)
+                if (uiState.autonomicStrain.isStrainDetected) {
+                    item {
+                        AutonomicStrainAlertBanner(
+                            strain = uiState.autonomicStrain,
+                            onClick = onNavigateToInsights
+                        )
+                    }
+                }
+
+                // 5. Telemetry Section: HRV RMSSD Card (large value, delta %, Bezier sparkline canvas)
+                item {
+                    HrvRmssdCard(
+                        hrvData = uiState.hrvSparkline,
                         onClick = { onNavigateToDetail(VitalMetricType.HEART_RATE) }
                     )
                 }
 
-                // 5. 2-Column Bento Grid Items (8 Cards)
-                items(uiState.cards, key = { it.metricType.name }) { card ->
-                    when (card.template) {
-                        BentoCardTemplate.TEMPLATE_A -> {
-                            BioTraceTemplateACard(
-                                card = card,
-                                onClick = { onNavigateToDetail(card.metricType) }
-                            )
-                        }
-                        BentoCardTemplate.TEMPLATE_B -> {
-                            BioTraceTemplateBCard(
-                                card = card,
-                                onClick = { onNavigateToDetail(card.metricType) }
-                            )
-                        }
+                // 6. Split 2-Column Row (RHR Card + Sleep Card)
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        RhrSplitCard(
+                            rhrData = uiState.rhrSplit,
+                            onClick = { onNavigateToDetail(VitalMetricType.RESTING_HEART_RATE) },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        SleepSplitCard(
+                            sleepData = uiState.sleepSplit,
+                            onClick = { onNavigateToDetail(VitalMetricType.SLEEP) },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
 
-                // 6. Bottom Sync Action Row (Spans 2 Columns)
-                item(span = { GridItemSpan(2) }) {
-                    SyncHealthConnectBottomRow(
-                        isRefreshing = uiState.isRefreshing,
-                        onSyncHealthConnect = { viewModel.refreshDashboard() }
+                // 7. Labs Section (Biomarker telemetry, normal/low/high badges, normalized range bars)
+                item {
+                    LabsTelemetryCard(
+                        labItems = uiState.labBiomarkers,
+                        onNavigateToLabs = onNavigateToLabs
+                    )
+                }
+
+                // 8. Nutrition Section (latest meal, calories, macros well, postprandial HR impact)
+                item {
+                    NutritionSectionCard(
+                        nutrition = uiState.latestNutrition,
+                        onNavigateToNutrition = onNavigateToNutrition
                     )
                 }
             }
@@ -259,12 +325,384 @@ fun VitalsScreen(
 }
 
 // =============================================================================
-// Continuous Heart Rate Hero Card (Full Width Hero with Spline Area Chart)
+// Copilot Summary Card
 // =============================================================================
 
 @Composable
-fun HeartRateHeroCard(
-    data: ContinuousHeartRateHeroData,
+fun CopilotSummaryCard(
+    copilotSummary: DashboardCopilotSummary,
+    onNavigateToCopilot: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = CardSurface,
+        shape = BioTraceTokens.HeroCardShape,
+        border = BorderStroke(
+            1.5.dp,
+            Brush.horizontalGradient(listOf(CopilotGlowStart, CopilotGlowEnd))
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onNavigateToCopilot() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            // Header Row: Brain Icon + Title + TODAY badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(CopilotGlowStart.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "BioTrace Copilot",
+                            tint = CopilotGlowStart,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "BioTrace Copilot",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                }
+
+                Surface(
+                    color = CopilotBadgeBg,
+                    shape = BioTraceTokens.PillShape
+                ) {
+                    Text(
+                        text = "TODAY",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CopilotBadgeText,
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Dynamic Summary Narrative
+            val narrative = copilotSummary.summaryText.ifBlank {
+                "Awaiting health vitals sync from Health Connect. Sync records to see personalized biometric insights."
+            }
+            Text(
+                text = narrative,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Normal,
+                color = TextPrimary,
+                lineHeight = 20.sp
+            )
+
+            // Dynamic Bullet Items (HRV/RHR, Sleep, Labs, Action suggestion)
+            val hasBullets = copilotSummary.hrvDeltaText != null ||
+                    copilotSummary.rhrDeltaText != null ||
+                    copilotSummary.sleepTargetText != null ||
+                    copilotSummary.labBiomarkerStatus != null ||
+                    copilotSummary.actionSuggestion != null
+
+            if (hasBullets) {
+                Spacer(modifier = Modifier.height(14.dp))
+                Surface(
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.InnerWellShape,
+                    border = BioTraceTokens.WellHairlineBorder,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // HRV / RHR bullet
+                        if (copilotSummary.hrvDeltaText != null || copilotSummary.rhrDeltaText != null) {
+                            val text = buildString {
+                                copilotSummary.hrvDeltaText?.let { append("HRV $it") }
+                                if (copilotSummary.hrvDeltaText != null && copilotSummary.rhrDeltaText != null) {
+                                    append(" • ")
+                                }
+                                copilotSummary.rhrDeltaText?.let { append("RHR $it") }
+                            }
+                            CopilotBulletRow(
+                                bulletColor = CopilotGlowStart,
+                                label = "Cardiovascular Tone",
+                                value = text
+                            )
+                        }
+
+                        // Sleep stage target bullet
+                        if (copilotSummary.sleepTargetText != null) {
+                            CopilotBulletRow(
+                                bulletColor = SleepDeepColor,
+                                label = "Sleep Cadence",
+                                value = copilotSummary.sleepTargetText
+                            )
+                        }
+
+                        // Lab biomarker status bullet
+                        if (copilotSummary.labBiomarkerStatus != null) {
+                            CopilotBulletRow(
+                                bulletColor = EmeraldPrimary,
+                                label = "Biomarker Labs",
+                                value = copilotSummary.labBiomarkerStatus
+                            )
+                        }
+
+                        // Action recommendation bullet
+                        if (copilotSummary.actionSuggestion != null) {
+                            CopilotBulletRow(
+                                bulletColor = BioOrangePrimary,
+                                label = "Directive",
+                                value = copilotSummary.actionSuggestion
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Ask Copilot Button
+            Button(
+                onClick = onNavigateToCopilot,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent
+                ),
+                contentPadding = PaddingValues(),
+                shape = BioTraceTokens.PillShape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            listOf(CopilotGlowStart, CopilotGlowEnd)
+                        ),
+                        shape = BioTraceTokens.PillShape
+                    )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = TextWhite,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Ask Copilot",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextWhite
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CopilotBulletRow(
+    bulletColor: Color,
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(top = 5.dp)
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(bulletColor)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = buildString {
+                append("$label: ")
+                append(value)
+            },
+            fontSize = 12.sp,
+            color = TextPrimary,
+            lineHeight = 17.sp
+        )
+    }
+}
+
+// =============================================================================
+// Autonomic Strain Alert Banner
+// =============================================================================
+
+@Composable
+fun AutonomicStrainAlertBanner(
+    strain: io.biotrace.app.ui.vitals.DashboardAutonomicStrain,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        color = StrainAlertBg,
+        shape = BioTraceTokens.RecordCardShape,
+        border = BorderStroke(1.dp, StrainAlertBorder),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(CoralAlertSoftTint),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Autonomic Strain Warning",
+                            tint = CoralAlertPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = strain.headline.ifBlank { "Compound Autonomic Strain" },
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CoralAlertPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Surface(
+                    color = CoralAlertSoftTint,
+                    shape = BioTraceTokens.PillShape,
+                    border = BorderStroke(1.dp, CoralAlertPrimary.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = strain.severity.ifBlank { "ALERT" },
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CoralAlertPrimary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
+            if (strain.narrative.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = strain.narrative,
+                    fontSize = 12.sp,
+                    color = TextPrimary,
+                    lineHeight = 17.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Dynamic Strain Metrics Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                StrainMetricPill(
+                    label = "RHR",
+                    value = "${if (strain.rhrDeviation >= 0) "+" else ""}${strain.rhrDeviation}σ",
+                    isWarning = strain.rhrDeviation > 1.0,
+                    modifier = Modifier.weight(1f)
+                )
+                StrainMetricPill(
+                    label = "HRV",
+                    value = "${if (strain.hrvDeviation >= 0) "+" else ""}${strain.hrvDeviation}σ",
+                    isWarning = strain.hrvDeviation > 1.0,
+                    modifier = Modifier.weight(1f)
+                )
+                StrainMetricPill(
+                    label = "Sleep",
+                    value = "${strain.sleepHours}h",
+                    isWarning = strain.sleepHours in 0.1..6.0,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StrainMetricPill(
+    label: String,
+    value: String,
+    isWarning: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = InnerWellSurface,
+        shape = BioTraceTokens.InnerWellSmallShape,
+        border = BorderStroke(1.dp, if (isWarning) CoralAlertPrimary.copy(alpha = 0.3f) else DividerSubtle),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = label,
+                fontSize = 9.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextSecondary
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isWarning) CoralAlertPrimary else TextPrimary
+            )
+        }
+    }
+}
+
+// =============================================================================
+// Telemetry Section: HRV RMSSD Card (Spline Canvas + Dash Baseline)
+// =============================================================================
+
+@Composable
+fun HrvRmssdCard(
+    hrvData: io.biotrace.app.ui.vitals.DashboardHrvSparkline,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -280,7 +718,7 @@ fun HeartRateHeroCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            // Top Row: Icon Badge + Title + Live Pill
+            // Header Row: Circular Icon + Title + Delta % Pill
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -289,200 +727,137 @@ fun HeartRateHeroCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(34.dp)
                             .clip(CircleShape)
-                            .background(BioOrangeSoftTint),
+                            .background(IndigoSleepSoftTint),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Favorite,
-                            contentDescription = "Heart Rate",
-                            tint = BioOrangePrimary,
-                            modifier = Modifier.size(18.dp)
+                            contentDescription = hrvData.label,
+                            tint = IndigoSleepPrimary,
+                            modifier = Modifier.size(17.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Continuous Heart Rate",
+                        text = hrvData.label,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = TextPrimary
                     )
                 }
 
-                // Live status badge
-                Surface(
-                    color = BioOrangeSoftTint,
-                    shape = BioTraceTokens.PillShape
-                ) {
-                    Text(
-                        text = if (data.latestBpm != null) "Live • Today" else "Synced",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BioOrangePrimary,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
+                // Delta % pill badge
+                if (hrvData.deltaPercent != null) {
+                    val isPositive = hrvData.deltaPercent >= 0.0
+                    val pillBg = if (isPositive) EmeraldSoftTint else CoralAlertSoftTint
+                    val pillColor = if (isPositive) EmeraldPrimary else CoralAlertPrimary
+                    val sign = if (isPositive) "+" else ""
+                    Surface(
+                        color = pillBg,
+                        shape = BioTraceTokens.PillShape
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (isPositive) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+                                contentDescription = null,
+                                tint = pillColor,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "$sign${hrvData.deltaPercent}%",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = pillColor
+                            )
+                        }
+                    }
+                } else {
+                    Surface(
+                        color = InnerWellSurface,
+                        shape = BioTraceTokens.PillShape
+                    ) {
+                        Text(
+                            text = "7D Baseline",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Stat Row: Giant Current BPM on Left, Dual Summary Columns on Right
+            // Stat Row: Large RMSSD Value + Trend Subtitle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
-                // Giant BPM
                 Row(verticalAlignment = Alignment.Bottom) {
+                    val displayVal = hrvData.latestHrvMs?.let {
+                        if (it % 1.0 == 0.0) it.toInt().toString() else it.toString()
+                    } ?: (hrvData.points.lastOrNull()?.let {
+                        if (it % 1f == 0f) it.toInt().toString() else "%.1f".format(Locale.US, it)
+                    } ?: "--")
+
                     Text(
-                        text = data.latestBpm?.toString() ?: "--",
-                        fontSize = 44.sp,
+                        text = displayVal,
+                        fontSize = 40.sp,
                         fontWeight = FontWeight.Black,
                         color = TextPrimary,
-                        lineHeight = 44.sp
+                        lineHeight = 40.sp
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "bpm",
+                        text = "ms",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = TextSecondary,
-                        modifier = Modifier.padding(bottom = 6.dp)
+                        modifier = Modifier.padding(bottom = 5.dp)
                     )
                 }
 
-                // Right Dual Columns
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "Resting HR",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = data.restingHrBpm?.let { "$it bpm" } ?: "--",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(24.dp)
-                            .background(DividerSubtle)
-                    )
-
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "Daily Range",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        val rangeStr = if (data.dailyMinBpm != null && data.dailyMaxBpm != null) {
-                            "${data.dailyMinBpm}-${data.dailyMaxBpm} bpm"
-                        } else {
-                            "--"
-                        }
-                        Text(
-                            text = rangeStr,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                    }
-                }
+                Text(
+                    text = if (hrvData.isUpTrend) "Rising resilience" else if (hrvData.isDownTrend) "Parasympathetic drop" else "Rolling 7-day trend",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextMuted,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Cubic Bézier Spline Chart
-            HeartRateHeroCanvasChart(
-                points = data.samples,
-                fallbackLatestBpm = data.latestBpm,
-                fallbackMinBpm = data.dailyMinBpm,
-                fallbackMaxBpm = data.dailyMaxBpm,
+            // Cubic Bezier Sparkline Canvas
+            HrvSparklineCanvas(
+                points = hrvData.points,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(125.dp)
+                    .height(90.dp)
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (data.samples.isNotEmpty() || data.latestBpm != null) {
-                // Time Axis Labels
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    data.timeLabels.forEach { label ->
-                        Text(
-                            text = label,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextMuted
-                        )
-                    }
-                }
-            } else {
-                Text(
-                    text = "No heart rate readings logged today • Health Connect sync active",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = TextMuted,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
         }
     }
 }
 
 @Composable
-fun HeartRateHeroCanvasChart(
-    points: List<ChartPoint>,
-    fallbackLatestBpm: Int?,
-    fallbackMinBpm: Int?,
-    fallbackMaxBpm: Int?,
+fun HrvSparklineCanvas(
+    points: List<Float>,
     modifier: Modifier = Modifier
 ) {
-    if (points.isEmpty()) {
-        Canvas(modifier = modifier) {
-            val width = size.width
-            val height = size.height
-            val midY = height / 2f
-
-            drawLine(
-                color = DividerSubtle,
-                start = Offset(0f, midY),
-                end = Offset(width, midY),
-                strokeWidth = 1.5.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-            )
-        }
-        return
-    }
-
     Canvas(modifier = modifier) {
         val width = size.width
         val height = size.height
 
-        // Prepare points: use real samples or return empty
-        val effectivePoints: List<Float> = when {
-            points.size >= 2 -> points.map { it.value }
-            points.size == 1 -> listOf(points.first().value, points.first().value)
-            else -> emptyList()
-        }
-
-        if (effectivePoints.isEmpty()) {
+        // Safe math guard: check points.size >= 2; if < 2, render clean dashed baseline
+        if (points.size < 2) {
             val midY = height / 2f
             drawLine(
                 color = DividerSubtle,
@@ -494,30 +869,42 @@ fun HeartRateHeroCanvasChart(
             return@Canvas
         }
 
-        val minVal = (effectivePoints.minOrNull() ?: 50f) - 6f
-        val maxVal = (effectivePoints.maxOrNull() ?: 120f) + 8f
+        val minVal = (points.minOrNull() ?: 20f) - 4f
+        val maxVal = (points.maxOrNull() ?: 100f) + 4f
         val range = (maxVal - minVal).coerceAtLeast(10f)
 
-        fun getY(value: Float): Float {
-            val normalized = (value - minVal) / range
+        fun getY(v: Float): Float {
+            val normalized = (v - minVal) / range
             return height - (normalized * (height - 24f)) - 12f
         }
 
-        val stepX = width / (effectivePoints.size - 1).coerceAtLeast(1)
+        val stepX = width / (points.size - 1)
 
+        // 1. Draw dashed baseline at average
+        val avgVal = points.average().toFloat()
+        val avgY = getY(avgVal)
+        drawLine(
+            color = DividerSubtle.copy(alpha = 0.6f),
+            start = Offset(0f, avgY),
+            end = Offset(width, avgY),
+            strokeWidth = 1.dp.toPx(),
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
+        )
+
+        // 2. Build Cubic Bezier Path and Fill Path
         val splinePath = Path()
         val fillPath = Path()
 
-        val startY = getY(effectivePoints.first())
+        val startY = getY(points.first())
         splinePath.moveTo(0f, startY)
         fillPath.moveTo(0f, height)
         fillPath.lineTo(0f, startY)
 
-        for (i in 0 until effectivePoints.size - 1) {
+        for (i in 0 until points.size - 1) {
             val p0X = i * stepX
-            val p0Y = getY(effectivePoints[i])
+            val p0Y = getY(points[i])
             val p1X = (i + 1) * stepX
-            val p1Y = getY(effectivePoints[i + 1])
+            val p1Y = getY(points[i + 1])
 
             val cp1X = p0X + (p1X - p0X) / 2f
             val cp1Y = p0Y
@@ -528,55 +915,58 @@ fun HeartRateHeroCanvasChart(
             fillPath.cubicTo(cp1X, cp1Y, cp2X, cp2Y, p1X, p1Y)
         }
 
-        val lastX = (effectivePoints.size - 1) * stepX
-        val lastY = getY(effectivePoints.last())
+        val lastX = (points.size - 1) * stepX
+        val lastY = getY(points.last())
 
         fillPath.lineTo(lastX, height)
         fillPath.close()
 
-        // 1. Draw Area Gradient
+        // Draw area gradient under curve
         drawPath(
             path = fillPath,
             brush = Brush.verticalGradient(
-                colors = listOf(BioOrangeGradientTop, BioOrangeGradientBottom),
+                colors = listOf(
+                    IndigoSleepPrimary.copy(alpha = 0.35f),
+                    IndigoSleepPrimary.copy(alpha = 0.0f)
+                ),
                 startY = 0f,
                 endY = height
             )
         )
 
-        // 2. Draw Spline Stroke
+        // Draw spline stroke
         drawPath(
             path = splinePath,
-            color = BioOrangePrimary,
+            color = IndigoSleepPrimary,
             style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
         )
 
-        // 3. Draw Endpoint Ring (Outer Halo + Solid Ring + White Hole)
+        // 3. Draw glowing marker dot at last point
         drawCircle(
-            color = BioOrangePrimary.copy(alpha = 0.20f),
-            radius = 9.dp.toPx(),
+            color = IndigoSleepPrimary.copy(alpha = 0.25f),
+            radius = 8.dp.toPx(),
             center = Offset(lastX, lastY)
         )
         drawCircle(
-            color = BioOrangePrimary,
-            radius = 5.dp.toPx(),
+            color = IndigoSleepPrimary,
+            radius = 4.5.dp.toPx(),
             center = Offset(lastX, lastY)
         )
         drawCircle(
-            color = CardSurface,
-            radius = 2.2.dp.toPx(),
+            color = TextWhite,
+            radius = 2.dp.toPx(),
             center = Offset(lastX, lastY)
         )
     }
 }
 
 // =============================================================================
-// Bento Grid Card: Template A (Standard Wearable Bento Card)
+// Split 2-Column Row: RHR Card (Z-Score & Dual Track)
 // =============================================================================
 
 @Composable
-fun BioTraceTemplateACard(
-    card: VitalSummaryCardModel,
+fun RhrSplitCard(
+    rhrData: io.biotrace.app.ui.vitals.DashboardRhrSplit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -585,9 +975,7 @@ fun BioTraceTemplateACard(
         color = CardSurface,
         shape = BioTraceTokens.BentoCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(184.dp)
+        modifier = modifier.height(188.dp)
     ) {
         Column(
             modifier = Modifier
@@ -595,132 +983,120 @@ fun BioTraceTemplateACard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Header Row: 36.dp Circular Icon Badge + Title + Chevron
+            // Header: Icon + Title + Z-score pill
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    val (icon, iconTint, iconBg) = when (card.metricType) {
-                        VitalMetricType.CALORIES_DISTANCE -> Triple(Icons.Default.LocalFireDepartment, BioOrangePrimary, BioOrangeSoftTint)
-                        VitalMetricType.STEPS -> Triple(Icons.AutoMirrored.Filled.DirectionsWalk, SolarAmberPrimary, Color(0xFFFFF7E6))
-                        VitalMetricType.SPO2 -> Triple(Icons.Default.Opacity, CobaltBluePrimary, Color(0xFFEEF4FF))
-                        VitalMetricType.SLEEP -> Triple(Icons.Default.Bedtime, IndigoSleepPrimary, Color(0xFFF1F0FF))
-                        else -> Triple(card.metricType.icon, card.metricType.accentColor, card.metricType.accentColor.copy(alpha = 0.12f))
-                    }
-
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(34.dp)
+                            .size(30.dp)
                             .clip(CircleShape)
-                            .background(iconBg),
+                            .background(BioOrangeSoftTint),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = icon,
-                            contentDescription = card.metricType.title,
-                            tint = iconTint,
-                            modifier = Modifier.size(17.dp)
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "RHR",
+                            tint = BioOrangePrimary,
+                            modifier = Modifier.size(15.dp)
                         )
                     }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = card.metricType.title,
-                        fontSize = 13.sp,
+                        text = "Resting HR",
+                        fontSize = 12.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        color = TextPrimary
                     )
                 }
 
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = TextMuted,
-                    modifier = Modifier.size(16.dp)
+                // Guarded z-score display: zScoreFormatted ?: "Baseline"
+                val zScoreDisplay = rhrData.zScoreFormatted ?: "Baseline"
+                val (badgeBg, badgeColor) = when (rhrData.status) {
+                    "Elevated" -> Pair(CoralAlertSoftTint, CoralAlertPrimary)
+                    "Optimal" -> Pair(EmeraldSoftTint, EmeraldPrimary)
+                    else -> Pair(InnerWellSurface, TextSecondary)
+                }
+                Surface(
+                    color = badgeBg,
+                    shape = BioTraceTokens.PillShape
+                ) {
+                    Text(
+                        text = zScoreDisplay,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = badgeColor,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            // Center: Current BPM Value
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = rhrData.currentBpm?.toString() ?: "--",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Black,
+                    color = TextPrimary,
+                    lineHeight = 30.sp
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "bpm",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(bottom = 3.dp)
                 )
             }
 
-            // Center: Primary Value + Unit
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = card.primaryValue,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Black,
-                        color = TextPrimary,
-                        lineHeight = 28.sp
-                    )
-                    if (card.primaryUnit.isNotEmpty()) {
-                        Spacer(modifier = Modifier.width(4.dp))
+            // Bottom: Dual Track Well (Current vs 30D baseline)
+            Surface(
+                color = InnerWellSurface,
+                shape = BioTraceTokens.InnerWellSmallShape,
+                border = BioTraceTokens.WellHairlineBorder,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Text(
-                            text = card.primaryUnit,
-                            fontSize = 12.sp,
+                            text = "30D Avg",
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Medium,
-                            color = TextSecondary,
-                            modifier = Modifier.padding(bottom = 2.dp)
+                            color = TextSecondary
+                        )
+                        Text(
+                            text = rhrData.baselineMeanBpm?.let { "${it.roundToInt()} bpm" } ?: "--",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
                         )
                     }
-                }
-            }
-
-            // Bottom: Dynamic Visual Container (Pill or Linear Progress Bar)
-            Column(modifier = Modifier.fillMaxWidth()) {
-                when {
-                    // Daily Steps: Linear Progress Bar
-                    card.metricType == VitalMetricType.STEPS && card.progress != null -> {
-                        LinearProgressIndicator(
-                            progress = { card.progress },
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .clip(BioTraceTokens.PillShape)
+                            .background(DividerSubtle)
+                    ) {
+                        val current = rhrData.currentBpm?.toFloat() ?: 60f
+                        val progress = ((current - 40f) / 60f).coerceIn(0.05f, 0.95f)
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = SolarAmberPrimary,
-                            trackColor = Color(0xFFFFF1D6),
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = card.goalText ?: card.secondaryText.ifBlank { "${(card.progress * 100).toInt()}% of daily goal" },
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextSecondary,
-                            maxLines = 1
-                        )
-                    }
-
-                    // Active Calories / Sleep / SpO2: Status Pill Badge
-                    card.badgeText != null -> {
-                        Surface(
-                            color = card.badgeBgColor ?: EmeraldSoftTint,
-                            shape = BioTraceTokens.PillShape
-                        ) {
-                            Text(
-                                text = card.badgeText,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = card.badgeColor ?: EmeraldPrimary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                maxLines = 1
-                            )
-                        }
-                    }
-
-                    // Secondary text fallback
-                    else -> {
-                        Text(
-                            text = card.secondaryText,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                                .fillMaxHeight()
+                                .fillMaxWidth(progress)
+                                .background(BioOrangePrimary)
                         )
                     }
                 }
@@ -730,12 +1106,12 @@ fun BioTraceTemplateACard(
 }
 
 // =============================================================================
-// Bento Grid Card: Template B (Integrated Biomarker Card with Recessed Well)
+// Split 2-Column Row: Sleep Card (Segmented 3-Color Bar)
 // =============================================================================
 
 @Composable
-fun BioTraceTemplateBCard(
-    card: VitalSummaryCardModel,
+fun SleepSplitCard(
+    sleepData: io.biotrace.app.ui.vitals.DashboardSleepSplit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -744,206 +1120,753 @@ fun BioTraceTemplateBCard(
         color = CardSurface,
         shape = BioTraceTokens.BentoCardShape,
         border = BioTraceTokens.CardHairlineBorder,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(184.dp)
+        modifier = modifier.height(188.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(14.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Top Row: 34.dp Icon + Title + Status Pill
+            // Header: Icon + Title + Target Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    val (icon, iconTint, iconBg) = when (card.metricType) {
-                        VitalMetricType.RESTING_HEART_RATE -> Triple(Icons.Default.Favorite, BioOrangePrimary, BioOrangeSoftTint)
-                        else -> Triple(card.metricType.icon, card.metricType.accentColor, card.metricType.accentColor.copy(alpha = 0.12f))
-                    }
-
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(30.dp)
                             .clip(CircleShape)
-                            .background(iconBg),
+                            .background(IndigoSleepSoftTint),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = icon,
-                            contentDescription = card.metricType.title,
-                            tint = iconTint,
-                            modifier = Modifier.size(16.dp)
+                            imageVector = Icons.Default.Bedtime,
+                            contentDescription = "Sleep",
+                            tint = IndigoSleepPrimary,
+                            modifier = Modifier.size(15.dp)
                         )
                     }
-
                     Spacer(modifier = Modifier.width(6.dp))
-
                     Text(
-                        text = card.metricType.title,
-                        fontSize = 12.sp,
+                        text = "Sleep",
+                        fontSize = 12.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        color = TextPrimary
                     )
                 }
 
-                if (card.badgeText != null) {
-                    Surface(
-                        color = card.badgeBgColor ?: Color(0xFFF1F5F9),
-                        shape = BioTraceTokens.PillShape
-                    ) {
-                        Text(
-                            text = card.badgeText,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = card.badgeColor ?: TextPrimary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
+                Surface(
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.PillShape
+                ) {
+                    Text(
+                        text = sleepData.targetLabel,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = IndigoSleepPrimary,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
                 }
             }
 
-            // Center: Primary Value + Unit
+            // Center: Duration Value
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = card.primaryValue,
+                    text = sleepData.durationFormatted,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
                     color = TextPrimary,
                     lineHeight = 28.sp
                 )
-                if (card.primaryUnit.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = card.primaryUnit,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(bottom = 2.dp)
-                    )
-                }
             }
 
-            // Bottom: Recessed Inner Well Container (#F6F7FB)
-            Surface(
-                color = InnerWellSurface,
-                shape = BioTraceTokens.InnerWellSmallShape,
-                border = BioTraceTokens.WellHairlineBorder,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = card.recessedWellLeftLabel ?: "Baseline",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextSecondary,
-                            maxLines = 1
+            // Bottom: 3-Color Segmented Sleep Stage Bar (Deep, REM, Light)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Safe math guard: check totalMinutes > 0; apply Modifier.weight(maxOf(0.01f, pct.toFloat())); if 0, show neutral track
+                if (sleepData.totalMinutes > 0) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(BioTraceTokens.PillShape)
+                            .background(InnerWellSurface),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        val deepWeight = maxOf(0.01f, sleepData.deepPercentage.toFloat())
+                        val remWeight = maxOf(0.01f, sleepData.remPercentage.toFloat())
+                        val lightWeight = maxOf(0.01f, sleepData.lightPercentage.toFloat())
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(deepWeight)
+                                .background(SleepDeepColor)
                         )
-                        Text(
-                            text = card.recessedWellLeftValue ?: "--",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(remWeight)
+                                .background(SleepRemColor)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .weight(lightWeight)
+                                .background(SleepLightColor)
                         )
                     }
-
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        SleepStageLegendItem(color = SleepDeepColor, label = "D ${sleepData.deepPercentage}%")
+                        SleepStageLegendItem(color = SleepRemColor, label = "R ${sleepData.remPercentage}%")
+                        SleepStageLegendItem(color = SleepLightColor, label = "L ${sleepData.lightPercentage}%")
+                    }
+                } else {
                     Box(
                         modifier = Modifier
-                            .width(1.dp)
-                            .height(16.dp)
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(BioTraceTokens.PillShape)
                             .background(DividerSubtle)
                     )
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = card.recessedWellRightLabel ?: "Status",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextSecondary,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = card.recessedWellRightValue ?: "--",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = card.recessedWellRightColor ?: EmeraldPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "No sleep stages recorded",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextMuted
+                    )
                 }
             }
         }
     }
 }
 
+@Composable
+private fun SleepStageLegendItem(
+    color: Color,
+    label: String
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(5.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Spacer(modifier = Modifier.width(3.dp))
+        Text(
+            text = label,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Medium,
+            color = TextSecondary
+        )
+    }
+}
+
 // =============================================================================
-// Bottom Action Row: Sync Health Connect
+// Labs Section: Biomarker Telemetry & Normalized Range Bars
 // =============================================================================
 
 @Composable
-fun SyncHealthConnectBottomRow(
-    isRefreshing: Boolean,
-    onSyncHealthConnect: () -> Unit,
+fun LabsTelemetryCard(
+    labItems: List<io.biotrace.app.ui.vitals.DashboardLabItem>,
+    onNavigateToLabs: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        onClick = onNavigateToLabs,
+        color = CardSurface,
+        shape = BioTraceTokens.BentoCardShape,
+        border = BioTraceTokens.CardHairlineBorder,
+        modifier = modifier.fillMaxWidth()
     ) {
-        // Main Sync Pill Button (54.dp height)
-        Button(
-            onClick = onSyncHealthConnect,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = BioOrangePrimary,
-                contentColor = TextWhite
-            ),
-            shape = BioTraceTokens.PillShape,
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(54.dp)
+                .padding(18.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = null,
-                tint = TextWhite,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            // Header Row: Icon + Title + Action Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(CobaltBlueSoftTint),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Science,
+                            contentDescription = "Labs",
+                            tint = CobaltBluePrimary,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Biomarker Telemetry",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                }
+
+                Surface(
+                    onClick = onNavigateToLabs,
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.PillShape,
+                    border = BorderStroke(1.dp, DividerSubtle)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (labItems.isNotEmpty()) "Scan Report" else "Add Labs",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = CobaltBluePrimary
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = CobaltBluePrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (labItems.isEmpty()) {
+                Surface(
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.InnerWellShape,
+                    border = BioTraceTokens.WellHairlineBorder,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "No Lab Panels Synced",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Upload bloodwork or scan lab PDF to track validated biomarker ranges.",
+                            fontSize = 11.sp,
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    labItems.forEach { item ->
+                        BiomarkerRangeItem(item = item)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BiomarkerRangeItem(
+    item: io.biotrace.app.ui.vitals.DashboardLabItem,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = item.name,
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                val (badgeBg, badgeColor, badgeLabel) = when (item.flag) {
+                    "HIGH" -> Triple(CoralAlertSoftTint, CoralAlertPrimary, "HIGH")
+                    "LOW" -> Triple(SolarAmberSoftTint, SolarAmberPrimary, "LOW")
+                    "NORMAL" -> Triple(EmeraldSoftTint, EmeraldPrimary, "NORMAL")
+                    else -> Triple(InnerWellSurface, TextSecondary, item.flag ?: "SYNCED")
+                }
+                Surface(
+                    color = badgeBg,
+                    shape = BioTraceTokens.PillShape
+                ) {
+                    Text(
+                        text = badgeLabel,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = badgeColor,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
             Text(
-                text = if (isRefreshing) "Syncing..." else "Sync Health Connect",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
+                text = "${item.value} ${item.unit}",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Normalized horizontal range bar: use item.rangePosition clamped between 0.05f and 0.95f
+        val clampedPos = item.rangePosition.coerceIn(0.05f, 0.95f)
+        val markerColor = when (item.flag) {
+            "HIGH" -> CoralAlertPrimary
+            "LOW" -> SolarAmberPrimary
+            else -> EmeraldPrimary
+        }
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(14.dp)
+        ) {
+            val width = size.width
+            val height = size.height
+            val barHeight = 5.dp.toPx()
+            val midY = height / 2f
+
+            // Full track background
+            drawRoundRect(
+                color = InnerWellSurface,
+                size = androidx.compose.ui.geometry.Size(width, barHeight),
+                topLeft = Offset(0f, midY - barHeight / 2f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(barHeight / 2f)
+            )
+
+            // Optimal normal target zone (25% to 75%)
+            drawRoundRect(
+                color = EmeraldPrimary.copy(alpha = 0.15f),
+                size = androidx.compose.ui.geometry.Size(width * 0.5f, barHeight),
+                topLeft = Offset(width * 0.25f, midY - barHeight / 2f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(barHeight / 2f)
+            )
+
+            // Marker dot at clamped position
+            val markerX = width * clampedPos
+            drawCircle(
+                color = markerColor.copy(alpha = 0.25f),
+                radius = 6.dp.toPx(),
+                center = Offset(markerX, midY)
+            )
+            drawCircle(
+                color = markerColor,
+                radius = 3.5.dp.toPx(),
+                center = Offset(markerX, midY)
+            )
+        }
+
+        // Reference range captions
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            val minText = item.referenceMin?.let { "$it ${item.unit}" } ?: "Ref Min"
+            val maxText = item.referenceMax?.let { "$it ${item.unit}" } ?: "Ref Max"
+            Text(
+                text = minText,
+                fontSize = 9.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextMuted
+            )
+            Text(
+                text = maxText,
+                fontSize = 9.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextMuted
             )
         }
     }
 }
+
+// =============================================================================
+// Nutrition Section: Meal Nutrition & Postprandial Impact
+// =============================================================================
+
+@Composable
+fun NutritionSectionCard(
+    nutrition: io.biotrace.app.ui.vitals.DashboardMealNutrition?,
+    onNavigateToNutrition: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onNavigateToNutrition,
+        color = CardSurface,
+        shape = BioTraceTokens.BentoCardShape,
+        border = BioTraceTokens.CardHairlineBorder,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp)
+        ) {
+            // Header Row: Icon + Title + Action Pill Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(SolarAmberSoftTint),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Restaurant,
+                            contentDescription = "Nutrition",
+                            tint = SolarAmberPrimary,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Metabolic Nutrition",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                }
+
+                Surface(
+                    onClick = onNavigateToNutrition,
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.PillShape,
+                    border = BorderStroke(1.dp, DividerSubtle)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (nutrition != null) "Log Meal" else "Snap Meal",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SolarAmberPrimary
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = SolarAmberPrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Safe guard: if latestNutrition == null, render graceful empty card with camera button
+            if (nutrition == null) {
+                Surface(
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.InnerWellShape,
+                    border = BioTraceTokens.WellHairlineBorder,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(SolarAmberSoftTint),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                tint = SolarAmberPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "No Meals Logged Today",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Photograph a meal to compute macros and track postprandial cardiac tone.",
+                            fontSize = 11.5.sp,
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = onNavigateToNutrition,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = SolarAmberPrimary,
+                                contentColor = TextWhite
+                            ),
+                            shape = BioTraceTokens.PillShape,
+                            modifier = Modifier.height(38.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                tint = TextWhite,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Camera Meal Scan",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            } else {
+                // Top Meal Row: Thumbnail + Meal Name + Time + Calories
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(SolarAmberSoftTint),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Restaurant,
+                                contentDescription = nutrition.mealName,
+                                tint = SolarAmberPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = nutrition.mealName.ifBlank { "Logged Meal" },
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = nutrition.consumedAtFormatted.ifBlank { "Recent" },
+                                fontSize = 11.sp,
+                                color = TextSecondary,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "${nutrition.calories}",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "kcal",
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Macros Well: Protein, Carbs, Fats
+                Surface(
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.InnerWellSmallShape,
+                    border = BioTraceTokens.WellHairlineBorder,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MacroColumn(
+                            label = "Protein",
+                            value = "${nutrition.proteinGrams.roundToInt()}g",
+                            color = MacroProteinColor
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(22.dp)
+                                .background(DividerSubtle)
+                        )
+                        MacroColumn(
+                            label = "Carbs",
+                            value = "${nutrition.carbsGrams.roundToInt()}g",
+                            color = MacroCarbsColor
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(22.dp)
+                                .background(DividerSubtle)
+                        )
+                        MacroColumn(
+                            label = "Fats",
+                            value = "${nutrition.fatsGrams.roundToInt()}g",
+                            color = MacroFatsColor
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Postprandial HR Impact Pill
+                if (nutrition.postprandialHrImpactBpm != null) {
+                    val impact = nutrition.postprandialHrImpactBpm
+                    val isHigh = impact > 3.0
+                    val (pillBg, pillBorder, pillColor) = if (isHigh) {
+                        Triple(StrainAlertBg, StrainAlertBorder, CoralAlertPrimary)
+                    } else {
+                        Triple(EmeraldSoftTint, EmeraldPrimary.copy(alpha = 0.2f), EmeraldPrimary)
+                    }
+                    val sign = if (impact >= 0) "+" else ""
+
+                    Surface(
+                        color = pillBg,
+                        shape = BioTraceTokens.PillShape,
+                        border = BorderStroke(1.dp, pillBorder)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = null,
+                                tint = pillColor,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Postprandial HR: ${sign}${impact} bpm vs baseline",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = pillColor
+                            )
+                        }
+                    }
+                } else if (nutrition.isLateMeal) {
+                    Surface(
+                        color = CorrelationPeachBg,
+                        shape = BioTraceTokens.PillShape,
+                        border = BorderStroke(1.dp, CorrelationPeachBorder)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Bedtime,
+                                contentDescription = null,
+                                tint = SolarAmberPrimary,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Late meal • Monitoring nocturnal recovery",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = SolarAmberPrimary
+                            )
+                        }
+                    }
+                }
+
+                if (nutrition.narrative.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = nutrition.narrative,
+                        fontSize = 11.5.sp,
+                        color = TextSecondary,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MacroColumn(
+    label: String,
+    value: String,
+    color: Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = label,
+            fontSize = 9.5.sp,
+            fontWeight = FontWeight.Medium,
+            color = TextSecondary
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+    }
+}
+
 
 // =============================================================================
 // Health Connect Availability & Permission Banner
@@ -952,14 +1875,13 @@ fun SyncHealthConnectBottomRow(
 @Composable
 private fun HealthConnectNoticeBanner(
     availability: HealthConnectAvailability,
-    hasPermissions: Boolean,
     onRequestPermissions: () -> Unit,
     onInstall: () -> Unit
 ) {
     Surface(
         color = Color(0xFFFEF3C7),
         shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFDE68A)),
+        border = BorderStroke(1.dp, Color(0xFFFDE68A)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(

@@ -5,6 +5,7 @@ import android.graphics.Typeface
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,7 +25,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
@@ -36,7 +40,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -44,6 +51,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -80,6 +89,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.biotrace.app.data.local.entity.LabBiomarkerEntity
 import io.biotrace.app.domain.clinical.ClinicalDateParser
@@ -89,22 +99,36 @@ import io.biotrace.app.ui.theme.AlertRedLight
 import io.biotrace.app.ui.theme.AlertRedText
 import io.biotrace.app.ui.theme.BioOrange
 import io.biotrace.app.ui.theme.BioOrangeLight
+import io.biotrace.app.ui.theme.BioOrangePrimary
+import io.biotrace.app.ui.theme.BioOrangeSoftTint
+import io.biotrace.app.ui.theme.BioTraceTokens
 import io.biotrace.app.ui.theme.CardBorder
+import io.biotrace.app.ui.theme.CardSurface
 import io.biotrace.app.ui.theme.ClinicalEmerald
 import io.biotrace.app.ui.theme.ClinicalEmeraldDark
+import io.biotrace.app.ui.theme.CoralAlertPrimary
+import io.biotrace.app.ui.theme.CoralAlertSoftTint
+import io.biotrace.app.ui.theme.EmeraldPrimary
+import io.biotrace.app.ui.theme.EmeraldSoftTint
+import io.biotrace.app.ui.theme.InnerWellSurface
 import io.biotrace.app.ui.theme.LightBackground
 import io.biotrace.app.ui.theme.MintBadgeBg
 import io.biotrace.app.ui.theme.MintBadgeText
+import io.biotrace.app.ui.theme.ProfileAvatarBg
+import io.biotrace.app.ui.theme.ProfileAvatarIcon
 import io.biotrace.app.ui.theme.PureWhite
 import io.biotrace.app.ui.theme.TextDark
 import io.biotrace.app.ui.theme.TextMuted
+import io.biotrace.app.ui.theme.TextPrimary
 import io.biotrace.app.ui.theme.TextSecondary
+import io.biotrace.app.ui.theme.TextWhite
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
 fun LabsScreen(
+    onNavigateBack: (() -> Unit)? = null,
     onNavigateToSettings: () -> Unit = {},
     viewModel: LabsViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
@@ -137,9 +161,10 @@ fun LabsScreen(
     }
 
     if (uiState.isReviewDialogOpen && uiState.pendingReviewBiomarkers.isNotEmpty()) {
-        BiomarkerReviewDialog(
-            biomarkers = uiState.pendingReviewBiomarkers,
-            reportMetadata = uiState.scannedReportMetadata,
+        OcrPanelReviewDialog(
+            uiState = uiState,
+            onOperatorSelected = { op -> viewModel.updateReviewOperator(op) },
+            onValueChanged = { v -> viewModel.updateReviewValue(v) },
             onDismiss = { viewModel.closeReviewDialog() },
             onConfirm = { reviewedList ->
                 viewModel.confirmAndSaveReviewedMarkers(reviewedList)
@@ -151,6 +176,7 @@ fun LabsScreen(
         containerColor = LightBackground,
         topBar = {
             BioTraceTopBar(
+                onBackClick = onNavigateBack,
                 onProfileClick = onNavigateToSettings
             )
         }
@@ -1101,151 +1127,515 @@ fun BiomarkerCard(biomarker: LabBiomarkerEntity) {
 }
 
 @Composable
-fun BiomarkerReviewDialog(
-    biomarkers: List<LabBiomarkerEntity>,
-    reportMetadata: String? = null,
+fun OcrPanelReviewDialog(
+    uiState: LabsUiState,
+    onOperatorSelected: (String) -> Unit = {},
+    onValueChanged: (String) -> Unit = {},
     onDismiss: () -> Unit,
     onConfirm: (List<LabBiomarkerEntity>) -> Unit
 ) {
-    val editableList = remember { mutableStateListOf<LabBiomarkerEntity>().apply { addAll(biomarkers) } }
-    var editingIndex by remember { mutableStateOf<Int?>(null) }
-
-    editingIndex?.let { index ->
-        if (index in editableList.indices) {
-            EditBiomarkerDialog(
-                biomarker = editableList[index],
-                onDismiss = { editingIndex = null },
-                onSave = { updated ->
-                    editableList[index] = updated
-                    editingIndex = null
-                }
-            )
-        }
+    var editingItem by remember { mutableStateOf<LabBiomarkerEntity?>(null) }
+    val editableList = remember(uiState.pendingReviewBiomarkers) {
+        mutableStateListOf<LabBiomarkerEntity>().apply { addAll(uiState.pendingReviewBiomarkers) }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    editingItem?.let { target ->
+        EditBiomarkerDialog(
+            biomarker = target,
+            onDismiss = { editingItem = null },
+            onSave = { updated ->
+                val idx = editableList.indexOfFirst { it.id == target.id }
+                if (idx != -1) {
+                    editableList[idx] = updated
+                }
+                editingItem = null
+            }
+        )
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = PureWhite,
-            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+            color = CardSurface,
+            border = BorderStroke(1.dp, CardBorder),
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.95f)
                 .padding(vertical = 16.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(20.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Header: Document/Scan icon, Panel name, formatted value with operator, "OCR Confirmed" green pill badge, user avatar
+                val panelName = uiState.reviewPanelName.ifBlank {
+                    val first = uiState.pendingReviewBiomarkers.firstOrNull()
+                    if (first?.biomarkerName.equals("HBA1C", ignoreCase = true)) "HbA1c Panel"
+                    else if (first != null) "${first.rawName} Panel"
+                    else "HbA1c Panel"
+                }
+
+                val op = uiState.reviewOperator.trim()
+                val valStr = uiState.reviewValue.trim().ifBlank {
+                    uiState.pendingReviewBiomarkers.firstOrNull()?.value?.let {
+                        if (it % 1.0 == 0.0) it.toInt().toString() else it.toString()
+                    } ?: "5.7"
+                }
+                val unitStr = uiState.reviewUnit.trim().ifBlank {
+                    uiState.pendingReviewBiomarkers.firstOrNull()?.unit ?: "%"
+                }
+                val formattedHeaderValue = if (op.isNotBlank() && op != "=") {
+                    "$op $valStr$unitStr"
+                } else {
+                    "$valStr $unitStr".trim()
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "Verify Parsed Report",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDark
-                        )
-                        if (!reportMetadata.isNullOrBlank()) {
-                            Text(
-                                text = reportMetadata,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = BioOrange
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(BioOrangeSoftTint),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = "Scan Document",
+                                tint = BioOrangePrimary,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
-                        Text(
-                            text = "${editableList.size} tests extracted • Tap to edit, confirm to save",
-                            fontSize = 11.5.sp,
-                            color = TextSecondary
-                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = panelName,
+                                    color = TextPrimary,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                Row(
+                                    modifier = Modifier
+                                        .clip(BioTraceTokens.PillShape)
+                                        .background(EmeraldSoftTint)
+                                        .border(1.dp, EmeraldPrimary.copy(alpha = 0.35f), BioTraceTokens.PillShape)
+                                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = EmeraldPrimary,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Text(
+                                        text = "OCR Confirmed",
+                                        color = EmeraldPrimary,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(2.dp))
+
+                            Text(
+                                text = formattedHeaderValue,
+                                color = TextSecondary,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
 
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(ProfileAvatarBg),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "User Avatar",
+                                tint = ProfileAvatarIcon,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.size(30.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = TextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = false),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                // "OPERATOR & VALUE" Card
+                Surface(
+                    shape = BioTraceTokens.BentoCardShape,
+                    color = InnerWellSurface,
+                    border = BorderStroke(1.dp, CardBorder),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(editableList) { item ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "OPERATOR & VALUE",
+                            color = TextSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            var operatorMenuExpanded by remember { mutableStateOf(false) }
+                            val operators = listOf("<", ">", "=", "≤", "≥")
+                            val currentOp = if (uiState.reviewOperator.isNotBlank()) uiState.reviewOperator else "="
+
+                            Box {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = CardSurface,
+                                    border = BorderStroke(1.dp, CardBorder),
+                                    modifier = Modifier
+                                        .height(52.dp)
+                                        .clickable { operatorMenuExpanded = true }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = currentOp,
+                                            color = BioOrangePrimary,
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowDown,
+                                            contentDescription = "Select Operator",
+                                            tint = TextSecondary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+
+                                DropdownMenu(
+                                    expanded = operatorMenuExpanded,
+                                    onDismissRequest = { operatorMenuExpanded = false },
+                                    modifier = Modifier.background(CardSurface)
+                                ) {
+                                    operators.forEach { opItem ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = opItem,
+                                                    color = if (opItem == currentOp) BioOrangePrimary else TextPrimary,
+                                                    fontSize = 16.sp,
+                                                    fontWeight = if (opItem == currentOp) FontWeight.Bold else FontWeight.Medium
+                                                )
+                                            },
+                                            onClick = {
+                                                onOperatorSelected(opItem)
+                                                operatorMenuExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = uiState.reviewValue,
+                                onValueChange = { onValueChanged(it) },
+                                singleLine = true,
+                                placeholder = { Text("5.7", color = TextMuted) },
+                                trailingIcon = {
+                                    Text(
+                                        text = unitStr,
+                                        color = TextSecondary,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.5.sp,
+                                        modifier = Modifier.padding(end = 12.dp)
+                                    )
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = TextPrimary,
+                                    unfocusedTextColor = TextPrimary,
+                                    focusedContainerColor = CardSurface,
+                                    unfocusedContainerColor = CardSurface,
+                                    cursorColor = BioOrangePrimary,
+                                    focusedBorderColor = BioOrangePrimary,
+                                    unfocusedBorderColor = CardBorder
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(52.dp)
+                            )
+                        }
+
+                        // Operator Quick Selector Row
+                        val operators = listOf("<", ">", "=", "≤", "≥")
+                        val currentOp = if (uiState.reviewOperator.isNotBlank()) uiState.reviewOperator else "="
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            operators.forEach { opItem ->
+                                val isSelected = opItem == currentOp
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (isSelected) BioOrangePrimary else CardSurface)
+                                        .border(1.dp, if (isSelected) BioOrangePrimary else CardBorder, RoundedCornerShape(10.dp))
+                                        .clickable { onOperatorSelected(opItem) }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = opItem,
+                                        color = if (isSelected) TextWhite else TextSecondary,
+                                        fontSize = 14.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+
+                        // Dynamic Unit Harmonization Card
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFFF8FAFC),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEEF2F6)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { editingIndex = editableList.indexOf(item) }
+                            shape = BioTraceTokens.InnerWellSmallShape,
+                            color = CardSurface,
+                            border = BorderStroke(1.dp, CardBorder),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = item.rawName,
-                                            fontSize = 13.5.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = TextDark
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "Edit test",
-                                            tint = BioOrange,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                    }
-                                    Text(
-                                        text = "Ref: ${item.referenceMin ?: 0.0} – ${item.referenceMax ?: "∞"} ${item.unit}",
-                                        fontSize = 11.sp,
-                                        color = TextMuted
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(BioOrangeSoftTint),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.SwapHoriz,
+                                        contentDescription = "Unit Harmonization",
+                                        tint = BioOrangePrimary,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
 
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column {
                                     Text(
-                                        text = "${item.value} ${item.unit}",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (item.flag == "NORMAL") TextDark else AlertRed
+                                        text = "Unit Harmonization",
+                                        color = TextMuted,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = if (item.flag == "NORMAL") MintBadgeBg else AlertRedLight
-                                    ) {
-                                        Text(
-                                            text = item.flag ?: "NORMAL",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (item.flag == "NORMAL") MintBadgeText else AlertRedText,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    IconButton(
-                                        onClick = { editableList.remove(item) },
-                                        modifier = Modifier.size(24.dp)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = uiState.unitHarmonizationText ?: "5.7 % ↔ 39 mmol/mol",
+                                        color = TextPrimary,
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // "LINKED PANEL RESULTS" Card
+                val linkedList = if (uiState.linkedPanelResults.isNotEmpty()) {
+                    uiState.linkedPanelResults
+                } else if (editableList.isNotEmpty()) {
+                    editableList
+                } else {
+                    uiState.pendingReviewBiomarkers
+                }
+
+                Surface(
+                    shape = BioTraceTokens.BentoCardShape,
+                    color = InnerWellSurface,
+                    border = BorderStroke(1.dp, CardBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "LINKED PANEL RESULTS",
+                                color = TextSecondary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "${linkedList.size} Tests Checked",
+                                color = EmeraldPrimary,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            linkedList.forEach { item ->
+                                val isNormal = item.flag == "NORMAL"
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(CardSurface)
+                                        .border(1.dp, CardBorder.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
+                                        .clickable { editingItem = item }
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isNormal) EmeraldSoftTint else CoralAlertSoftTint),
+                                        contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Remove",
-                                            tint = TextMuted,
-                                            modifier = Modifier.size(15.dp)
+                                            imageVector = if (isNormal) Icons.Default.Check else Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = if (isNormal) EmeraldPrimary else CoralAlertPrimary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = item.rawName,
+                                                color = TextPrimary,
+                                                fontSize = 13.5.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (isNormal) EmeraldSoftTint else CoralAlertSoftTint
+                                            ) {
+                                                Text(
+                                                    text = item.flag ?: (if (isNormal) "NORMAL" else "LOW"),
+                                                    color = if (isNormal) EmeraldPrimary else CoralAlertPrimary,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        val refMinStr = item.referenceMin?.let {
+                                            if (it % 1.0 == 0.0) it.toInt().toString() else it.toString()
+                                        } ?: "0"
+                                        val refMaxStr = item.referenceMax?.let {
+                                            if (it % 1.0 == 0.0) it.toInt().toString() else it.toString()
+                                        } ?: "∞"
+
+                                        Text(
+                                            text = "Ref: $refMinStr – $refMaxStr ${item.unit}".trim(),
+                                            color = TextMuted,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    val itemValStr = if (item.value % 1.0 == 0.0) item.value.toInt().toString() else item.value.toString()
+                                    Text(
+                                        text = "$itemValStr ${item.unit}",
+                                        color = if (isNormal) TextPrimary else CoralAlertPrimary,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clip(CircleShape)
+                                            .background(EmeraldSoftTint)
+                                            .border(1.dp, EmeraldPrimary.copy(alpha = 0.5f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Verified",
+                                            tint = EmeraldPrimary,
+                                            modifier = Modifier.size(13.dp)
                                         )
                                     }
                                 }
@@ -1254,23 +1644,93 @@ fun BiomarkerReviewDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
+                // Save button: "Save to Health Vault"
                 Button(
-                    onClick = { onConfirm(editableList.toList()) },
-                    colors = ButtonDefaults.buttonColors(containerColor = BioOrange),
-                    shape = RoundedCornerShape(14.dp),
+                    onClick = {
+                        val toSave = editableList.toList().ifEmpty { uiState.pendingReviewBiomarkers }
+                        onConfirm(toSave)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BioOrangePrimary,
+                        contentColor = TextWhite
+                    ),
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .height(52.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = TextWhite,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Save to Health Vault", fontWeight = FontWeight.Bold, color = PureWhite)
+                    Text(
+                        text = "Save to Health Vault",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = TextWhite
+                    )
                 }
             }
         }
     }
+}
+
+@Composable
+fun BiomarkerReviewDialog(
+    uiState: LabsUiState,
+    onOperatorSelected: (String) -> Unit = {},
+    onValueChanged: (String) -> Unit = {},
+    onDismiss: () -> Unit,
+    onConfirm: (List<LabBiomarkerEntity>) -> Unit = {}
+) {
+    OcrPanelReviewDialog(
+        uiState = uiState,
+        onOperatorSelected = onOperatorSelected,
+        onValueChanged = onValueChanged,
+        onDismiss = onDismiss,
+        onConfirm = onConfirm
+    )
+}
+
+@Composable
+fun BiomarkerReviewDialog(
+    biomarkers: List<LabBiomarkerEntity>,
+    reportMetadata: String? = null,
+    onDismiss: () -> Unit,
+    onConfirm: (List<LabBiomarkerEntity>) -> Unit
+) {
+    val primary = biomarkers.firstOrNull()
+    val rawVal = primary?.let { if (it.value % 1.0 == 0.0) it.value.toInt().toString() else it.value.toString() } ?: "5.7"
+    val unit = primary?.unit ?: "%"
+    val panel = if (primary?.biomarkerName.equals("HBA1C", ignoreCase = true)) "HbA1c Panel"
+    else if (primary != null) "${primary.rawName} Panel"
+    else "HbA1c Panel"
+
+    var currentOp by remember { mutableStateOf("<") }
+    var currentVal by remember { mutableStateOf(rawVal) }
+
+    val syntheticUiState = LabsUiState(
+        isReviewDialogOpen = true,
+        pendingReviewBiomarkers = biomarkers,
+        scannedReportMetadata = reportMetadata,
+        reviewPanelName = panel,
+        reviewOperator = currentOp,
+        reviewValue = currentVal,
+        reviewUnit = unit,
+        unitHarmonizationText = "5.7 % ↔ 39 mmol/mol",
+        linkedPanelResults = if (biomarkers.size > 1) biomarkers.drop(1) else biomarkers
+    )
+
+    OcrPanelReviewDialog(
+        uiState = syntheticUiState,
+        onOperatorSelected = { currentOp = it },
+        onValueChanged = { currentVal = it },
+        onDismiss = onDismiss,
+        onConfirm = onConfirm
+    )
 }
 
 @Composable
@@ -1290,8 +1750,8 @@ fun EditBiomarkerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = PureWhite,
-            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+            color = CardSurface,
+            border = BorderStroke(1.dp, CardBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -1309,7 +1769,7 @@ fun EditBiomarkerDialog(
                         text = "Edit Extracted Biomarker",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextDark
+                        color = TextPrimary
                     )
                     IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
                         Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
@@ -1319,9 +1779,14 @@ fun EditBiomarkerDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Biomarker Name") },
+                    label = { Text("Biomarker Name", color = TextSecondary) },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = BioOrange,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = InnerWellSurface,
+                        unfocusedContainerColor = InnerWellSurface,
+                        cursorColor = BioOrangePrimary,
+                        focusedBorderColor = BioOrangePrimary,
                         unfocusedBorderColor = CardBorder
                     ),
                     modifier = Modifier.fillMaxWidth()
@@ -1334,9 +1799,14 @@ fun EditBiomarkerDialog(
                     OutlinedTextField(
                         value = valueText,
                         onValueChange = { valueText = it },
-                        label = { Text("Value") },
+                        label = { Text("Value", color = TextSecondary) },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BioOrange,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = InnerWellSurface,
+                            unfocusedContainerColor = InnerWellSurface,
+                            cursorColor = BioOrangePrimary,
+                            focusedBorderColor = BioOrangePrimary,
                             unfocusedBorderColor = CardBorder
                         ),
                         modifier = Modifier.weight(1.2f)
@@ -1344,9 +1814,14 @@ fun EditBiomarkerDialog(
                     OutlinedTextField(
                         value = unitText,
                         onValueChange = { unitText = it },
-                        label = { Text("Unit") },
+                        label = { Text("Unit", color = TextSecondary) },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BioOrange,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = InnerWellSurface,
+                            unfocusedContainerColor = InnerWellSurface,
+                            cursorColor = BioOrangePrimary,
+                            focusedBorderColor = BioOrangePrimary,
                             unfocusedBorderColor = CardBorder
                         ),
                         modifier = Modifier.weight(1f)
@@ -1360,9 +1835,14 @@ fun EditBiomarkerDialog(
                     OutlinedTextField(
                         value = minText,
                         onValueChange = { minText = it },
-                        label = { Text("Ref Min") },
+                        label = { Text("Ref Min", color = TextSecondary) },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BioOrange,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = InnerWellSurface,
+                            unfocusedContainerColor = InnerWellSurface,
+                            cursorColor = BioOrangePrimary,
+                            focusedBorderColor = BioOrangePrimary,
                             unfocusedBorderColor = CardBorder
                         ),
                         modifier = Modifier.weight(1f)
@@ -1370,9 +1850,14 @@ fun EditBiomarkerDialog(
                     OutlinedTextField(
                         value = maxText,
                         onValueChange = { maxText = it },
-                        label = { Text("Ref Max") },
+                        label = { Text("Ref Max", color = TextSecondary) },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BioOrange,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = InnerWellSurface,
+                            unfocusedContainerColor = InnerWellSurface,
+                            cursorColor = BioOrangePrimary,
+                            focusedBorderColor = BioOrangePrimary,
                             unfocusedBorderColor = CardBorder
                         ),
                         modifier = Modifier.weight(1f)
@@ -1403,15 +1888,18 @@ fun EditBiomarkerDialog(
                         )
                         onSave(updated)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = BioOrange),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BioOrangePrimary,
+                        contentColor = TextWhite
+                    ),
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = PureWhite, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = TextWhite, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Apply Changes", fontWeight = FontWeight.Bold, color = PureWhite)
+                    Text("Apply Changes", fontWeight = FontWeight.Bold, color = TextWhite)
                 }
             }
         }
@@ -1432,8 +1920,8 @@ fun ManualBiomarkerEntryDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = PureWhite,
-            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+            color = CardSurface,
+            border = BorderStroke(1.dp, CardBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -1451,7 +1939,7 @@ fun ManualBiomarkerEntryDialog(
                         text = "Add Lab Biomarker",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextDark
+                        color = TextPrimary
                     )
                     IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
                         Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
@@ -1461,9 +1949,14 @@ fun ManualBiomarkerEntryDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Biomarker Name (e.g. HbA1c, Ferritin)") },
+                    label = { Text("Biomarker Name (e.g. HbA1c, Ferritin)", color = TextSecondary) },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = BioOrange,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = InnerWellSurface,
+                        unfocusedContainerColor = InnerWellSurface,
+                        cursorColor = BioOrangePrimary,
+                        focusedBorderColor = BioOrangePrimary,
                         unfocusedBorderColor = CardBorder
                     ),
                     modifier = Modifier.fillMaxWidth()
@@ -1476,9 +1969,14 @@ fun ManualBiomarkerEntryDialog(
                     OutlinedTextField(
                         value = value,
                         onValueChange = { value = it },
-                        label = { Text("Value") },
+                        label = { Text("Value", color = TextSecondary) },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BioOrange,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = InnerWellSurface,
+                            unfocusedContainerColor = InnerWellSurface,
+                            cursorColor = BioOrangePrimary,
+                            focusedBorderColor = BioOrangePrimary,
                             unfocusedBorderColor = CardBorder
                         ),
                         modifier = Modifier.weight(1.2f)
@@ -1486,9 +1984,14 @@ fun ManualBiomarkerEntryDialog(
                     OutlinedTextField(
                         value = unit,
                         onValueChange = { unit = it },
-                        label = { Text("Unit") },
+                        label = { Text("Unit", color = TextSecondary) },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BioOrange,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = InnerWellSurface,
+                            unfocusedContainerColor = InnerWellSurface,
+                            cursorColor = BioOrangePrimary,
+                            focusedBorderColor = BioOrangePrimary,
                             unfocusedBorderColor = CardBorder
                         ),
                         modifier = Modifier.weight(1f)
@@ -1502,9 +2005,14 @@ fun ManualBiomarkerEntryDialog(
                     OutlinedTextField(
                         value = min,
                         onValueChange = { min = it },
-                        label = { Text("Ref Min") },
+                        label = { Text("Ref Min", color = TextSecondary) },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BioOrange,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = InnerWellSurface,
+                            unfocusedContainerColor = InnerWellSurface,
+                            cursorColor = BioOrangePrimary,
+                            focusedBorderColor = BioOrangePrimary,
                             unfocusedBorderColor = CardBorder
                         ),
                         modifier = Modifier.weight(1f)
@@ -1512,9 +2020,14 @@ fun ManualBiomarkerEntryDialog(
                     OutlinedTextField(
                         value = max,
                         onValueChange = { max = it },
-                        label = { Text("Ref Max") },
+                        label = { Text("Ref Max", color = TextSecondary) },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BioOrange,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = InnerWellSurface,
+                            unfocusedContainerColor = InnerWellSurface,
+                            cursorColor = BioOrangePrimary,
+                            focusedBorderColor = BioOrangePrimary,
                             unfocusedBorderColor = CardBorder
                         ),
                         modifier = Modifier.weight(1f)
@@ -1532,13 +2045,16 @@ fun ManualBiomarkerEntryDialog(
                             onSave(name, v, unit, refMin, refMax)
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = BioOrange),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BioOrangePrimary,
+                        contentColor = TextWhite
+                    ),
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                 ) {
-                    Text("Save Biomarker", fontWeight = FontWeight.Bold, color = PureWhite)
+                    Text("Save Biomarker", fontWeight = FontWeight.Bold, color = TextWhite)
                 }
             }
         }

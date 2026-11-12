@@ -3,7 +3,6 @@ package io.biotrace.app.ui.theme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 object BioTraceTokens {
@@ -18,6 +17,6 @@ object BioTraceTokens {
     val IconBadgeShape = CircleShape
 
     // Borders
-    val CardHairlineBorder = BorderStroke(1.dp, Color(0xFFF1F5F9))
-    val WellHairlineBorder = BorderStroke(1.dp, Color(0xFFE2E8F0))
+    val CardHairlineBorder = BorderStroke(1.dp, CardBorder)
+    val WellHairlineBorder = BorderStroke(1.dp, DividerSubtle)
 }

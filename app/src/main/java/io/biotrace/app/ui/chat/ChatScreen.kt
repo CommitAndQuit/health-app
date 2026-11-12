@@ -70,7 +70,8 @@ import org.json.JSONArray
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
-    onNavigateToSettings: () -> Unit,
+    onNavigateBack: (() -> Unit)? = null,
+    onNavigateToSettings: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -93,6 +94,7 @@ fun ChatScreen(
         containerColor = LightBackground,
         topBar = {
             BioTraceTopBar(
+                onBackClick = onNavigateBack,
                 onProfileClick = onNavigateToSettings
             )
         }

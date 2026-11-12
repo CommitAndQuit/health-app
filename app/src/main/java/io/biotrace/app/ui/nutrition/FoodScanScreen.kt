@@ -112,6 +112,7 @@ import java.util.Locale
 
 @Composable
 fun FoodScanScreen(
+    onNavigateBack: (() -> Unit)? = null,
     onNavigateToSettings: () -> Unit = {},
     viewModel: FoodScanViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
@@ -166,6 +167,7 @@ fun FoodScanScreen(
         containerColor = LightBackground,
         topBar = {
             BioTraceTopBar(
+                onBackClick = onNavigateBack,
                 onProfileClick = onNavigateToSettings
             )
         }

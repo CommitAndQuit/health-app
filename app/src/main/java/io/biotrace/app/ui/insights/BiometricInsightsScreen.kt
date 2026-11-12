@@ -91,6 +91,7 @@ import java.util.Locale
 
 @Composable
 fun BiometricInsightsScreen(
+    onNavigateBack: (() -> Unit)? = null,
     onNavigateToLabs: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     viewModel: BiometricInsightsViewModel = hiltViewModel()
@@ -109,6 +110,7 @@ fun BiometricInsightsScreen(
         containerColor = AppCanvasBackground,
         topBar = {
             BioTraceTopBar(
+                onBackClick = onNavigateBack,
                 onProfileClick = onNavigateToSettings
             )
         }

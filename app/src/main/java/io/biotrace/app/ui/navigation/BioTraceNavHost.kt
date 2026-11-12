@@ -1,25 +1,17 @@
 package io.biotrace.app.ui.navigation
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import io.biotrace.app.domain.model.VitalMetricType
 import io.biotrace.app.ui.chat.ChatScreen
-import io.biotrace.app.ui.common.BioTraceFloatingBottomBar
-import io.biotrace.app.ui.common.bioTraceBottomTabs
 import io.biotrace.app.ui.insights.BiometricInsightsScreen
 import io.biotrace.app.ui.labs.LabsScreen
 import io.biotrace.app.ui.nutrition.FoodScanScreen
@@ -29,20 +21,10 @@ import io.biotrace.app.ui.settings.SettingsScreen
 import io.biotrace.app.ui.theme.AppCanvasBackground
 import io.biotrace.app.ui.vitals.VitalDetailScreen
 import io.biotrace.app.ui.vitals.VitalsScreen
-import kotlinx.coroutines.launch
 
 @Composable
 fun BioTraceNavHost() {
     val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Main.route
-    val pagerState = rememberPagerState(pageCount = { bioTraceBottomTabs.size })
-    val scope = rememberCoroutineScope()
-    val onMainShell = currentRoute == Screen.Main.route
-
-    BackHandler(enabled = onMainShell && pagerState.currentPage != 0) {
-        scope.launch { pagerState.animateScrollToPage(0) }
-    }
 
     Box(
         modifier = Modifier
@@ -69,45 +51,50 @@ fun BioTraceNavHost() {
                 )
             }
             composable(Screen.Main.route) {
-                HorizontalPager(
-                    state = pagerState,
-                    beyondViewportPageCount = 3,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    when (page) {
-                        0 -> VitalsScreen(
-                            onNavigateToDetail = { metricType ->
-                                navController.navigate(
-                                    Screen.VitalDetail.createRoute(metricType.name)
-                                )
-                            },
-                            onNavigateToSettings = {
-                                navController.navigate(Screen.Settings.route)
-                            },
-                            onNavigateToPermissions = {
-                                navController.navigate(Screen.Permissions.route)
-                            }
+                VitalsScreen(
+                    onNavigateToDetail = { metricType ->
+                        navController.navigate(
+                            Screen.VitalDetail.createRoute(metricType.name)
                         )
-                        1 -> LabsScreen(
-                            onNavigateToSettings = {
-                                navController.navigate(Screen.Settings.route)
-                            }
-                        )
-                        2 -> FoodScanScreen(
-                            onNavigateToSettings = {
-                                navController.navigate(Screen.Settings.route)
-                            }
-                        )
-                        3 -> BiometricInsightsScreen(
-                            onNavigateToSettings = {
-                                navController.navigate(Screen.Settings.route)
-                            },
-                            onNavigateToLabs = {
-                                scope.launch { pagerState.animateScrollToPage(1) }
-                            }
-                        )
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
+                    },
+                    onNavigateToPermissions = {
+                        navController.navigate(Screen.Permissions.route)
+                    },
+                    onNavigateToCopilot = {
+                        navController.navigate(Screen.Copilot.route)
+                    },
+                    onNavigateToInsights = {
+                        navController.navigate(Screen.BiometricInsights.route)
+                    },
+                    onNavigateToLabs = {
+                        navController.navigate(Screen.Labs.route)
+                    },
+                    onNavigateToNutrition = {
+                        navController.navigate(Screen.Nutrition.route)
                     }
-                }
+                )
+            }
+            composable(Screen.Labs.route) {
+                LabsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                )
+            }
+            composable(Screen.Nutrition.route) {
+                FoodScanScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                )
+            }
+            composable(Screen.BiometricInsights.route) {
+                BiometricInsightsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToLabs = { navController.navigate(Screen.Labs.route) },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                )
             }
             composable(
                 route = Screen.VitalDetail.route,
@@ -119,6 +106,7 @@ fun BioTraceNavHost() {
             }
             composable(Screen.Copilot.route) {
                 ChatScreen(
+                    onNavigateBack = { navController.popBackStack() },
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
                 )
             }
@@ -128,16 +116,6 @@ fun BioTraceNavHost() {
                     onNavigateToPermissions = { navController.navigate(Screen.Permissions.route) }
                 )
             }
-        }
-
-        if (onMainShell) {
-            BioTraceFloatingBottomBar(
-                selectedIndex = pagerState.currentPage,
-                onSelect = { index ->
-                    scope.launch { pagerState.animateScrollToPage(index) }
-                },
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
         }
     }
 }

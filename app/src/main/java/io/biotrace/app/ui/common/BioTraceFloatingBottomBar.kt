@@ -8,16 +8,20 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -33,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import io.biotrace.app.ui.navigation.Screen
 import io.biotrace.app.ui.theme.BioOrangePrimary
 import io.biotrace.app.ui.theme.BioTraceTokens
+import io.biotrace.app.ui.theme.CardBorder
 import io.biotrace.app.ui.theme.CardSurface
 import io.biotrace.app.ui.theme.TextSecondary
 import io.biotrace.app.ui.theme.TextWhite
@@ -54,13 +59,14 @@ val bioTraceBottomTabs = listOf(
 fun BioTraceFloatingBottomBar(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
+    onCopilotClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 32.dp, vertical = 12.dp),
+            .padding(horizontal = 24.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
@@ -73,46 +79,84 @@ fun BioTraceFloatingBottomBar(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                bioTraceBottomTabs.forEachIndexed { index, tab ->
-                    val isSelected = index == selectedIndex
-
-                    val activeBgColor by animateColorAsState(
-                        targetValue = if (isSelected) BioOrangePrimary else Color.Transparent,
-                        animationSpec = tween(durationMillis = 200),
-                        label = "tab_bg"
+                // Voice / Copilot trigger (Microphone button on left)
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onCopilotClick
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Voice Copilot",
+                        tint = TextWhite,
+                        modifier = Modifier.size(24.dp)
                     )
-                    val iconTint by animateColorAsState(
-                        targetValue = if (isSelected) TextWhite else TextSecondary,
-                        animationSpec = tween(durationMillis = 200),
-                        label = "tab_icon_tint"
-                    )
+                }
 
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(activeBgColor)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                if (!isSelected) {
-                                    onSelect(index)
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = tab.icon,
-                            contentDescription = tab.title,
-                            tint = iconTint,
-                            modifier = Modifier.size(22.dp)
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Hairline vertical divider
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(24.dp)
+                        .background(CardBorder)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Navigation Tabs
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    bioTraceBottomTabs.forEachIndexed { index, tab ->
+                        val isSelected = index == selectedIndex
+
+                        val activeBgColor by animateColorAsState(
+                            targetValue = if (isSelected) BioOrangePrimary else Color.Transparent,
+                            animationSpec = tween(durationMillis = 200),
+                            label = "tab_bg"
                         )
+                        val iconTint by animateColorAsState(
+                            targetValue = if (isSelected) TextWhite else TextSecondary,
+                            animationSpec = tween(durationMillis = 200),
+                            label = "tab_icon_tint"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(activeBgColor)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    if (!isSelected) {
+                                        onSelect(index)
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = tab.title,
+                                tint = iconTint,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
                 }
             }
