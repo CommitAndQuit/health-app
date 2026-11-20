@@ -5,11 +5,15 @@ import io.biotrace.app.data.local.store.UserProfileStore
 import io.biotrace.app.domain.llm.LlmClient
 import io.biotrace.app.domain.longevity.BiologicalAgeResult
 import io.biotrace.app.domain.longevity.LongevityTier
+import io.biotrace.app.domain.model.ActionableFocus
+import io.biotrace.app.domain.model.DailyBiometricInsightReport
+import io.biotrace.app.domain.model.InsightDomainTag
 import io.biotrace.app.domain.model.ProfileTriptychSummary
+import io.biotrace.app.domain.model.TrendDirection
+import io.biotrace.app.domain.model.TrendHighlight
 import io.biotrace.app.domain.repository.VitalsRepository
 import io.biotrace.app.domain.usecase.GenerateHealthReportUseCase
 import io.biotrace.app.domain.usecase.GetBiologicalAgeUseCase
-import io.biotrace.app.domain.usecase.ReportChunk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
@@ -79,40 +83,58 @@ class BiometricInsightsViewModelTest {
             userProfileStore
         )
 
+    private val dummyReport = DailyBiometricInsightReport(
+        headlineSummary = "Biometric summary normal.",
+        clinicalArbitrationAlert = null,
+        trendHighlights = listOf(
+            TrendHighlight(
+                title = "Resting Heart Rate",
+                domainTags = listOf(InsightDomainTag.WEARABLE),
+                direction = TrendDirection.STABLE,
+                insightText = "RHR is steady.",
+                supportingRecordIds = listOf("hr_1")
+            )
+        ),
+        actionableFocus = ActionableFocus(
+            recommendation = "Maintain regular sleep schedule.",
+            rationaleMetric = "Circadian alignment."
+        )
+    )
+
     // -------------------------------------------------------------------------
     // generateReport tests
     // -------------------------------------------------------------------------
 
     @Test
-    fun `generateReport transitions Loading Streaming Complete`() = runTest {
+    fun `generateReport transitions through Loading and Complete checking structuredReport`() = runTest {
         stubDefaultDependencies()
         whenever(llmClient.isConfigured()).thenReturn(false)
-        whenever(generateHealthReportUseCase.execute()).thenReturn(
-            flowOf(
-                ReportChunk.Started,
-                ReportChunk.Text("Hello"),
-                ReportChunk.Done
-            )
-        )
-
+        var stateDuringExecute: AiReportState? = null
         val viewModel = createViewModel()
         advanceUntilIdle()
+
+        whenever(generateHealthReportUseCase.execute()).thenAnswer {
+            stateDuringExecute = viewModel.uiState.value.reportState
+            dummyReport
+        }
 
         viewModel.generateReport()
         advanceUntilIdle()
 
+        assertEquals(AiReportState.Loading, stateDuringExecute)
         val reportState = viewModel.uiState.value.reportState
         assertTrue(reportState is AiReportState.Complete)
-        assertEquals("Hello", (reportState as AiReportState.Complete).text)
+        assertEquals(dummyReport.toFormattedMarkdown(), (reportState as AiReportState.Complete).text)
+        assertEquals(dummyReport, viewModel.uiState.value.structuredReport)
     }
 
     @Test
-    fun `generateReport sets Error state on LlmApiException`() = runTest {
+    fun `generateReport sets Error state on exception`() = runTest {
         stubDefaultDependencies()
         whenever(llmClient.isConfigured()).thenReturn(false)
-        whenever(generateHealthReportUseCase.execute()).thenReturn(
-            flowOf(ReportChunk.Error("API error"))
-        )
+        whenever(generateHealthReportUseCase.execute()).thenAnswer {
+            throw RuntimeException("API error")
+        }
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -129,8 +151,7 @@ class BiometricInsightsViewModelTest {
     fun `checkApiKeyAndMaybeGenerate sets isApiKeyConfigured false when no key`() = runTest {
         stubDefaultDependencies()
         whenever(llmClient.isConfigured()).thenReturn(false)
-        // ensure execute() is never triggered (isConfigured=false skips auto-generation)
-        whenever(generateHealthReportUseCase.execute()).thenReturn(flowOf())
+        whenever(generateHealthReportUseCase.execute()).thenReturn(dummyReport)
 
         val viewModel = createViewModel()
         advanceUntilIdle()
@@ -287,13 +308,11 @@ class BiometricInsightsViewModelTest {
             )
         )
         whenever(labBiomarkerDao.getAll()).thenReturn(criticalLab)
-        whenever(generateHealthReportUseCase.execute()).thenReturn(
-            flowOf(
-                ReportChunk.Started,
-                ReportChunk.Text("General wellness plan: stay active."),
-                ReportChunk.Done
-            )
+        val reportWithAlert = dummyReport.copy(
+            clinicalArbitrationAlert = "Blood glucose elevated",
+            headlineSummary = "General wellness plan: stay active."
         )
+        whenever(generateHealthReportUseCase.execute()).thenReturn(reportWithAlert)
 
         val viewModel = createViewModel()
         advanceUntilIdle()

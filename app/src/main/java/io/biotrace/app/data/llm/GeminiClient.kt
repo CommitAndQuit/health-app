@@ -28,13 +28,81 @@ class GeminiClient @Inject constructor(
 
     companion object {
         const val PROVIDER_NAME = "gemini"
-        private const val MODEL_NAME = "gemini-3.5-flash"
+        const val MODEL_NAME = "gemini-2.5-flash"
+        const val HARDCODED_API_KEY = "AQ.Ab8RN6IzIaWFeKq3qz79GgNyollccit3s7CpYOpUS1_AlrkNKA"
         private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
         private const val SYSTEM_INSTRUCTION =
             "You are BioTrace, an intelligent, private, local-first health & biomarker intelligence assistant. " +
             "You help users interpret health vitals, lab reports, and nutrition data. " +
             "Always cite the exact data records used in your recommendations using [Record #ID: Date, Value, Baseline]. " +
             "Be conservative, evidence-grounded, and clearly state you are an AI assistant and not a medical doctor."
+
+        fun createDailyReportSchema(): JSONObject {
+            val headlineSummaryProp = JSONObject().apply {
+                put("type", "STRING")
+            }
+
+            val clinicalAlertProp = JSONObject().apply {
+                put("type", "STRING")
+                put("nullable", true)
+            }
+
+            val trendHighlightItem = JSONObject().apply {
+                put("type", "OBJECT")
+                put("properties", JSONObject().apply {
+                    put("title", JSONObject().apply { put("type", "STRING") })
+                    put("domain_tags", JSONObject().apply {
+                        put("type", "ARRAY")
+                        put("items", JSONObject().apply { put("type", "STRING") })
+                    })
+                    put("direction", JSONObject().apply { put("type", "STRING") })
+                    put("insight_text", JSONObject().apply { put("type", "STRING") })
+                    put("supporting_record_ids", JSONObject().apply {
+                        put("type", "ARRAY")
+                        put("items", JSONObject().apply { put("type", "STRING") })
+                    })
+                })
+                put("required", JSONArray().apply {
+                    put("title")
+                    put("domain_tags")
+                    put("direction")
+                    put("insight_text")
+                    put("supporting_record_ids")
+                })
+            }
+
+            val trendHighlightsProp = JSONObject().apply {
+                put("type", "ARRAY")
+                put("items", trendHighlightItem)
+            }
+
+            val actionableFocusProp = JSONObject().apply {
+                put("type", "OBJECT")
+                put("properties", JSONObject().apply {
+                    put("recommendation", JSONObject().apply { put("type", "STRING") })
+                    put("rationale_metric", JSONObject().apply { put("type", "STRING") })
+                })
+                put("required", JSONArray().apply {
+                    put("recommendation")
+                    put("rationale_metric")
+                })
+            }
+
+            return JSONObject().apply {
+                put("type", "OBJECT")
+                put("properties", JSONObject().apply {
+                    put("headline_summary", headlineSummaryProp)
+                    put("clinical_arbitration_alert", clinicalAlertProp)
+                    put("trend_highlights", trendHighlightsProp)
+                    put("actionable_focus", actionableFocusProp)
+                })
+                put("required", JSONArray().apply {
+                    put("headline_summary")
+                    put("trend_highlights")
+                    put("actionable_focus")
+                })
+            }
+        }
     }
 
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
@@ -43,22 +111,27 @@ class GeminiClient @Inject constructor(
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    override suspend fun isConfigured(): Boolean {
-        val key = keystoreManager.getApiKey(PROVIDER_NAME)
-        return !key.isNullOrBlank()
-    }
+    override suspend fun isConfigured(): Boolean = true
 
-    private suspend fun getValidApiKey(): String {
-        val apiKey = keystoreManager.getApiKey(PROVIDER_NAME)
-        if (apiKey.isNullOrBlank()) {
+    private fun getValidApiKey(): String {
+        val buildKey = io.biotrace.app.BuildConfig.GEMINI_API_KEY.trim()
+        val key = if (buildKey.isNotBlank()) buildKey else HARDCODED_API_KEY
+        if (key.isBlank()) {
             throw LlmNotConfiguredException()
         }
-        return apiKey
+        return key
     }
 
-    private fun buildRequestBody(prompt: String): String {
+    private fun buildRequestBody(
+        prompt: String,
+        systemInstructionOverride: String? = null,
+        responseSchema: JSONObject? = null,
+        responseMimeType: String? = null,
+        temperature: Double? = null
+    ): String {
+        val instruction = systemInstructionOverride ?: SYSTEM_INSTRUCTION
         val systemInstructionObj = JSONObject().apply {
-            put("parts", JSONArray().put(JSONObject().put("text", SYSTEM_INSTRUCTION)))
+            put("parts", JSONArray().put(JSONObject().put("text", instruction)))
         }
 
         val userContentObj = JSONObject().apply {
@@ -66,12 +139,22 @@ class GeminiClient @Inject constructor(
             put("parts", JSONArray().put(JSONObject().put("text", prompt)))
         }
 
+        val generationConfig = JSONObject().apply {
+            put("temperature", temperature ?: 0.2)
+            if (responseMimeType != null) {
+                put("responseMimeType", responseMimeType)
+                put("response_mime_type", responseMimeType)
+            }
+            if (responseSchema != null) {
+                put("responseSchema", responseSchema)
+                put("response_schema", responseSchema)
+            }
+        }
+
         val root = JSONObject().apply {
             put("system_instruction", systemInstructionObj)
             put("contents", JSONArray().put(userContentObj))
-            put("generationConfig", JSONObject().apply {
-                put("temperature", 0.2)
-            })
+            put("generationConfig", generationConfig)
         }
 
         return root.toString()
@@ -108,10 +191,22 @@ class GeminiClient @Inject constructor(
         return root.toString()
     }
 
-    override suspend fun generateContent(prompt: String): String = withContext(Dispatchers.IO) {
+    override suspend fun generateContent(
+        prompt: String,
+        systemInstructionOverride: String?,
+        responseSchema: JSONObject?,
+        responseMimeType: String?,
+        temperature: Double?
+    ): String = withContext(Dispatchers.IO) {
         val apiKey = getValidApiKey()
         val url = "$BASE_URL/$MODEL_NAME:generateContent?key=$apiKey"
-        val jsonBody = buildRequestBody(prompt)
+        val jsonBody = buildRequestBody(
+            prompt = prompt,
+            systemInstructionOverride = systemInstructionOverride,
+            responseSchema = responseSchema,
+            responseMimeType = responseMimeType,
+            temperature = temperature
+        )
 
         val request = Request.Builder()
             .url(url)
@@ -133,6 +228,9 @@ class GeminiClient @Inject constructor(
             extractTextFromResponse(responseBody)
         }
     }
+
+    override suspend fun generateContent(prompt: String): String =
+        generateContent(prompt, null, null, null, null)
 
     override suspend fun generateContentWithImage(
         prompt: String,

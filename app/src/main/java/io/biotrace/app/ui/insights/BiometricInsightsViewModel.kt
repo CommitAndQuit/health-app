@@ -30,6 +30,7 @@ import io.biotrace.app.domain.insights.arbitration.ArbitratedInsight
 import io.biotrace.app.domain.insights.arbitration.InsightArbitrator
 import io.biotrace.app.domain.llm.LlmClient
 import io.biotrace.app.domain.longevity.BiologicalAgeResult
+import io.biotrace.app.domain.model.DailyBiometricInsightReport
 import io.biotrace.app.domain.model.ProfileTriptychSummary
 import io.biotrace.app.domain.model.VitalMetricType
 import io.biotrace.app.domain.repository.VitalsRepository
@@ -92,6 +93,7 @@ data class BiometricInsightsUiState(
     val isLoading: Boolean = false,
     val isApiKeyConfigured: Boolean = false,
     val reportState: AiReportState = AiReportState.Idle,
+    val structuredReport: DailyBiometricInsightReport? = null,
     val selectedTab: InsightsTab = InsightsTab.OVERVIEW,
     val atherogenicRisk: AtherogenicRiskResult? = null,
     val metabolicRisk: MetabolicRiskResult? = null,
@@ -169,29 +171,38 @@ class BiometricInsightsViewModel @Inject constructor(
 
     fun generateReport() {
         viewModelScope.launch {
-            var buffer = ""
-            generateHealthReportUseCase.execute().collect { chunk ->
-                when (chunk) {
-                    is ReportChunk.Started -> _uiState.update { it.copy(reportState = AiReportState.Loading) }
-                    is ReportChunk.Text    -> {
-                        buffer += chunk.text
-                        _uiState.update { it.copy(reportState = AiReportState.Streaming(buffer)) }
-                    }
-                    is ReportChunk.Done    -> {
-                        lastReportDate = java.time.LocalDate.now()
-                        val arbitrated = safeInsightArbitrator.arbitrate(
-                            evaluations = _uiState.value.clinicalEvaluations,
-                            alerts = _uiState.value.activeAnomalies,
-                            rawAiReport = buffer
+            _uiState.update { it.copy(reportState = AiReportState.Loading) }
+            try {
+                val report = generateHealthReportUseCase.execute()
+                lastReportDate = java.time.LocalDate.now()
+                val arbitrated = if (report.clinicalArbitrationAlert != null) {
+                    val base = safeInsightArbitrator.arbitrate(
+                        evaluations = _uiState.value.clinicalEvaluations,
+                        alerts = _uiState.value.activeAnomalies,
+                        rawAiReport = report.toFormattedMarkdown()
+                    )
+                    if (!base.hasClinicalSafetyNotice) {
+                        base.copy(
+                            hasClinicalSafetyNotice = true,
+                            safetyNotice = report.clinicalArbitrationAlert,
+                            finalContent = "⚠️ CLINICAL SAFETY NOTICE\n${report.clinicalArbitrationAlert}\n\n${report.toFormattedMarkdown()}"
                         )
-                        _uiState.update {
-                            it.copy(
-                                reportState = AiReportState.Complete(buffer),
-                                arbitratedInsight = arbitrated
-                            )
-                        }
+                    } else {
+                        base
                     }
-                    is ReportChunk.Error   -> _uiState.update { it.copy(reportState = AiReportState.Error(chunk.message)) }
+                } else {
+                    _uiState.value.arbitratedInsight
+                }
+                _uiState.update {
+                    it.copy(
+                        reportState = AiReportState.Complete(report.toFormattedMarkdown()),
+                        structuredReport = report,
+                        arbitratedInsight = arbitrated
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(reportState = AiReportState.Error(e.message ?: "Failed to generate report"))
                 }
             }
         }

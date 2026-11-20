@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +33,8 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -59,7 +63,12 @@ import io.biotrace.app.domain.anomaly.AnomalyAlert
 import io.biotrace.app.domain.clinical.rules.ClinicalStatus
 import io.biotrace.app.domain.longevity.BiologicalAgeResult
 import io.biotrace.app.domain.longevity.LongevityDriver
+import io.biotrace.app.domain.model.ActionableFocus
+import io.biotrace.app.domain.model.DailyBiometricInsightReport
+import io.biotrace.app.domain.model.InsightDomainTag
 import io.biotrace.app.domain.model.ProfileTriptychSummary
+import io.biotrace.app.domain.model.TrendDirection
+import io.biotrace.app.domain.model.TrendHighlight
 import io.biotrace.app.ui.common.BioTraceTopBar
 import io.biotrace.app.ui.insights.AiReportState
 import io.biotrace.app.ui.insights.components.CircadianRhythmCard
@@ -441,6 +450,7 @@ fun BiometricInsightsScreen(
                                 isApiKeyConfigured = uiState.isApiKeyConfigured,
                                 onGenerateClick = { viewModel.generateReport() },
                                 onNavigateToSettings = onNavigateToSettings,
+                                structuredReport = uiState.structuredReport,
                             )
                         }
 
@@ -935,12 +945,14 @@ fun LabTriangulationInviteCard(
 // AI Health Report Card
 // =============================================================================
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AiReportCard(
     reportState: AiReportState,
     isApiKeyConfigured: Boolean,
     onGenerateClick: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    structuredReport: DailyBiometricInsightReport? = null,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -984,7 +996,7 @@ fun AiReportCard(
                             color = TextPrimary,
                         )
                         Text(
-                            text = "Powered by Gemini · gemini-3.5-flash",
+                            text = "Powered by Gemini · ${io.biotrace.app.data.llm.GeminiClient.MODEL_NAME}",
                             fontSize = 10.sp,
                             color = TextMuted,
                         )
@@ -1002,56 +1014,303 @@ fun AiReportCard(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Report content area
-            Surface(
-                color = InnerWellSurface,
-                shape = BioTraceTokens.InnerWellSmallShape,
-                border = BioTraceTokens.WellHairlineBorder,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                when (reportState) {
-                    is AiReportState.Idle -> {
+            if (reportState is AiReportState.Complete && structuredReport != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Headline Summary
+                    Surface(
+                        color = InnerWellSurface,
+                        shape = BioTraceTokens.InnerWellSmallShape,
+                        border = BioTraceTokens.WellHairlineBorder,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = BioOrangePrimary,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "HEADLINE SUMMARY",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextSecondary,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = structuredReport.headlineSummary,
+                                fontSize = 13.sp,
+                                color = TextPrimary,
+                                lineHeight = 19.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    // Trend Highlights
+                    if (structuredReport.trendHighlights.isNotEmpty()) {
                         Text(
-                            text = "Tap \u201cGenerate Report\u201d to get a personalised AI health summary based on your Health Connect data.",
-                            fontSize = 12.sp,
+                            text = "TREND HIGHLIGHTS",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
                             color = TextSecondary,
-                            lineHeight = 18.sp,
-                            modifier = Modifier.padding(14.dp),
+                            letterSpacing = 0.5.sp,
+                            modifier = Modifier.padding(top = 2.dp, start = 2.dp)
                         )
+                        structuredReport.trendHighlights.forEach { highlight ->
+                            Surface(
+                                color = InnerWellSurface,
+                                shape = BioTraceTokens.InnerWellSmallShape,
+                                border = BioTraceTokens.WellHairlineBorder,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp)
+                                ) {
+                                    // Top Row: Domain tags and Direction pill
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        // Domain tag pills
+                                        FlowRow(
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        ) {
+                                            highlight.domainTags.forEach { tag ->
+                                                val (bgColor, textColor, label) = when (tag) {
+                                                    InsightDomainTag.WEARABLE -> Triple(CobaltBlueSoftTint, CobaltBluePrimary, "WEARABLE")
+                                                    InsightDomainTag.LAB_PANEL -> Triple(EmeraldSoftTint, EmeraldPrimary, "LAB PANEL")
+                                                    InsightDomainTag.NUTRITION -> Triple(BioOrangeSoftTint, BioOrangePrimary, "NUTRITION")
+                                                    InsightDomainTag.CIRCADIAN -> Triple(IndigoSleepSoftTint, IndigoSleepPrimary, "CIRCADIAN")
+                                                }
+                                                Surface(
+                                                    color = bgColor,
+                                                    shape = BioTraceTokens.PillShape
+                                                ) {
+                                                    Text(
+                                                        text = label,
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = textColor,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(6.dp))
+
+                                        // Direction pill
+                                        val (dirBg, dirColor, dirLabel) = when (highlight.direction) {
+                                            TrendDirection.IMPROVING -> Triple(EmeraldSoftTint, EmeraldPrimary, "IMPROVING")
+                                            TrendDirection.STABLE -> Triple(CardSurface, TextSecondary, "STABLE")
+                                            TrendDirection.DRIFTING_OUT_OF_RANGE -> Triple(SolarAmberSoftTint, SolarAmberPrimary, "DRIFTING")
+                                            TrendDirection.ACUTE_STRAIN -> Triple(CoralAlertSoftTint, CoralAlertPrimary, "ACUTE STRAIN")
+                                        }
+                                        Surface(
+                                            color = dirBg,
+                                            shape = BioTraceTokens.PillShape
+                                        ) {
+                                            Text(
+                                                text = dirLabel,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = dirColor,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    // Title
+                                    Text(
+                                        text = highlight.title,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    // Insight text
+                                    Text(
+                                        text = highlight.insightText,
+                                        fontSize = 12.sp,
+                                        color = TextSecondary,
+                                        lineHeight = 17.sp
+                                    )
+
+                                    // Clickable AssistChips for supportingRecordIds
+                                    if (highlight.supportingRecordIds.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        FlowRow(
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            highlight.supportingRecordIds.forEach { recordId ->
+                                                AssistChip(
+                                                    onClick = { },
+                                                    label = {
+                                                        Text(
+                                                            text = recordId,
+                                                            fontSize = 10.sp,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    },
+                                                    colors = AssistChipDefaults.assistChipColors(
+                                                        containerColor = CardSurface,
+                                                        labelColor = TextSecondary
+                                                    ),
+                                                    border = AssistChipDefaults.assistChipBorder(
+                                                        enabled = true,
+                                                        borderColor = DividerSubtle
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                    is AiReportState.Loading -> {
-                        Text(
-                            text = "Analysing your health data…",
-                            fontSize = 12.sp,
-                            color = TextMuted,
-                            modifier = Modifier.padding(14.dp),
-                        )
+
+                    // Actionable Focus Card
+                    Surface(
+                        color = InnerWellSurface,
+                        shape = BioTraceTokens.InnerWellSmallShape,
+                        border = BioTraceTokens.WellHairlineBorder,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp)
+                        ) {
+                            Surface(
+                                color = BioOrangeSoftTint,
+                                shape = BioTraceTokens.PillShape
+                            ) {
+                                Text(
+                                    text = "ACTIONABLE FOCUS",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BioOrangePrimary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = structuredReport.actionableFocus.recommendation,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary,
+                                lineHeight = 18.sp
+                            )
+
+                            if (structuredReport.actionableFocus.rationaleMetric.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Surface(
+                                    color = CardSurface,
+                                    shape = BioTraceTokens.InnerWellSmallShape,
+                                    border = BioTraceTokens.WellHairlineBorder,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Text(
+                                            text = "RATIONALE METRIC",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextMuted,
+                                            letterSpacing = 0.5.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = structuredReport.actionableFocus.rationaleMetric,
+                                            fontSize = 11.sp,
+                                            color = TextSecondary,
+                                            lineHeight = 16.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
-                    is AiReportState.Streaming -> {
-                        Text(
-                            text = reportState.text,
-                            fontSize = 12.sp,
-                            color = TextPrimary,
-                            lineHeight = 18.sp,
-                            modifier = Modifier.padding(14.dp),
-                        )
-                    }
-                    is AiReportState.Complete -> {
-                        Text(
-                            text = reportState.text,
-                            fontSize = 12.sp,
-                            color = TextPrimary,
-                            lineHeight = 18.sp,
-                            modifier = Modifier.padding(14.dp),
-                        )
-                    }
-                    is AiReportState.Error -> {
-                        Text(
-                            text = "⚠ ${reportState.message}",
-                            fontSize = 12.sp,
-                            color = androidx.compose.ui.graphics.Color(0xFFF59E0B),
-                            lineHeight = 18.sp,
-                            modifier = Modifier.padding(14.dp),
-                        )
+                }
+            } else {
+                Surface(
+                    color = InnerWellSurface,
+                    shape = BioTraceTokens.InnerWellSmallShape,
+                    border = BioTraceTokens.WellHairlineBorder,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    when (reportState) {
+                        is AiReportState.Idle -> {
+                            Text(
+                                text = "Tap \u201cGenerate Report\u201d to get a personalised AI health summary based on your Health Connect data.",
+                                fontSize = 12.sp,
+                                color = TextSecondary,
+                                lineHeight = 18.sp,
+                                modifier = Modifier.padding(14.dp),
+                            )
+                        }
+                        is AiReportState.Loading -> {
+                            Text(
+                                text = "Analysing your health data…",
+                                fontSize = 12.sp,
+                                color = TextMuted,
+                                modifier = Modifier.padding(14.dp),
+                            )
+                        }
+                        is AiReportState.Streaming -> {
+                            Text(
+                                text = reportState.text,
+                                fontSize = 12.sp,
+                                color = TextPrimary,
+                                lineHeight = 18.sp,
+                                modifier = Modifier.padding(14.dp),
+                            )
+                        }
+                        is AiReportState.Complete -> {
+                            Text(
+                                text = reportState.text,
+                                fontSize = 12.sp,
+                                color = TextPrimary,
+                                lineHeight = 18.sp,
+                                modifier = Modifier.padding(14.dp),
+                            )
+                        }
+                        is AiReportState.Error -> {
+                            Text(
+                                text = "⚠ ${reportState.message}",
+                                fontSize = 12.sp,
+                                color = androidx.compose.ui.graphics.Color(0xFFF59E0B),
+                                lineHeight = 18.sp,
+                                modifier = Modifier.padding(14.dp),
+                            )
+                        }
                     }
                 }
             }
