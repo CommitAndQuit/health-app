@@ -29,7 +29,6 @@ class GeminiClient @Inject constructor(
     companion object {
         const val PROVIDER_NAME = "gemini"
         const val MODEL_NAME = "gemini-2.5-flash"
-        const val HARDCODED_API_KEY = "AQ.Ab8RN6IzIaWFeKq3qz79GgNyollccit3s7CpYOpUS1_AlrkNKA"
         private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
         private const val SYSTEM_INSTRUCTION =
             "You are BioTrace, an intelligent, private, local-first health & biomarker intelligence assistant. " +
@@ -111,15 +110,19 @@ class GeminiClient @Inject constructor(
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    override suspend fun isConfigured(): Boolean = true
-
-    private fun getValidApiKey(): String {
+    override suspend fun isConfigured(): Boolean {
         val buildKey = io.biotrace.app.BuildConfig.GEMINI_API_KEY.trim()
-        val key = if (buildKey.isNotBlank()) buildKey else HARDCODED_API_KEY
-        if (key.isBlank()) {
-            throw LlmNotConfiguredException()
-        }
-        return key
+        if (buildKey.isNotBlank()) return true
+        val userKey = keystoreManager.getApiKey(PROVIDER_NAME)?.trim().orEmpty()
+        return userKey.isNotBlank()
+    }
+
+    private suspend fun getValidApiKey(): String {
+        val buildKey = io.biotrace.app.BuildConfig.GEMINI_API_KEY.trim()
+        if (buildKey.isNotBlank()) return buildKey
+        val userKey = keystoreManager.getApiKey(PROVIDER_NAME)?.trim().orEmpty()
+        if (userKey.isNotBlank()) return userKey
+        throw LlmNotConfiguredException()
     }
 
     private fun buildRequestBody(

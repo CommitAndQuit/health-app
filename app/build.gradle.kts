@@ -23,12 +23,15 @@ android {
         }
 
         val envFile = rootProject.file(".env")
-        val geminiApiKey = if (envFile.exists()) {
+        val envFileKey = if (envFile.exists()) {
             val keyLine = envFile.readLines().firstOrNull { it.trim().startsWith("GEMINI_API_KEY=") }
             keyLine?.substringAfter("=")?.trim()?.removeSurrounding("\"")?.removeSurrounding("'") ?: ""
         } else {
             ""
         }
+        val envVarKey = System.getenv("GEMINI_API_KEY")?.trim().orEmpty()
+        val propKey = (project.findProperty("GEMINI_API_KEY") as? String)?.trim().orEmpty()
+        val geminiApiKey = envVarKey.ifEmpty { propKey.ifEmpty { envFileKey } }
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
